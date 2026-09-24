@@ -67,7 +67,7 @@ export default function ProductDetailPage({ params }: PageProps) {
   // Dynamic SEO Title
   useEffect(() => {
     if (product) {
-      document.title = product.metaTitle || `${product.oemNumber} ${product.title} | Beyindeposu`;
+      document.title = product.metaTitle || `${product.oemNumber} ${product.title} | Beyin Deposu`;
     }
   }, [product]);
 
@@ -386,7 +386,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                     whatsappNumber,
                     product.title,
                     product.oemNumber,
-                    `Merhaba Beyindeposu, ${product.oemNumber} kodlu (${product.title}) parça hakkında fiyat ve stok bilgisi almak istiyorum.`
+                    `Merhaba Beyin Deposu, ${product.oemNumber} kodlu (${product.title}) parça hakkında fiyat ve stok bilgisi almak istiyorum.`
                   )}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -529,7 +529,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                       whatsappNumber,
                       product.title,
                       product.oemNumber,
-                      `Merhaba Beyindeposu, şasi numaram ile ${product.oemNumber} kodlu parçanın aracıma uyumlu olup olmadığını teyit etmek istiyorum.`
+                      `Merhaba Beyin Deposu, şasi numaram ile ${product.oemNumber} kodlu parçanın aracıma uyumlu olup olmadığını teyit etmek istiyorum.`
                     )}
                     target="_blank"
                     rel="noopener noreferrer"

@@ -45,7 +45,7 @@ export default function HomePage() {
         <div className="absolute inset-0 z-0 pointer-events-none">
           <img
             src="/images/hero-bg.jpg"
-            alt="TMS Oto Elektronik"
+            alt="Beyin Deposu"
             className="w-full h-full object-cover object-right md:object-right lg:object-center select-none"
           />
           {/* Natural soft shadow on left for maximum text readability while keeping full authenticity */}

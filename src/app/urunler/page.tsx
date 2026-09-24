@@ -372,7 +372,7 @@ function ProductCatalogContent() {
                 Aradığınız parça kodunu bulamadıysanız veya uyumluluk teyidi için WhatsApp destek hattımıza doğrudan sorabilirsiniz.
               </p>
               <a
-                href={generateWhatsAppLink(whatsappNumber, undefined, undefined, "Merhaba Beyindeposu, aradığım oto elektronik parçayı web sitenizde bulamadım, yardımcı olabilir misiniz?")}
+                href={generateWhatsAppLink(whatsappNumber, undefined, undefined, "Merhaba Beyin Deposu, aradığım oto elektronik parçayı web sitenizde bulamadım, yardımcı olabilir misiniz?")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block pt-1"

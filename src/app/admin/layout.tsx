@@ -144,7 +144,7 @@ export default function AdminLayout({
           <Link href="/admin/products" className="flex items-center gap-2">
             <img
               src="/images/logo_white.png"
-              alt="Beyindeposu"
+              alt="Beyin Deposu"
               className="h-6 w-auto object-contain"
             />
             <span className="text-[10px] font-bold text-slate-300 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
@@ -208,7 +208,7 @@ export default function AdminLayout({
             >
               <img
                 src="/images/logo_white.png"
-                alt="Beyindeposu"
+                alt="Beyin Deposu"
                 className="h-7 w-auto object-contain"
               />
               <span className="text-[10px] font-bold tracking-wider text-slate-300 uppercase bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">

@@ -419,7 +419,7 @@ export default function AdminCategoriesPage() {
               <div>
                 <label className="text-[11px] text-slate-600 block mb-1">Meta Başlığı</label>
                 <Input
-                  placeholder="Motor Beyinleri (ECU) Modülleri | Beyindeposu"
+                  placeholder="Motor Beyinleri (ECU) Modülleri | Beyin Deposu"
                   value={catMetaTitle}
                   onChange={(e) => setCatMetaTitle(e.target.value)}
                   className="bg-white border-slate-200 text-xs"

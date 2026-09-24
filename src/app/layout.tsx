@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BEYINDEPOSU | Türkiye'nin Oto Elektronik Parça Merkezi",
+  title: "BEYİN DEPOSU | Türkiye'nin Oto Elektronik Parça Merkezi",
   description: "ECU (Motor Beyinleri), ABS, Airbag, BCM, BSI, SAM ve binlerce orijinal oto elektronik kontrol modülleri. Orijinal, garantili ve aynı gün kargo.",
 };
 

@@ -46,7 +46,7 @@ export default function LoginPage() {
         <Link href="/" className="inline-block">
           <img
             src="/images/logo.png"
-            alt="Beyindeposu"
+            alt="Beyin Deposu"
             className="h-10 w-auto mx-auto object-contain"
           />
         </Link>

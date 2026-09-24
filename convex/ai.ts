@@ -4,8 +4,8 @@ import { action } from "./_generated/server";
 import { api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
-const DEFAULT_GATEWAY_MODEL = process.env.TMS_AI_MODEL || "zai/glm-5.3-flash";
-const DEFAULT_GATEWAY_PROVIDER = process.env.TMS_AI_PROVIDER || "zai";
+const DEFAULT_GATEWAY_MODEL = process.env.BEYINDEPOSU_AI_MODEL || process.env.TMS_AI_MODEL || "zai/glm-5.3-flash";
+const DEFAULT_GATEWAY_PROVIDER = process.env.BEYINDEPOSU_AI_PROVIDER || process.env.TMS_AI_PROVIDER || "zai";
 const ZAI_LOW_REASONING_OPTIONS = {
   zai: {
     thinking: { type: "enabled" },
@@ -387,7 +387,7 @@ ${args.additionalHint ? `KULLANICI EK AÇIKLAMASI / DOĞRULAMA İPUCU: "${args.a
       : `${args.oemNumber} Otomotiv Parçası`;
     const resolvedMetaTitle = typeof parsed.metaTitle === "string" && parsed.metaTitle.trim()
       ? parsed.metaTitle.trim()
-      : `${args.oemNumber} Orijinal Çıkma Parça | Beyindeposu`;
+      : `${args.oemNumber} Orijinal Çıkma Parça | Beyin Deposu`;
     const resolvedMetaDescription = typeof parsed.metaDescription === "string" ? parsed.metaDescription : "";
     const resolvedMetaKeywords = typeof parsed.metaKeywords === "string" ? parsed.metaKeywords : "";
     const resolvedSlug = typeof parsed.slug === "string" && parsed.slug.trim()
