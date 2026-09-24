@@ -280,7 +280,7 @@ export default function AdminLayout({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-[11px] font-semibold text-white truncate">
-                  {viewer?.email || "admintms@routart.com"}
+                  {viewer?.email || "admin@beyindeposu.com"}
                 </div>
                 <div className="text-[10px] text-slate-400 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>

@@ -60,17 +60,17 @@ export default function LiveChatWidget() {
 
   // Initialize persistent visitor ID
   useEffect(() => {
-    let vid = localStorage.getItem("beyindeposu_visitor_id") || localStorage.getItem("tms_visitor_id");
+    let vid = localStorage.getItem("beyindeposu_visitor_id");
     if (!vid) {
       vid = "vis_" + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
       localStorage.setItem("beyindeposu_visitor_id", vid);
     }
     setVisitorId(vid);
 
-    const savedName = localStorage.getItem("beyindeposu_visitor_name") || localStorage.getItem("tms_visitor_name");
+    const savedName = localStorage.getItem("beyindeposu_visitor_name");
     if (savedName) setVisitorName(savedName);
 
-    const savedPhone = localStorage.getItem("beyindeposu_visitor_phone") || localStorage.getItem("tms_visitor_phone");
+    const savedPhone = localStorage.getItem("beyindeposu_visitor_phone");
     if (savedPhone) setVisitorPhone(savedPhone);
   }, []);
 
