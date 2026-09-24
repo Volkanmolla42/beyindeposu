@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --primary: 217.2 91.2% 52.8%;
+    --primary-foreground: 210 40% 98%;
+  }
+}
+
+body {
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Precise high-tech circuit background for hero */
+.hero-circuit-bg {
+  background-color: #050b14;
+  background-image: 
+    radial-gradient(circle at 75% 40%, rgba(0, 102, 255, 0.18) 0%, transparent 50%),
+    radial-gradient(circle at 20% 80%, rgba(0, 210, 255, 0.08) 0%, transparent 40%),
+    linear-gradient(to right, rgba(0, 102, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 102, 255, 0.06) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+}
+
+.search-box-dark {
+  background: #091322;
+  border: 1px solid rgba(0, 102, 255, 0.25);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.6), 0 0 30px -10px rgba(0, 102, 255, 0.25);
+}
+
+.product-card-clean {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease-in-out;
+}
+
+.product-card-clean:hover {
+  border-color: #93c5fd;
+  box-shadow: 0 10px 25px -5px rgba(0, 102, 255, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
