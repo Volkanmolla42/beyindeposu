@@ -1,37 +1,26 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
+import { Doc } from "./_generated/dataModel";
+import { QueryCtx } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 
-// Helper to resolve product image URLs from storage IDs
-async function resolveProductImages(ctx: any, p: Doc<"products">) {
-  let images = p.images || [];
-
-  if (p.imageStorageIds && p.imageStorageIds.length > 0) {
-    const resolvedUrls = await Promise.all(
-      p.imageStorageIds.map(async (storageId) => await ctx.storage.getUrl(storageId))
-    );
-    const validUrls = resolvedUrls.filter((url): url is string => Boolean(url));
-    if (validUrls.length > 0) {
-      images = validUrls;
-    }
-  }
-
+async function resolveProductWithCategory(ctx: QueryCtx, p: Doc<"products">) {
+  const { imageStorageIds: legacyImageStorageIds, ...product } = p;
+  void legacyImageStorageIds;
   const cat = p.categoryId
-    ? ((await ctx.db.get(p.categoryId as Id<"categories">)) as Doc<"categories"> | null)
+    ? await ctx.db.get(p.categoryId)
     : null;
 
   return {
-    ...p,
-    images,
+    ...product,
     categoryName: cat?.name || "Oto Elektronik",
     categorySlug: cat?.slug || "diger",
     category: cat ? { _id: cat._id, name: cat.name, slug: cat.slug } : null,
   };
 }
 
-async function resolvePublicProductImages(ctx: any, p: Doc<"products">) {
-  const resolvedProduct = await resolveProductImages(ctx, p);
+async function resolvePublicProduct(ctx: QueryCtx, p: Doc<"products">) {
+  const resolvedProduct = await resolveProductWithCategory(ctx, p);
   const publicProduct = { ...resolvedProduct };
 
   // Raf ve inceleme alanları depo/admin metadatasıdır; public API'den çıkarılır.
@@ -104,7 +93,7 @@ export const listPaginated = query({
     }
 
     const resolvedPage = await Promise.all(
-      paginated.page.map((p) => resolvePublicProductImages(ctx, p))
+      paginated.page.map((p) => resolvePublicProduct(ctx, p))
     );
 
     return {
@@ -221,7 +210,7 @@ export const getProductsPage = query({
     const pageItems = filtered.slice(startIndex, startIndex + pageSize);
 
     const resolvedItems = await Promise.all(
-      pageItems.map((p) => resolveProductImages(ctx, p))
+      pageItems.map((p) => resolveProductWithCategory(ctx, p))
     );
 
     return {
@@ -323,7 +312,7 @@ export const list = query({
       });
     }
 
-    return await Promise.all(filtered.map((p) => resolvePublicProductImages(ctx, p)));
+    return await Promise.all(filtered.map((p) => resolvePublicProduct(ctx, p)));
   },
 });
 
@@ -334,7 +323,7 @@ export const getFeatured = query({
       .query("products")
       .take(args.limit ?? 12);
 
-    return await Promise.all(items.map((p) => resolvePublicProductImages(ctx, p)));
+    return await Promise.all(items.map((p) => resolvePublicProduct(ctx, p)));
   },
 });
 
@@ -348,7 +337,7 @@ export const getBySlug = query({
 
     if (!product) return null;
 
-    return await resolvePublicProductImages(ctx, product);
+    return await resolvePublicProduct(ctx, product);
   },
 });
 
@@ -362,7 +351,7 @@ export const getByOem = query({
       return pOem.includes(cleanOem) || p.title.toLowerCase().includes(cleanOem);
     });
 
-    return await Promise.all(matched.map((p) => resolvePublicProductImages(ctx, p)));
+    return await Promise.all(matched.map((p) => resolvePublicProduct(ctx, p)));
   },
 });
 
@@ -394,7 +383,7 @@ export const search = query({
       })
       .slice(0, args.limit ?? 10);
 
-    return await Promise.all(filtered.map((p) => resolvePublicProductImages(ctx, p)));
+    return await Promise.all(filtered.map((p) => resolvePublicProduct(ctx, p)));
   },
 });
 
@@ -411,7 +400,6 @@ export const create = mutation({
     inStock: v.boolean(),
     description: v.string(),
     images: v.array(v.string()),
-    imageStorageIds: v.optional(v.array(v.id("_storage"))),
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
     metaKeywords: v.optional(v.string()),
@@ -463,7 +451,6 @@ export const update = mutation({
     inStock: v.boolean(),
     description: v.string(),
     images: v.array(v.string()),
-    imageStorageIds: v.optional(v.array(v.id("_storage"))),
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
     metaKeywords: v.optional(v.string()),
@@ -513,6 +500,7 @@ export const deleteProduct = mutation({
   args: { id: v.id("products") },
   handler: async (ctx, args) => {
     const product = await ctx.db.get(args.id);
+    // Remove Convex Storage assets left by legacy product records.
     if (product && product.imageStorageIds) {
       for (const storageId of product.imageStorageIds) {
         await ctx.storage.delete(storageId);

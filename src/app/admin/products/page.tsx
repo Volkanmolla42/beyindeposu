@@ -163,9 +163,6 @@ export default function AdminProductsPage() {
   };
   // Hover preview (floating near cursor)
   const [hoverPreview, setHoverPreview] = useState<{ src: string; x: number; y: number } | null>(null);
-  // Sadece eski kayıtların Convex Storage görsellerini korumak için kullanılır.
-  // Yeni yüklemelerde URL'ler aapaneldeki statik ürün klasörüne yazılır.
-  const [legacyImageStorageIds, setLegacyImageStorageIds] = useState<Id<"_storage">[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
@@ -224,7 +221,6 @@ export default function AdminProductsPage() {
     setPreviewImages([]);
     setSelectedFormImageIndex(0);
     resetFormImageZoom();
-    setLegacyImageStorageIds([]);
     setMetaTitle("");
     setMetaDescription("");
     setMetaKeywords("");
@@ -240,13 +236,6 @@ export default function AdminProductsPage() {
   const handleSetCoverImage = (indexToCover: number) => {
     if (indexToCover <= 0 || indexToCover >= previewImages.length) return;
     setPreviewImages((prev) => {
-      const copy = [...prev];
-      const [item] = copy.splice(indexToCover, 1);
-      copy.unshift(item);
-      return copy;
-    });
-    setLegacyImageStorageIds((prev) => {
-      if (!prev || prev.length <= indexToCover) return prev;
       const copy = [...prev];
       const [item] = copy.splice(indexToCover, 1);
       copy.unshift(item);
@@ -280,7 +269,6 @@ export default function AdminProductsPage() {
     setPreviewImages(p.images || []);
     setSelectedFormImageIndex(0);
     resetFormImageZoom();
-    setLegacyImageStorageIds(p.imageStorageIds || []);
     setMetaTitle(p.metaTitle || "");
     setMetaDescription(p.metaDescription || "");
     setMetaKeywords(p.metaKeywords || "");
@@ -378,8 +366,6 @@ export default function AdminProductsPage() {
         uploadedUrls.push(payload.url);
       }
       if (uploadedUrls.length > 0) {
-        // Yeni bir yerel görsel eklenirse, eski signed Convex URL'leri önceliği kaybeder.
-        setLegacyImageStorageIds([]);
         setPreviewImages((prev) => [...prev, ...uploadedUrls]);
       }
     } catch (err) {
@@ -430,7 +416,6 @@ export default function AdminProductsPage() {
       inStock,
       description: description || `${title} orijinal oto elektronik parça.`,
       images,
-      imageStorageIds: legacyImageStorageIds.length > 0 ? legacyImageStorageIds : undefined,
       metaTitle: metaTitle.trim() || undefined,
       metaDescription: metaDescription.trim() || undefined,
       metaKeywords: metaKeywords.trim() || undefined,
@@ -488,7 +473,6 @@ export default function AdminProductsPage() {
         inStock: product.inStock,
         description: product.description,
         images: product.images || [],
-        imageStorageIds: product.imageStorageIds || undefined,
         metaTitle: product.metaTitle || undefined,
         metaDescription: product.metaDescription || undefined,
         metaKeywords: product.metaKeywords || undefined,
@@ -527,12 +511,6 @@ export default function AdminProductsPage() {
       const [chosenImage] = currentImages.splice(lightbox.index, 1);
       currentImages.unshift(chosenImage);
 
-      let updatedStorageIds = product.imageStorageIds ? [...product.imageStorageIds] : undefined;
-      if (updatedStorageIds && updatedStorageIds.length > lightbox.index) {
-        const [chosenStorageId] = updatedStorageIds.splice(lightbox.index, 1);
-        updatedStorageIds.unshift(chosenStorageId);
-      }
-
       await updateProduct({
         id: product._id,
         title: product.title,
@@ -546,7 +524,6 @@ export default function AdminProductsPage() {
         inStock: product.inStock,
         description: product.description,
         images: currentImages,
-        imageStorageIds: updatedStorageIds,
         metaTitle: product.metaTitle || undefined,
         metaDescription: product.metaDescription || undefined,
         metaKeywords: product.metaKeywords || undefined,
@@ -562,7 +539,6 @@ export default function AdminProductsPage() {
           product: {
             ...current.product,
             images: currentImages,
-            imageStorageIds: updatedStorageIds,
           },
         };
       });
@@ -607,7 +583,6 @@ export default function AdminProductsPage() {
       setInStock(product.inStock);
       setDescription(generated.description || product.description);
       setPreviewImages(product.images || []);
-      setLegacyImageStorageIds(product.imageStorageIds || []);
       setMetaTitle(generated.metaTitle || product.metaTitle || "");
       setMetaDescription(generated.metaDescription || product.metaDescription || "");
       setMetaKeywords(generated.metaKeywords || product.metaKeywords || "");
@@ -1116,7 +1091,6 @@ export default function AdminProductsPage() {
                         type="button"
                         onClick={() => {
                           setPreviewImages((prev) => prev.filter((_, index) => index !== i));
-                          setLegacyImageStorageIds((prev) => prev.filter((_, index) => index !== i));
                           setSelectedFormImageIndex((current) => Math.max(0, Math.min(current, previewImages.length - 2)));
                           resetFormImageZoom();
                         }}

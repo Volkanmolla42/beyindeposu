@@ -50,7 +50,6 @@ function updateArguments(product, shelfCode) {
     inStock: product.inStock,
     description: product.description,
     images: product.images,
-    imageStorageIds: product.imageStorageIds,
     metaTitle: product.metaTitle,
     metaDescription: product.metaDescription,
     metaKeywords: product.metaKeywords,

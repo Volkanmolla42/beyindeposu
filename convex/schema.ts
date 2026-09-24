@@ -50,7 +50,7 @@ export default defineSchema({
     inStock: v.boolean(), // Stok Durumu: true / false
     description: v.string(), // Detaylı Ürün Açıklaması & Kullanım Alanları
     images: v.array(v.string()), // Ürün Görselleri (Çözümlenmiş URL'ler)
-    imageStorageIds: v.optional(v.array(v.id("_storage"))), // Convex Storage Görsel ID Listesi
+    imageStorageIds: v.optional(v.array(v.id("_storage"))), // Eski kayıtlarla uyumluluk; görüntüleme/yüklemede kullanılmaz
 
     // SEO & Meta Alanları
     metaTitle: v.optional(v.string()), // Meta Başlığı
