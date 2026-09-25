@@ -9,7 +9,7 @@ import LiveChatWidget from "@/components/LiveChatWidget";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 
-const GA_MEASUREMENT_ID = "G-TM4CBE5R5V";
+const GA_MEASUREMENT_ID = "G-K1QH76J0XM";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
