@@ -131,7 +131,8 @@ export default function AdminChatsPage() {
             <div className="flex items-center gap-1 p-0.5 bg-slate-200/70 rounded-lg text-xs">
               <button
                 onClick={() => setChatStatusFilter("active")}
-                className={`flex-1 py-1 font-semibold rounded-md transition-colors cursor-pointer ${chatStatusFilter === "active"
+                aria-pressed={chatStatusFilter === "active"}
+                className={`flex-1 min-h-11 py-2 md:min-h-0 md:py-1 font-semibold rounded-md transition-colors cursor-pointer ${chatStatusFilter === "active"
                   ? "bg-white text-slate-900 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
                   }`}
@@ -140,7 +141,8 @@ export default function AdminChatsPage() {
               </button>
               <button
                 onClick={() => setChatStatusFilter("closed")}
-                className={`flex-1 py-1 font-semibold rounded-md transition-colors cursor-pointer ${chatStatusFilter === "closed"
+                aria-pressed={chatStatusFilter === "closed"}
+                className={`flex-1 min-h-11 py-2 md:min-h-0 md:py-1 font-semibold rounded-md transition-colors cursor-pointer ${chatStatusFilter === "closed"
                   ? "bg-white text-slate-900 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
                   }`}
@@ -149,7 +151,8 @@ export default function AdminChatsPage() {
               </button>
               <button
                 onClick={() => setChatStatusFilter("all")}
-                className={`flex-1 py-1 font-semibold rounded-md transition-colors cursor-pointer ${chatStatusFilter === "all"
+                aria-pressed={chatStatusFilter === "all"}
+                className={`flex-1 min-h-11 py-2 md:min-h-0 md:py-1 font-semibold rounded-md transition-colors cursor-pointer ${chatStatusFilter === "all"
                   ? "bg-white text-slate-900 shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
                   }`}
@@ -161,10 +164,11 @@ export default function AdminChatsPage() {
             <div className="relative">
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
               <Input
+                aria-label="Ziyaretçi adı veya telefon ara"
                 placeholder="Ziyaretçi adı veya telefon ara..."
                 value={chatSearch}
                 onChange={(e) => setChatSearch(e.target.value)}
-                className="pl-8 bg-white border-slate-200 text-slate-900 text-xs h-8 rounded-md"
+                className="pl-8 bg-white border-slate-200 text-slate-900 text-xs h-11 md:h-8 rounded-md"
               />
             </div>
           </div>
@@ -280,7 +284,7 @@ export default function AdminChatsPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => handleCloseChat(selectedConversation._id)}
-                      className="border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium h-7 gap-1"
+                      className="border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium h-11 min-w-11 md:h-7 md:min-w-0 gap-1"
                     >
                       <PowerOff className="w-3 h-3 text-slate-500" />
                       <span>Kapat</span>
@@ -291,8 +295,9 @@ export default function AdminChatsPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => handleDeleteChat(selectedConversation._id)}
-                    className="border-slate-200 hover:bg-red-50 text-red-600 text-xs font-medium h-7 p-1.5"
+                    className="border-slate-200 hover:bg-red-50 text-red-600 text-xs font-medium h-11 w-11 md:h-7 md:w-7 p-0 md:p-1.5"
                     title="Sil"
+                    aria-label="Sohbeti sil"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
@@ -356,7 +361,7 @@ export default function AdminChatsPage() {
                             : "bg-white text-slate-900 rounded-bl-xs border border-slate-200 shadow-xs"
                             }`}
                         >
-                          <p className="whitespace-pre-wrap">{msg.text}</p>
+                          <p className="whitespace-pre-wrap break-words">{msg.text}</p>
                         </div>
                         <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono mt-1 px-1">
                           <span>{timeStr}</span>
@@ -381,16 +386,17 @@ export default function AdminChatsPage() {
                 className="p-3 border-t border-slate-200 bg-white flex items-center gap-2"
               >
                 <Input
+                  aria-label="Müşteriye yanıt yazın"
                   placeholder="Müşteriye yanıt yazın..."
                   value={adminMessageInput}
                   onChange={(e) => setAdminMessageInput(e.target.value)}
-                  className="bg-white border-slate-200 text-slate-900 text-xs h-9 rounded-lg"
-                  autoFocus
+                  className="bg-white border-slate-200 text-slate-900 text-xs h-11 md:h-9 rounded-lg"
                 />
                 <Button
                   type="submit"
                   disabled={!adminMessageInput.trim()}
-                  className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-4 rounded-lg cursor-pointer shrink-0"
+                  aria-label="Mesajı gönder"
+                  className="bg-blue-600 hover:bg-blue-700 text-white h-11 w-11 md:h-9 md:w-auto px-0 md:px-4 rounded-lg cursor-pointer shrink-0"
                 >
                   <Send className="w-4 h-4" />
                 </Button>

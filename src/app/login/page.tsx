@@ -47,7 +47,7 @@ export default function LoginPage() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <Link href="/" className="inline-block">
           <img
-            src="/images/logo.png"
+            src="/images/logo.webp"
             alt="Beyin Deposu"
             className="h-10 w-auto mx-auto object-contain"
           />

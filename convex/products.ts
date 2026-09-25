@@ -23,13 +23,9 @@ async function resolvePublicProduct(ctx: QueryCtx, p: Doc<"products">) {
   const resolvedProduct = await resolveProductWithCategory(ctx, p);
   const publicProduct = { ...resolvedProduct };
 
-  // Raf ve inceleme alanları depo/admin metadatasıdır; public API'den çıkarılır.
+  // Raf ve taslak durumu admin alanlarıdır.
   delete publicProduct.shelfCode;
-  delete publicProduct.needsReview;
-  delete publicProduct.reviewReason;
-  delete publicProduct.oemSource;
-  delete publicProduct.visibleOemNumber;
-  delete publicProduct.reviewCodes;
+  delete publicProduct.isDraft;
 
   if (publicProduct.tags && p.shelfCode) {
     const shelfToken = p.shelfCode.replace(/[^a-z0-9]/gi, "").toLowerCase();
@@ -58,6 +54,7 @@ export const listPaginated = query({
       paginated = await ctx.db
         .query("products")
         .withIndex("by_categoryId", (idx) => idx.eq("categoryId", args.categoryId!))
+        .filter((q) => q.neq(q.field("isDraft"), true))
         .order("desc")
         .paginate(args.paginationOpts);
     } else if (args.categorySlug) {
@@ -70,11 +67,13 @@ export const listPaginated = query({
         paginated = await ctx.db
           .query("products")
           .withIndex("by_categoryId", (idx) => idx.eq("categoryId", category._id))
+          .filter((q) => q.neq(q.field("isDraft"), true))
           .order("desc")
           .paginate(args.paginationOpts);
       } else {
         paginated = await ctx.db
           .query("products")
+          .filter((q) => q.neq(q.field("isDraft"), true))
           .order("desc")
           .paginate(args.paginationOpts);
       }
@@ -82,12 +81,13 @@ export const listPaginated = query({
       paginated = await ctx.db
         .query("products")
         .withIndex("by_brand", (idx) => idx.eq("brand", args.brand!))
+        .filter((q) => q.neq(q.field("isDraft"), true))
         .order("desc")
         .paginate(args.paginationOpts);
     } else {
       paginated = await ctx.db
         .query("products")
-        .withIndex("by_needsReview", (idx) => idx.eq("needsReview", false))
+        .filter((q) => q.neq(q.field("isDraft"), true))
         .order("desc")
         .paginate(args.paginationOpts);
     }
@@ -114,8 +114,7 @@ export const getProductsPage = query({
     inStockOnly: v.optional(v.boolean()),
     searchTerm: v.optional(v.string()),
     sortBy: v.optional(v.string()),
-    includeReview: v.optional(v.boolean()),
-    onlyReview: v.optional(v.boolean()),
+    draftStatus: v.optional(v.union(v.literal("all"), v.literal("draft"), v.literal("published"))),
   },
   handler: async (ctx, args) => {
     const page = Math.max(1, args.page || 1);
@@ -157,11 +156,9 @@ export const getProductsPage = query({
         .collect();
     }
 
-    // Review status filtering
-    if (args.onlyReview) {
-      items = items.filter((p) => p.needsReview === true);
-    } else if (!args.includeReview) {
-      items = items.filter((p) => p.needsReview !== true);
+    const draftStatus = args.draftStatus ?? "published";
+    if (draftStatus !== "all") {
+      items = items.filter((p) => draftStatus === "draft" ? p.isDraft === true : p.isDraft !== true);
     }
 
     // Filter in memory for condition, inStock, and search term
@@ -182,8 +179,7 @@ export const getProductsPage = query({
         const oemMatch = p.oemNumber.toLowerCase().includes(term);
         const shelfMatch = (p.shelfCode || "").toLowerCase().includes(term);
         const tagMatch = (p.tags || []).some((t) => t.toLowerCase().includes(term));
-        const reviewCodeMatch = (p.reviewCodes || []).some((candidate) => candidate.code.toLowerCase().includes(term));
-        return titleMatch || oemMatch || shelfMatch || tagMatch || reviewCodeMatch;
+        return titleMatch || oemMatch || shelfMatch || tagMatch;
       });
     }
 
@@ -227,7 +223,7 @@ export const getTotalCount = query({
   args: {},
   handler: async (ctx) => {
     const products = await ctx.db.query("products").collect();
-    return products.filter((p) => p.needsReview !== true).length;
+    return products.filter((p) => p.isDraft !== true).length;
   },
 });
 
@@ -248,6 +244,7 @@ export const list = query({
       items = await ctx.db
         .query("products")
         .withIndex("by_categoryId", (q) => q.eq("categoryId", args.categoryId!))
+        .filter((q) => q.neq(q.field("isDraft"), true))
         .take(args.limit ?? 200);
     } else if (args.categorySlug) {
       const category = await ctx.db
@@ -259,6 +256,7 @@ export const list = query({
         items = await ctx.db
           .query("products")
           .withIndex("by_categoryId", (q) => q.eq("categoryId", category._id))
+          .filter((q) => q.neq(q.field("isDraft"), true))
           .take(args.limit ?? 200);
       } else {
         items = [];
@@ -267,9 +265,13 @@ export const list = query({
       items = await ctx.db
         .query("products")
         .withIndex("by_brand", (q) => q.eq("brand", args.brand!))
+        .filter((q) => q.neq(q.field("isDraft"), true))
         .take(args.limit ?? 200);
     } else {
-      items = await ctx.db.query("products").take(args.limit ?? 300);
+      items = await ctx.db
+        .query("products")
+        .filter((q) => q.neq(q.field("isDraft"), true))
+        .take(args.limit ?? 300);
     }
 
     let filtered = items;
@@ -321,6 +323,7 @@ export const getFeatured = query({
   handler: async (ctx, args) => {
     const items = await ctx.db
       .query("products")
+      .filter((q) => q.neq(q.field("isDraft"), true))
       .take(args.limit ?? 12);
 
     return await Promise.all(items.map((p) => resolvePublicProduct(ctx, p)));
@@ -335,7 +338,7 @@ export const getBySlug = query({
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
 
-    if (!product) return null;
+    if (!product || product.isDraft === true) return null;
 
     return await resolvePublicProduct(ctx, product);
   },
@@ -345,7 +348,7 @@ export const getByOem = query({
   args: { oemNumber: v.string() },
   handler: async (ctx, args) => {
     const cleanOem = args.oemNumber.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-    const all = await ctx.db.query("products").take(200);
+    const all = await ctx.db.query("products").filter((q) => q.neq(q.field("isDraft"), true)).take(200);
     const matched = all.filter((p) => {
       const pOem = p.oemNumber.toLowerCase().replace(/[^a-z0-9]/g, "");
       return pOem.includes(cleanOem) || p.title.toLowerCase().includes(cleanOem);
@@ -365,7 +368,7 @@ export const search = query({
     if (!term) return [];
     const cleanTerm = term.replace(/[^a-z0-9]/g, "");
 
-    const all = await ctx.db.query("products").take(200);
+    const all = await ctx.db.query("products").filter((q) => q.neq(q.field("isDraft"), true)).take(200);
     const filtered = all
       .filter((p) => {
         const oemClean = p.oemNumber.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -404,36 +407,72 @@ export const create = mutation({
     metaDescription: v.optional(v.string()),
     metaKeywords: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
-    needsReview: v.optional(v.boolean()),
-    reviewReason: v.optional(v.string()),
-    oemSource: v.optional(v.union(
-      v.literal("image"),
-      v.literal("web"),
-      v.literal("manual"),
-      v.literal("unresolved")
-    )),
-    visibleOemNumber: v.optional(v.string()),
-    reviewCodes: v.optional(v.array(v.object({
-      code: v.string(),
-      kind: v.union(v.literal("oem_candidate"), v.literal("secondary_code")),
-      source: v.optional(v.union(
-        v.literal("image"),
-        v.literal("web"),
-        v.literal("manual"),
-        v.literal("unresolved")
-      )),
-      confidence: v.optional(v.number()),
-      evidence: v.optional(v.string()),
-    }))),
+    isDraft: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("products", {
       ...args,
-      needsReview: args.needsReview ?? false,
+      isDraft: args.isDraft ?? true,
       createdAt: now,
       updatedAt: now,
     });
+  },
+});
+
+export const createDraftBatch = mutation({
+  args: {
+    products: v.array(v.object({
+      shelfCode: v.optional(v.string()),
+      images: v.array(v.string()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    let created = 0;
+    let skipped = 0;
+
+    for (const [index, product] of args.products.entries()) {
+      if (product.images.length === 0) {
+        skipped += 1;
+        continue;
+      }
+
+      const shelfCode = product.shelfCode?.trim() || undefined;
+      if (shelfCode) {
+        const existing = await ctx.db
+          .query("products")
+          .withIndex("by_shelfCode", (q) => q.eq("shelfCode", shelfCode))
+          .first();
+        if (existing) {
+          skipped += 1;
+          continue;
+        }
+      }
+
+      const codeSlug = (shelfCode || `urun-${index + 1}`)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+
+      await ctx.db.insert("products", {
+        title: "",
+        slug: `taslak-${codeSlug}-${now}-${index}`,
+        oemNumber: "",
+        shelfCode,
+        brand: "",
+        condition: "",
+        inStock: false,
+        description: "",
+        images: product.images,
+        isDraft: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+      created += 1;
+    }
+
+    return { created, skipped };
   },
 });
 
@@ -444,7 +483,7 @@ export const update = mutation({
     slug: v.string(),
     oemNumber: v.string(),
     shelfCode: v.optional(v.string()),
-    categoryId: v.id("categories"),
+    categoryId: v.optional(v.id("categories")),
     brand: v.string(),
     model: v.optional(v.string()),
     condition: v.string(),
@@ -455,27 +494,7 @@ export const update = mutation({
     metaDescription: v.optional(v.string()),
     metaKeywords: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
-    needsReview: v.optional(v.boolean()),
-    reviewReason: v.optional(v.string()),
-    oemSource: v.optional(v.union(
-      v.literal("image"),
-      v.literal("web"),
-      v.literal("manual"),
-      v.literal("unresolved")
-    )),
-    visibleOemNumber: v.optional(v.string()),
-    reviewCodes: v.optional(v.array(v.object({
-      code: v.string(),
-      kind: v.union(v.literal("oem_candidate"), v.literal("secondary_code")),
-      source: v.optional(v.union(
-        v.literal("image"),
-        v.literal("web"),
-        v.literal("manual"),
-        v.literal("unresolved")
-      )),
-      confidence: v.optional(v.number()),
-      evidence: v.optional(v.string()),
-    }))),
+    isDraft: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;

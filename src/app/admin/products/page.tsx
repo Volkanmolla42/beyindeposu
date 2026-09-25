@@ -3,7 +3,6 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
-  Package,
   Plus,
   Search,
   Edit2,
@@ -12,7 +11,6 @@ import {
   ImageIcon,
   Upload,
   X,
-  Check,
   Loader2,
   Eye,
   SlidersHorizontal,
@@ -22,13 +20,12 @@ import {
   ChevronsRight,
   AlertTriangle,
   CheckCircle2,
-  Globe,
   Sparkles,
   Star,
 } from "lucide-react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { Doc, Id } from "../../../../convex/_generated/dataModel";
+import { Id } from "../../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,30 +38,97 @@ import {
 } from "@/components/ui/dialog";
 import { slugify } from "../admin-utils";
 
-type LightboxProduct = Doc<"products">;
-type OemSource = "image" | "web" | "manual" | "unresolved";
-type ReviewCode = {
-  code: string;
-  kind: "oem_candidate" | "secondary_code";
-  source?: OemSource;
-  confidence?: number;
+type FolderProductGroup = {
+  key: string;
+  shelfCode?: string;
+  files: File[];
+  uploadedUrls: string[];
 };
 
-const buildGoogleAiSearchUrl = (code: string) =>
-  `https://www.google.com/search?q=${encodeURIComponent(`"${code}" kodu nedir? hangi ürüne aittir? görsellerini göster`)}&udm=50`;
+type FolderUploadProgress = {
+  stage: "uploading" | "done" | "error";
+  totalProducts: number;
+  completedProducts: number;
+  totalImages: number;
+  uploadedImages: number;
+  skippedProducts: number;
+  error?: string;
+};
+
+function groupFolderImages(files: File[]): FolderProductGroup[] {
+  const byDirectory = new Map<string, { file: File; stem: string }[]>();
+
+  for (const file of files) {
+    if (!/\.(jpe?g|png|webp|avif)$/i.test(file.name)) continue;
+
+    const pathParts = (file.webkitRelativePath || file.name).split(/[\\/]/).filter(Boolean);
+    const fileName = pathParts[pathParts.length - 1] || file.name;
+    const directoryParts = pathParts.length > 1 ? pathParts.slice(1, -1) : [];
+    const directory = directoryParts.join("/");
+    let stem = fileName;
+    while (/\.(jpe?g|png|webp|avif)$/i.test(stem)) {
+      stem = stem.replace(/\.(jpe?g|png|webp|avif)$/i, "");
+    }
+    stem = stem.replace(/_resized$/i, "");
+    const siblings = byDirectory.get(directory) || [];
+    siblings.push({ file, stem });
+    byDirectory.set(directory, siblings);
+  }
+
+  const groups = new Map<string, FolderProductGroup>();
+  const collator = new Intl.Collator("tr", { numeric: true, sensitivity: "base" });
+
+  for (const [directory, siblings] of byDirectory) {
+    const directoryParts = directory.split("/").filter(Boolean);
+    const folderName = directoryParts[directoryParts.length - 1] || "";
+    const isCodeFolder = /^(?=.*\d)[a-z0-9]+(?:[._-][a-z0-9]+)+$/i.test(folderName);
+    const isProductFolder = isCodeFolder && siblings.every(
+      ({ stem }) => stem.replace(/[._ -]\d+$/, "") === folderName
+    );
+    const variantCounts = new Map<string, number>();
+    for (const { stem } of siblings) {
+      const base = stem.replace(/[._ -]\d+$/, "");
+      if (base !== stem) variantCounts.set(base, (variantCounts.get(base) || 0) + 1);
+    }
+
+    for (const { file, stem } of siblings) {
+      const base = stem.replace(/[._ -]\d+$/, "");
+      const productCode = isProductFolder
+        ? folderName
+        : base !== stem && (variantCounts.get(base) || 0) > 1
+          ? base
+          : stem;
+      const key = directory ? `${directory}/${productCode}` : productCode;
+      const group = groups.get(key) || {
+        key,
+        shelfCode: /\d/.test(productCode) ? productCode : undefined,
+        files: [],
+        uploadedUrls: [],
+      };
+      group.files.push(file);
+      groups.set(key, group);
+    }
+  }
+
+  for (const group of groups.values()) {
+    group.files.sort((a, b) => collator.compare(a.name, b.name));
+  }
+
+  return Array.from(groups.values()).sort((a, b) => collator.compare(a.key, b.key));
+}
 
 export default function AdminProductsPage() {
   const [searchProduct, setSearchProduct] = useState("");
   const [selectedBrandFilter, setSelectedBrandFilter] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("");
-  const [reviewFilter, setReviewFilter] = useState<"all" | "verified" | "review">("all");
+  const [draftStatus, setDraftStatus] = useState<"all" | "draft" | "published">("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(25);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchProduct, selectedBrandFilter, selectedCategoryFilter, reviewFilter, pageSize]);
+  }, [searchProduct, selectedBrandFilter, selectedCategoryFilter, draftStatus, pageSize]);
 
   // Product Modals & Form State
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
@@ -73,7 +137,7 @@ export default function AdminProductsPage() {
   const [slug, setSlug] = useState("");
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [oemNumber, setOemNumber] = useState("");
-  const [oemSource, setOemSource] = useState<OemSource>("manual");
+  const [isDraft, setIsDraft] = useState(true);
   const [shelfCode, setShelfCode] = useState("");
   const [brand, setBrand] = useState("Genel Uyumlu");
   const [model, setModel] = useState("");
@@ -85,25 +149,16 @@ export default function AdminProductsPage() {
   const [selectedFormImageIndex, setSelectedFormImageIndex] = useState(0);
   const [formImageZoom, setFormImageZoom] = useState(1);
   const [formImageZoomOrigin, setFormImageZoomOrigin] = useState("center center");
-  // Lightbox: ürün tablosundan açıldığında hızlı OEM düzenlemesi için ürünü de taşır.
-  const [lightbox, setLightbox] = useState<{ images: string[]; index: number; product?: LightboxProduct } | null>(null);
-  const [lightboxOemNumber, setLightboxOemNumber] = useState("");
-  const [lightboxOemStatus, setLightboxOemStatus] = useState<"" | "saved" | "generated" | "error">("");
-  const [savingLightboxOem, setSavingLightboxOem] = useState(false);
-  const [generatingLightboxOem, setGeneratingLightboxOem] = useState(false);
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [lightboxZoomOrigin, setLightboxZoomOrigin] = useState("center center");
-  const openLightbox = (images: string[], index = 0, product?: LightboxProduct) => {
-    setLightbox({ images, index, product });
-    setLightboxOemNumber(product?.oemNumber || "");
-    setLightboxOemStatus("");
+  const openLightbox = (images: string[], index = 0) => {
+    setLightbox({ images, index });
     setLightboxZoom(1);
     setLightboxZoomOrigin("center center");
   };
   const closeLightbox = () => {
     setLightbox(null);
-    setLightboxOemNumber("");
-    setLightboxOemStatus("");
     setLightboxZoom(1);
     setLightboxZoomOrigin("center center");
   };
@@ -171,14 +226,14 @@ export default function AdminProductsPage() {
 
   // AI Auto-Fill State
   const [aiGenerating, setAiGenerating] = useState(false);
-  const [aiGeneratingProvider, setAiGeneratingProvider] = useState<"gateway" | null>(null);
   const [aiHint, setAiHint] = useState("");
   const [aiError, setAiError] = useState("");
   const [aiSuccess, setAiSuccess] = useState("");
-  const [reviewCodeConfirmed, setReviewCodeConfirmed] = useState<string | null>(null);
-  const [editableReviewCodes, setEditableReviewCodes] = useState<ReviewCode[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+  const [folderUploading, setFolderUploading] = useState(false);
+  const [folderUploadProgress, setFolderUploadProgress] = useState<FolderUploadProgress | null>(null);
 
   // Paginated Query
   const pageData = useQuery(api.products.getProductsPage, {
@@ -187,8 +242,7 @@ export default function AdminProductsPage() {
     searchTerm: searchProduct || undefined,
     categorySlug: selectedCategoryFilter || undefined,
     brand: selectedBrandFilter || undefined,
-    includeReview: reviewFilter === "all" ? true : undefined,
-    onlyReview: reviewFilter === "review" ? true : undefined,
+    draftStatus,
   });
 
   const categories = useQuery(api.categories.list, { onlyActive: false });
@@ -201,6 +255,7 @@ export default function AdminProductsPage() {
   // Mutations & Actions
   const generateProductDetailsAction = useAction(api.ai.generateProductDetails);
   const createProduct = useMutation(api.products.create);
+  const createDraftBatch = useMutation(api.products.createDraftBatch);
   const updateProduct = useMutation(api.products.update);
   const toggleStock = useMutation(api.products.toggleStock);
   const deleteProduct = useMutation(api.products.deleteProduct);
@@ -210,7 +265,7 @@ export default function AdminProductsPage() {
     setSlug("");
     setSlugManuallyEdited(false);
     setOemNumber("");
-    setOemSource("manual");
+    setIsDraft(true);
     setShelfCode("");
     setBrand("Genel Uyumlu");
     setModel("");
@@ -229,8 +284,6 @@ export default function AdminProductsPage() {
     setAiHint("");
     setAiError("");
     setAiSuccess("");
-    setReviewCodeConfirmed(null);
-    setEditableReviewCodes([]);
   };
 
   const handleSetCoverImage = (indexToCover: number) => {
@@ -252,9 +305,7 @@ export default function AdminProductsPage() {
 
   const handleOpenEditProduct = (p: any) => {
     setEditingProduct(p);
-    setReviewCodeConfirmed(null);
-    setEditableReviewCodes(Array.isArray(p.reviewCodes) ? p.reviewCodes : []);
-    setOemSource(p.oemSource || (p.needsReview ? "unresolved" : "manual"));
+    setIsDraft(p.isDraft === true);
     setTitle(p.title);
     setSlug(p.slug);
     setSlugManuallyEdited(true);
@@ -262,7 +313,7 @@ export default function AdminProductsPage() {
     setShelfCode(p.shelfCode || "");
     setBrand(p.brand);
     setModel(p.model || "");
-    setSelectedCategoryId(p.categoryId);
+    setSelectedCategoryId(p.categoryId || categories?.[0]?._id || "");
     setCondition(p.condition);
     setInStock(p.inStock);
     setDescription(p.description);
@@ -287,7 +338,6 @@ export default function AdminProductsPage() {
     }
 
     setAiGenerating(true);
-    setAiGeneratingProvider("gateway");
     setAiError("");
     setAiSuccess("");
 
@@ -330,15 +380,13 @@ export default function AdminProductsPage() {
           }
         }
 
-        const modelLabel = "Vercel AI Gateway / GLM 5.3 Flash";
-        setAiSuccess(`Ürün bilgileri ${modelLabel} ile başarıyla oluşturuldu.`);
+        setAiSuccess("Ürün bilgileri dolduruldu. Kaydetmeden önce kontrol edin.");
         setTimeout(() => setAiSuccess(""), 4000);
       }
     } catch (err: any) {
       setAiError(err?.message || "Detaylar üretilirken hata oluştu.");
     } finally {
       setAiGenerating(false);
-      setAiGeneratingProvider(null);
     }
   };
 
@@ -376,6 +424,117 @@ export default function AdminProductsPage() {
     }
   };
 
+  const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    event.target.value = "";
+    const groups = groupFolderImages(selectedFiles);
+    const totalImages = groups.reduce((total, group) => total + group.files.length, 0);
+
+    if (groups.length === 0) {
+      alert("Seçilen klasörde desteklenen görsel bulunamadı.");
+      return;
+    }
+
+    if (!window.confirm(`${groups.length.toLocaleString("tr-TR")} ürün ve ${totalImages.toLocaleString("tr-TR")} görsel taslak olarak yüklenecek. Devam edilsin mi?`)) {
+      return;
+    }
+
+    const initialProgress: FolderUploadProgress = {
+      stage: "uploading",
+      totalProducts: groups.length,
+      completedProducts: 0,
+      totalImages,
+      uploadedImages: 0,
+      skippedProducts: 0,
+    };
+    let uploadedImages = 0;
+    let completedProducts = 0;
+    let skippedProducts = 0;
+    setFolderUploadProgress(initialProgress);
+    setFolderUploading(true);
+
+    try {
+      for (let start = 0; start < groups.length; start += 25) {
+        const productBatch = groups.slice(start, start + 25);
+        const entries = productBatch.flatMap((group) => group.files.map((file) => ({ group, file })));
+        const uploadChunks: typeof entries[] = [];
+        let currentChunk: typeof entries = [];
+        let currentChunkBytes = 0;
+
+        for (const entry of entries) {
+          if (currentChunk.length > 0 && (currentChunk.length >= 20 || currentChunkBytes + entry.file.size > 16 * 1024 * 1024)) {
+            uploadChunks.push(currentChunk);
+            currentChunk = [];
+            currentChunkBytes = 0;
+          }
+          currentChunk.push(entry);
+          currentChunkBytes += entry.file.size;
+        }
+        if (currentChunk.length > 0) uploadChunks.push(currentChunk);
+
+        for (const chunk of uploadChunks) {
+          const formData = new FormData();
+          formData.append("label", "draft-import");
+          for (const { file } of chunk) formData.append("files", file, file.name);
+
+          const response = await fetch("/api/upload", { method: "POST", body: formData });
+          const result = await response.json();
+          if (!response.ok || !Array.isArray(result.urls) || result.urls.length !== chunk.length) {
+            throw new Error(result.message || "Görseller yüklenemedi.");
+          }
+
+          chunk.forEach(({ group }, index) => group.uploadedUrls.push(result.urls[index]));
+          uploadedImages += chunk.length;
+          setFolderUploadProgress({
+            stage: "uploading",
+            totalProducts: groups.length,
+            completedProducts,
+            totalImages,
+            uploadedImages,
+            skippedProducts,
+          });
+        }
+
+        const result = await createDraftBatch({
+          products: productBatch.map((group) => ({
+            shelfCode: group.shelfCode,
+            images: group.uploadedUrls,
+          })),
+        });
+        completedProducts += productBatch.length;
+        skippedProducts += result.skipped;
+        setFolderUploadProgress({
+          stage: "uploading",
+          totalProducts: groups.length,
+          completedProducts,
+          totalImages,
+          uploadedImages,
+          skippedProducts,
+        });
+      }
+
+      setFolderUploadProgress({
+        stage: "done",
+        totalProducts: groups.length,
+        completedProducts,
+        totalImages,
+        uploadedImages,
+        skippedProducts,
+      });
+    } catch (error) {
+      setFolderUploadProgress({
+        ...initialProgress,
+        stage: "error",
+        completedProducts,
+        uploadedImages,
+        skippedProducts,
+        error: error instanceof Error ? error.message : "Klasör yüklenemedi.",
+      });
+    } finally {
+      setFolderUploading(false);
+    }
+  };
+
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !oemNumber || !brand) {
@@ -402,7 +561,7 @@ export default function AdminProductsPage() {
       ? slug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-")
       : slugify(title);
 
-    const images = previewImages.length > 0 ? previewImages : ["/images/catalog-ecu-banner.jpg"];
+    const images = previewImages;
 
     const payload: any = {
       title,
@@ -420,17 +579,7 @@ export default function AdminProductsPage() {
       metaDescription: metaDescription.trim() || undefined,
       metaKeywords: metaKeywords.trim() || undefined,
       tags: tags.length > 0 ? tags : undefined,
-      oemSource: oemNumber.trim().toUpperCase() === "İNCELEME GEREKLİ"
-        ? (editingProduct?.oemSource === "web" ? "web" : "unresolved")
-        : reviewCodeConfirmed
-          ? "manual"
-          : oemSource,
-      ...(editingProduct?.reviewCodes || editableReviewCodes.length > 0
-        ? { reviewCodes: reviewCodeConfirmed ? [] : editableReviewCodes }
-        : {}),
-      ...(reviewCodeConfirmed && reviewCodeConfirmed === oemNumber.trim().toUpperCase()
-        ? { needsReview: false, reviewReason: "", visibleOemNumber: oemNumber.trim().toUpperCase() }
-        : {}),
+      isDraft,
     };
 
     if (editingProduct) {
@@ -444,159 +593,6 @@ export default function AdminProductsPage() {
 
     setAddProductModalOpen(false);
     resetProductForm();
-  };
-
-  const handleSaveLightboxOem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const product = lightbox?.product;
-    const nextOemNumber = lightboxOemNumber.trim().toUpperCase();
-
-    if (!product || !nextOemNumber) {
-      setLightboxOemStatus("error");
-      return;
-    }
-
-    setSavingLightboxOem(true);
-    setLightboxOemStatus("");
-
-    try {
-      await updateProduct({
-        id: product._id,
-        title: product.title,
-        slug: product.slug,
-        oemNumber: nextOemNumber,
-        shelfCode: product.shelfCode || undefined,
-        categoryId: product.categoryId,
-        brand: product.brand,
-        model: product.model || undefined,
-        condition: product.condition,
-        inStock: product.inStock,
-        description: product.description,
-        images: product.images || [],
-        metaTitle: product.metaTitle || undefined,
-        metaDescription: product.metaDescription || undefined,
-        metaKeywords: product.metaKeywords || undefined,
-        tags: product.tags || undefined,
-        oemSource: "manual",
-        visibleOemNumber: nextOemNumber,
-        needsReview: false,
-        reviewReason: "",
-        reviewCodes: [],
-      });
-      setLightbox((current) => {
-        if (!current?.product) return current;
-        return {
-          ...current,
-          product: { ...current.product, oemNumber: nextOemNumber },
-        };
-      });
-      setLightboxOemNumber(nextOemNumber);
-      setLightboxOemStatus("saved");
-    } catch (error) {
-      console.error("OEM numarası kaydedilemedi:", error);
-      setLightboxOemStatus("error");
-    } finally {
-      setSavingLightboxOem(false);
-    }
-  };
-
-  const handleSetLightboxCover = async () => {
-    const product = lightbox?.product;
-    if (!product || !lightbox || lightbox.index === 0) return;
-
-    setSavingLightboxOem(true);
-    setLightboxOemStatus("");
-    try {
-      const currentImages = [...(product.images || [])];
-      const [chosenImage] = currentImages.splice(lightbox.index, 1);
-      currentImages.unshift(chosenImage);
-
-      await updateProduct({
-        id: product._id,
-        title: product.title,
-        slug: product.slug,
-        oemNumber: product.oemNumber,
-        shelfCode: product.shelfCode || undefined,
-        categoryId: product.categoryId,
-        brand: product.brand,
-        model: product.model || undefined,
-        condition: product.condition,
-        inStock: product.inStock,
-        description: product.description,
-        images: currentImages,
-        metaTitle: product.metaTitle || undefined,
-        metaDescription: product.metaDescription || undefined,
-        metaKeywords: product.metaKeywords || undefined,
-        tags: product.tags || undefined,
-      });
-
-      setLightbox((current) => {
-        if (!current?.product) return current;
-        return {
-          ...current,
-          images: currentImages,
-          index: 0,
-          product: {
-            ...current.product,
-            images: currentImages,
-          },
-        };
-      });
-      setLightboxOemStatus("saved");
-    } catch (error) {
-      console.error("Kapak görseli güncellenemedi:", error);
-      setLightboxOemStatus("error");
-    } finally {
-      setSavingLightboxOem(false);
-    }
-  };
-
-  const handleGenerateLightboxOem = async () => {
-    const product = lightbox?.product;
-    const nextOemNumber = lightboxOemNumber.trim().toUpperCase();
-
-    if (!product || !nextOemNumber) {
-      setLightboxOemStatus("error");
-      return;
-    }
-
-    setGeneratingLightboxOem(true);
-    setLightboxOemStatus("");
-
-    try {
-      const generated = await generateProductDetailsAction({
-        oemNumber: nextOemNumber,
-        additionalHint: product.brand !== "Genel Uyumlu" ? `Marka: ${product.brand}` : undefined,
-      });
-      const nextTitle = generated.title || product.title;
-      setEditingProduct(product);
-      setTitle(nextTitle);
-      setSlug(slugify(nextTitle) || product.slug);
-      setSlugManuallyEdited(false);
-      setOemNumber(nextOemNumber);
-      setOemSource("manual");
-      setShelfCode(product.shelfCode || "");
-      setBrand(generated.brand || product.brand);
-      setModel(generated.model || "");
-      setSelectedCategoryId(generated.categoryId || product.categoryId);
-      setCondition(generated.condition || product.condition);
-      setInStock(product.inStock);
-      setDescription(generated.description || product.description);
-      setPreviewImages(product.images || []);
-      setMetaTitle(generated.metaTitle || product.metaTitle || "");
-      setMetaDescription(generated.metaDescription || product.metaDescription || "");
-      setMetaKeywords(generated.metaKeywords || product.metaKeywords || "");
-      setTagsInput(generated.tags?.length ? generated.tags.join(", ") : (product.tags || []).join(", "));
-      setAiError("");
-      setAiSuccess("Yeni OEM ile ürün bilgileri oluşturuldu. Kontrol edip değişiklikleri kaydedin.");
-      closeLightbox();
-      setAddProductModalOpen(true);
-    } catch (error) {
-      console.error("Yeni OEM ile ürün üretilemedi:", error);
-      setLightboxOemStatus("error");
-    } finally {
-      setGeneratingLightboxOem(false);
-    }
   };
 
   const handleDeleteProduct = async (p: any) => {
@@ -657,6 +653,27 @@ export default function AdminProductsPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <input
+            ref={(element) => {
+              folderInputRef.current = element;
+              element?.setAttribute("webkitdirectory", "");
+            }}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleFolderUpload}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            onClick={() => folderInputRef.current?.click()}
+            disabled={folderUploading}
+            variant="outline"
+            className="h-9 rounded-lg text-xs font-semibold"
+          >
+            {folderUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            <span>{folderUploading ? "Yükleniyor" : "Klasör Yükle"}</span>
+          </Button>
           <Button
             onClick={handleOpenAddProduct}
             className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold h-9 rounded-lg gap-1.5 cursor-pointer shadow-xs"
@@ -667,44 +684,20 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Quick Status Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
-        <button
-          onClick={() => setReviewFilter("all")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-            reviewFilter === "all"
-              ? "bg-slate-900 text-white"
-              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-          }`}
-        >
-          Tüm Parçalar
-        </button>
-        <button
-          onClick={() => setReviewFilter("verified")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
-            reviewFilter === "verified"
-              ? "bg-emerald-600 text-white"
-              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-          }`}
-        >
-          <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>Doğrulanmış OEM</span>
-        </button>
-        <button
-          onClick={() => setReviewFilter("review")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
-            reviewFilter === "review"
-              ? "bg-amber-600 text-white"
-              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-          }`}
-        >
-          <AlertTriangle className="w-3.5 h-3.5" />
-          <span>İnceleme Gerekenler</span>
-        </button>
-      </div>
+      {folderUploadProgress && (
+        <div className={`rounded-lg border px-3 py-2 text-xs ${folderUploadProgress.stage === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200 bg-white text-slate-700"}`} aria-live="polite">
+          {folderUploadProgress.stage === "error" ? (
+            <span>Yükleme durdu: {folderUploadProgress.error} ({folderUploadProgress.completedProducts}/{folderUploadProgress.totalProducts} ürün)</span>
+          ) : folderUploadProgress.stage === "done" ? (
+            <span>{(folderUploadProgress.totalProducts - folderUploadProgress.skippedProducts).toLocaleString("tr-TR")} taslak eklendi{folderUploadProgress.skippedProducts > 0 ? ` · ${folderUploadProgress.skippedProducts.toLocaleString("tr-TR")} ürün atlandı` : ""}</span>
+          ) : (
+            <span>{folderUploadProgress.completedProducts.toLocaleString("tr-TR")}/{folderUploadProgress.totalProducts.toLocaleString("tr-TR")} ürün · {folderUploadProgress.uploadedImages.toLocaleString("tr-TR")}/{folderUploadProgress.totalImages.toLocaleString("tr-TR")} görsel</span>
+          )}
+        </div>
+      )}
 
       {/* Filters Toolbar */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
         <div className="relative sm:col-span-2">
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
           <Input
@@ -714,6 +707,16 @@ export default function AdminProductsPage() {
             className="pl-9 bg-white border-slate-200 text-slate-900 text-xs h-9 rounded-lg"
           />
         </div>
+
+        <select
+          value={draftStatus}
+          onChange={(e) => setDraftStatus(e.target.value as "all" | "draft" | "published")}
+          className="h-9 rounded-lg border border-slate-200 bg-white px-3 font-medium text-slate-700 text-xs focus:outline-none focus:border-blue-500"
+        >
+          <option value="all">Tüm durumlar</option>
+          <option value="draft">Taslak</option>
+          <option value="published">Yayında</option>
+        </select>
 
         <select
           value={selectedBrandFilter}
@@ -751,8 +754,6 @@ export default function AdminProductsPage() {
                 <th className="p-3.5">Görsel</th>
                 <th className="p-3.5">OEM No</th>
                 <th className="p-3.5">Parça Başlığı</th>
-                <th className="p-3.5">Marka &amp; Kategori</th>
-                <th className="p-3.5">Raf</th>
                 <th className="p-3.5">Durum</th>
                 <th className="p-3.5">Stok</th>
                 <th className="p-3.5 text-right">İşlem</th>
@@ -767,7 +768,7 @@ export default function AdminProductsPage() {
                         {p.images?.[0] ? (
                           <button
                             type="button"
-                            onClick={() => openLightbox(p.images!, 0, p)}
+                            onClick={() => openLightbox(p.images!, 0)}
                             onMouseEnter={(e) => setHoverPreview({ src: p.images![0], x: e.clientX, y: e.clientY })}
                             onMouseMove={(e) => setHoverPreview((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)}
                             onMouseLeave={() => setHoverPreview(null)}
@@ -782,65 +783,42 @@ export default function AdminProductsPage() {
                       </div>
                     </td>
                     <td className="p-3.5 font-mono font-bold text-slate-900">
-                      <div className="flex items-center gap-1.5">
-                        <span>{p.oemNumber}</span>
-                        {p.oemNumber !== "İNCELEME GEREKLİ" && (
-                          <a
-                            href={buildGoogleAiSearchUrl(p.oemNumber)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="OEM kodunu Google'da ara"
-                            className="text-slate-300 hover:text-blue-500 transition-colors flex-shrink-0"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Globe className="w-3.5 h-3.5" />
-                          </a>
-                        )}
-                      </div>
-                      {p.needsReview && (
-                        <span className="mt-1.5 block text-[10px] text-amber-600 font-sans font-semibold">
-                          ⚠️ İnceleme Gerekli · Düzenle'den aday kodu kontrol et
-                        </span>
-                      )}
+                      {p.oemNumber || "—"}
                     </td>
                     <td className="p-3.5 max-w-xs">
-                      <div className="font-semibold text-slate-900 truncate">{p.title}</div>
-                      {p.model && <div className="text-[11px] text-slate-500 truncate">{p.model}</div>}
+                      <div className="font-semibold text-slate-900 truncate">{p.title || "Taslak ürün"}</div>
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {[p.brand, p.model, p.shelfCode].filter(Boolean).join(" · ") || ""}
+                      </div>
                     </td>
                     <td className="p-3.5">
-                      <div className="font-medium text-slate-800">{p.brand}</div>
-                      <div className="text-[11px] text-slate-500">{p.categoryName}</div>
-                    </td>
-                    <td className="p-3.5 font-mono text-[11px] text-slate-500">
-                      {p.shelfCode || "-"}
-                    </td>
-                    <td className="p-3.5">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                        {p.condition}
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${p.isDraft === true ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+                        {p.isDraft === true ? "Taslak" : "Yayında"}
                       </span>
                     </td>
                     <td className="p-3.5">
                       <button
                         onClick={() => toggleStock({ id: p._id, inStock: !p.inStock })}
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition-colors ${
-                          p.inStock
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-                            : "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
-                        }`}
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition-colors ${p.inStock
+                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+                          : "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                          }`}
                       >
                         {p.inStock ? "Stokta" : "Tükendi"}
                       </button>
                     </td>
                     <td className="p-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <Link
-                          href={`/urunler/${p.slug}`}
-                          target="_blank"
-                          className="p-1.5 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100 transition-colors"
-                          title="Görüntüle"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                        </Link>
+                        {p.isDraft !== true && (
+                          <Link
+                            href={`/urunler/${p.slug}`}
+                            target="_blank"
+                            className="p-1.5 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100 transition-colors"
+                            title="Görüntüle"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                          </Link>
+                        )}
                         <button
                           onClick={() => handleOpenEditProduct(p)}
                           className="p-1.5 text-slate-500 hover:text-blue-600 rounded hover:bg-slate-100 transition-colors cursor-pointer"
@@ -861,13 +839,13 @@ export default function AdminProductsPage() {
                 ))
               ) : pageData === undefined ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400 text-xs">
+                  <td colSpan={6} className="p-8 text-center text-slate-400 text-xs">
                     Yükleniyor...
                   </td>
                 </tr>
               ) : (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400 text-xs">
+                  <td colSpan={6} className="p-8 text-center text-slate-400 text-xs">
                     Kayıtlı ürün bulunamadı.
                   </td>
                 </tr>
@@ -929,11 +907,10 @@ export default function AdminProductsPage() {
                     <button
                       key={idx}
                       onClick={() => handlePageChange(p)}
-                      className={`min-w-7 h-7 px-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                        currentPage === p
-                          ? "bg-blue-600 text-white shadow-xs font-black"
-                          : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
-                      }`}
+                      className={`min-w-7 h-7 px-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p
+                        ? "bg-blue-600 text-white shadow-xs font-black"
+                        : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                        }`}
                     >
                       {p}
                     </button>
@@ -982,510 +959,411 @@ export default function AdminProductsPage() {
           <form onSubmit={handleSaveProduct} className="flex min-h-0 flex-1 flex-col pt-2 text-xs">
             <div className="min-h-0 flex-1 overflow-y-auto pr-1 sm:pr-2">
               <div className="grid grid-cols-1 gap-6 pb-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-              <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 lg:sticky lg:top-0 lg:self-start">
-                <div className="mb-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-slate-900">Ürün Görselleri</p>
-                    <p className="mt-0.5 text-[11px] text-slate-500">1. görsel otomatik ana kapak görselidir. Değiştirmek için görseli kapak yapabilirsiniz.</p>
-                  </div>
-                  <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 shadow-xs">
-                    {previewImages.length} görsel
-                  </span>
-                </div>
-
-                <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                  {previewImages[selectedFormImageIndex] ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleFormImageClick}
-                        onWheel={handleFormImageWheel}
-                        className={`h-full w-full overflow-hidden ${formImageZoom > 1 ? "cursor-zoom-out" : "cursor-zoom-in"}`}
-                        title={formImageZoom > 1 ? "Normal boyuta dönmek için tıkla" : "Yakınlaştırmak için tıkla"}
-                      >
-                        <img
-                          src={previewImages[selectedFormImageIndex]}
-                          alt="Seçili ürün görseli"
-                          style={{
-                            transform: `scale(${formImageZoom})`,
-                            transformOrigin: formImageZoomOrigin,
-                          }}
-                          className="h-full w-full object-contain transition-transform duration-200"
-                        />
-                      </button>
-
-                      {/* Kapak Görseli Rozeti / Butonu */}
-                      <div className="absolute top-3 left-3 flex items-center gap-1.5">
-                        {selectedFormImageIndex === 0 ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500 text-white text-[11px] font-bold shadow-md">
-                            <Star className="w-3.5 h-3.5 fill-current" />
-                            <span>Ana Kapak Görseli</span>
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleSetCoverImage(selectedFormImageIndex)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-900/90 hover:bg-amber-600 text-white text-[11px] font-bold shadow-md backdrop-blur-xs transition-all cursor-pointer"
-                            title="Bu görseli ana kapak görseli yap"
-                          >
-                            <Star className="w-3.5 h-3.5 fill-current" />
-                            <span>Bu Görseli Kapak Yap</span>
-                          </button>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 text-slate-400">
-                      <ImageIcon className="h-12 w-12" />
-                      <span className="text-xs font-medium">Henüz görsel eklenmedi</span>
+                <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 lg:sticky lg:top-0 lg:self-start">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">Ürün Görselleri</p>
+                      <p className="mt-0.5 text-[11px] text-slate-500">1. görsel otomatik ana kapak görselidir. Değiştirmek için görseli kapak yapabilirsiniz.</p>
                     </div>
-                  )}
-                </div>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 shadow-xs">
+                      {previewImages.length} görsel
+                    </span>
+                  </div>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {previewImages.map((img, i) => (
-                    <div
-                      key={i}
-                      className={`group relative h-16 w-16 overflow-hidden rounded-lg border-2 bg-white p-1 transition-all ${
-                        i === selectedFormImageIndex ? "border-blue-600 shadow-sm" : "border-slate-200 hover:border-slate-400"
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedFormImageIndex(i);
-                          resetFormImageZoom();
-                        }}
-                        className="h-full w-full cursor-pointer"
-                        title={`${i + 1}. görseli seç`}
-                      >
-                        <img src={img} alt={`${i + 1}. ürün görseli`} className="h-full w-full rounded object-contain" />
-                      </button>
-
-                      {/* Kapak Görseli Rozeti */}
-                      {i === 0 && (
-                        <span
-                          className="absolute left-1 bottom-1 px-1 py-0.5 rounded text-[8px] font-black bg-amber-500 text-white shadow-xs leading-none"
-                          title="Ana Kapak Görseli"
-                        >
-                          KAPAK
-                        </span>
-                      )}
-
-                      {/* Diğer görseller için Hızlı Kapak Yap Butonu */}
-                      {i > 0 && (
+                  <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                    {previewImages[selectedFormImageIndex] ? (
+                      <>
                         <button
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSetCoverImage(i);
-                          }}
-                          className="absolute left-0.5 top-0.5 rounded-full bg-slate-900/80 hover:bg-amber-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 cursor-pointer shadow-xs"
-                          title="Kapak Görseli Yap"
+                          onClick={handleFormImageClick}
+                          onWheel={handleFormImageWheel}
+                          className={`h-full w-full overflow-hidden ${formImageZoom > 1 ? "cursor-zoom-out" : "cursor-zoom-in"}`}
+                          title={formImageZoom > 1 ? "Normal boyuta dönmek için tıkla" : "Yakınlaştırmak için tıkla"}
                         >
-                          <Star className="h-2.5 w-2.5 fill-current" />
+                          <img
+                            src={previewImages[selectedFormImageIndex]}
+                            alt="Seçili ürün görseli"
+                            style={{
+                              transform: `scale(${formImageZoom})`,
+                              transformOrigin: formImageZoomOrigin,
+                            }}
+                            className="h-full w-full object-contain transition-transform duration-200"
+                          />
                         </button>
-                      )}
 
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPreviewImages((prev) => prev.filter((_, index) => index !== i));
-                          setSelectedFormImageIndex((current) => Math.max(0, Math.min(current, previewImages.length - 2)));
-                          resetFormImageZoom();
-                        }}
-                        className="absolute -right-1 -top-1 rounded-full bg-red-600 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 cursor-pointer"
-                        aria-label="Görseli kaldır"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImage}
-                    className="flex h-16 w-16 flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-white text-slate-400 transition-colors hover:border-blue-500 hover:text-blue-600 disabled:cursor-wait"
-                  >
-                    {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                    <span className="mt-1 text-[9px] font-bold">Ekle</span>
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                </div>
-              </section>
-
-              <section className="min-w-0 space-y-4">
-            {/* Required product information */}
-            <section className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm">
-              <div className="flex items-center justify-between gap-3 border-b border-blue-100 bg-blue-50/70 px-4 py-3">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
-                    <CheckCircle2 className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0">
-                    <h3 className="text-sm font-bold text-slate-900">Zorunlu bilgiler</h3>
+                        {/* Kapak Görseli Rozeti / Butonu */}
+                        <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                          {selectedFormImageIndex === 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500 text-white text-[11px] font-bold shadow-md">
+                              <Star className="w-3.5 h-3.5 fill-current" />
+                              <span>Ana Kapak Görseli</span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleSetCoverImage(selectedFormImageIndex)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-900/90 hover:bg-amber-600 text-white text-[11px] font-bold shadow-md backdrop-blur-xs transition-all cursor-pointer"
+                              title="Bu görseli ana kapak görseli yap"
+                            >
+                              <Star className="w-3.5 h-3.5 fill-current" />
+                              <span>Bu Görseli Kapak Yap</span>
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-slate-400">
+                        <ImageIcon className="h-12 w-12" />
+                        <span className="text-xs font-medium">Henüz görsel eklenmedi</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
 
-              <div className="space-y-4 p-4">
-                <div className="rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/70 p-3.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
-                        <Cpu className="h-4 w-4" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-900">OEM kodu ile otomatik doldur</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {previewImages.map((img, i) => (
+                      <div
+                        key={i}
+                        className={`group relative h-16 w-16 overflow-hidden rounded-lg border-2 bg-white p-1 transition-all ${i === selectedFormImageIndex ? "border-blue-600 shadow-sm" : "border-slate-200 hover:border-slate-400"
+                          }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedFormImageIndex(i);
+                            resetFormImageZoom();
+                          }}
+                          className="h-full w-full cursor-pointer"
+                          title={`${i + 1}. görseli seç`}
+                        >
+                          <img src={img} alt={`${i + 1}. ürün görseli`} className="h-full w-full rounded object-contain" />
+                        </button>
+
+                        {/* Kapak Görseli Rozeti */}
+                        {i === 0 && (
+                          <span
+                            className="absolute left-1 bottom-1 px-1 py-0.5 rounded text-[8px] font-black bg-amber-500 text-white shadow-xs leading-none"
+                            title="Ana Kapak Görseli"
+                          >
+                            KAPAK
+                          </span>
+                        )}
+
+                        {/* Diğer görseller için Hızlı Kapak Yap Butonu */}
+                        {i > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSetCoverImage(i);
+                            }}
+                            className="absolute left-0.5 top-0.5 rounded-full bg-slate-900/80 hover:bg-amber-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 cursor-pointer shadow-xs"
+                            title="Kapak Görseli Yap"
+                          >
+                            <Star className="h-2.5 w-2.5 fill-current" />
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPreviewImages((prev) => prev.filter((_, index) => index !== i));
+                            setSelectedFormImageIndex((current) => Math.max(0, Math.min(current, previewImages.length - 2)));
+                            resetFormImageZoom();
+                          }}
+                          className="absolute -right-1 -top-1 rounded-full bg-red-600 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 cursor-pointer"
+                          aria-label="Görseli kaldır"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingImage}
+                      className="flex h-16 w-16 flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-white text-slate-400 transition-colors hover:border-blue-500 hover:text-blue-600 disabled:cursor-wait"
+                    >
+                      {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      <span className="mt-1 text-[9px] font-bold">Ekle</span>
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </div>
+                </section>
+
+                <section className="min-w-0 space-y-4">
+                  {/* Required product information */}
+                  <section className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm">
+                    <div className="flex items-center justify-between gap-3 border-b border-blue-100 bg-blue-50/70 px-4 py-3">
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                          <CheckCircle2 className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <h3 className="text-sm font-bold text-slate-900">Zorunlu bilgiler</h3>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                      <a
-                        href={buildGoogleAiSearchUrl(oemNumber)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        role="button"
-                        aria-label={`${oemNumber || "OEM kodu"} kodunu Google'da ara`}
-                        aria-disabled={!oemNumber.trim() || oemNumber.trim().toUpperCase() === "İNCELEME GEREKLİ"}
-                        onClick={(event) => {
-                          if (!oemNumber.trim() || oemNumber.trim().toUpperCase() === "İNCELEME GEREKLİ") {
-                            event.preventDefault();
-                          }
-                        }}
-                        className="relative z-20 inline-flex h-9 shrink-0 cursor-pointer items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 text-[10px] font-bold text-blue-700 pointer-events-auto transition-colors hover:border-blue-300 hover:bg-blue-100 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 aria-disabled:pointer-events-none aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-                        title="OEM kodunu Google AI Mode'da ara"
-                      >
-                        <Search className="h-3.5 w-3.5" />
-                        <span>Ara</span>
-                      </a>
-                      <Input
-                        placeholder="Örn: 0281001781, 8200000000"
-                        value={oemNumber}
-                        onChange={(e) => {
-                          setOemNumber(e.target.value);
-                          setOemSource("manual");
-                          if (reviewCodeConfirmed && reviewCodeConfirmed !== e.target.value.trim().toUpperCase()) {
-                            setReviewCodeConfirmed(null);
-                          }
-                        }}
-                        className="min-w-0 flex-1 font-mono text-xs"
-                        required
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleAiAutoFill}
-                      disabled={aiGenerating || !oemNumber.trim()}
-                      className="h-9 w-full shrink-0 gap-1.5 bg-purple-600 text-xs font-semibold text-white shadow-xs hover:bg-purple-700 sm:w-auto"
-                      title="Vercel AI Gateway üzerinden GLM 5.3 Flash ve Exa ile üretir"
-                    >
-                      {aiGenerating && aiGeneratingProvider === "gateway" ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Sparkles className="h-3.5 w-3.5" />
-                      )}
-                      <span>{aiGenerating && aiGeneratingProvider === "gateway" ? "Analiz ediliyor..." : "AI ile doldur"}</span>
-                    </Button>
-                  </div>
-
-                </div>
-
-                <div className="space-y-1">
-                  {editingProduct?.needsReview && editableReviewCodes.length > 0 && (
-                    <div className="mt-2 w-full rounded-xl border border-amber-200 bg-amber-50/70 p-2.5">
-                      <div className="flex items-center">
-                        <div className="flex min-w-0 items-start gap-2">
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-100 text-amber-700">
-                            <Search className="h-3 w-3" />
-                          </span>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-bold uppercase tracking-wide text-amber-900">Muhtemel kodlar</p>
+                    <div className="space-y-4 p-4">
+                      <div className="rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/70 p-3.5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
+                              <Cpu className="h-4 w-4" />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-slate-900">OEM kodu ile otomatik doldur</p>
+                            </div>
                           </div>
+                        </div>
+
+                        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <div className="flex min-w-0 flex-1 items-center">
+                            <Input
+                              placeholder="Örn: 0281001781, 8200000000"
+                              value={oemNumber}
+                              onChange={(e) => setOemNumber(e.target.value)}
+                              className="min-w-0 flex-1 font-mono text-xs"
+                              required
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={handleAiAutoFill}
+                            disabled={aiGenerating || !oemNumber.trim()}
+                            className="h-9 w-full shrink-0 gap-1.5 bg-purple-600 text-xs font-semibold text-white shadow-xs hover:bg-purple-700 sm:w-auto"
+                            title="OEM numarasını webde arayıp ürün bilgilerini doldurur"
+                          >
+                            {aiGenerating ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-3.5 w-3.5" />
+                            )}
+                            <span>{aiGenerating ? "Dolduruluyor..." : "AI ile doldur"}</span>
+                          </Button>
+                        </div>
+
+                      </div>
+
+                      <label className="flex w-fit items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 font-semibold text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={isDraft}
+                          onChange={(event) => setIsDraft(event.target.checked)}
+                          className="h-4 w-4 accent-blue-600"
+                        />
+                        Taslak olarak kaydet
+                      </label>
+
+                      <div className="space-y-2">
+                        <div className="space-y-1">
+                          <label className="block text-[10px] font-semibold text-slate-700">Ek ipucu <span className="font-normal text-slate-400">(isteğe bağlı)</span></label>
+                          <Input
+                            placeholder="Örn: Peugeot 307 ön sağ cam motoru, 1.6 HDi, 2005"
+                            value={aiHint}
+                            onChange={(e) => setAiHint(e.target.value)}
+                            className="h-8 border-indigo-200 bg-white text-xs font-medium placeholder:text-slate-400 focus:border-indigo-500"
+                          />
+                        </div>
+                        <div className="flex items-start gap-1.5 rounded-lg border border-amber-200/90 bg-amber-50/90 px-2.5 py-1.5 text-[10.5px] text-amber-800">
+                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+                          <span><strong>Kontrol et:</strong> AI teknik detaylarda veya uyumlulukta hata yapabilir; kaydetmeden önce bilgileri doğrula.</span>
+                        </div>
+                        {aiError && <p className="text-[11px] font-medium text-red-600">{aiError}</p>}
+                        {aiSuccess && <p className="text-[11px] font-medium text-emerald-600">{aiSuccess}</p>}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="font-bold text-slate-700">Ürün Başlığı *</label>
+                        <Input
+                          placeholder="Örn: Renault Megane 2 Motor Beyni (ECU) Bosch 0281001781 Orijinal Çıkma"
+                          value={title}
+                          onChange={(e) => {
+                            setTitle(e.target.value);
+                            if (!slugManuallyEdited) {
+                              setSlug(slugify(e.target.value));
+                            }
+                          }}
+                          className="text-xs font-semibold"
+                          required
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <label className="font-bold text-slate-700">Araç Markası *</label>
+                          <select
+                            value={brand}
+                            onChange={(e) => setBrand(e.target.value)}
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
+                            required
+                          >
+                            <option value="Genel Uyumlu">Genel Uyumlu</option>
+                            {brands?.map((b) => (
+                              <option key={b._id} value={b.name}>
+                                {b.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="font-bold text-slate-700">Kategori *</label>
+                          <select
+                            value={selectedCategoryId}
+                            onChange={(e) => setSelectedCategoryId(e.target.value)}
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
+                            required
+                          >
+                            {categories?.map((c) => (
+                              <option key={c._id} value={c._id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* Optional product details */}
+                  <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50/80 px-4 py-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-200/80 text-slate-600">
+                        <SlidersHorizontal className="h-4 w-4" />
+                      </span>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900">Ürün detayları</h3>
+                        <p className="mt-0.5 text-[11px] text-slate-500">Uyumluluk, stok, açıklama ve arama görünürlüğünü zenginleştiren isteğe bağlı alanlar.</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 p-4">
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <label className="font-bold text-slate-700">Raf / Depo Kodu</label>
+                          <Input
+                            placeholder="Örn: 201.07.0069, A12-04"
+                            value={shelfCode}
+                            onChange={(e) => setShelfCode(e.target.value)}
+                            className="font-mono text-xs"
+                          />
+                          <p className="text-[10px] leading-4 text-slate-400">Yalnızca depo içi takip için kullanılır.</p>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="font-bold text-slate-700">Uyumlu Model / Seri</label>
+                          <Input
+                            placeholder="Örn: Megane 2, Clio 3"
+                            value={model}
+                            onChange={(e) => setModel(e.target.value)}
+                            className="text-xs"
+                          />
                         </div>
                       </div>
 
-                      <div className="mt-2 space-y-1">
-                        {editableReviewCodes.map((candidate: ReviewCode) => (
-                          <div key={`${candidate.kind}-${candidate.code}`} className="flex min-w-0 flex-wrap items-center gap-1 rounded-lg border border-amber-100 bg-white px-2 py-1.5">
-                            <span className="min-w-0 flex-1 truncate font-mono text-[10px] font-bold leading-4 text-slate-900" title={candidate.code}>
-                              {candidate.code}
-                            </span>
-                            <span
-                              className="max-w-[8rem] shrink-0 truncate text-right text-[8px] font-semibold leading-3 text-slate-400 sm:max-w-[10rem]"
-                              title={`${candidate.kind === "oem_candidate" ? "OEM adayı" : "Üretici"} · ${candidate.source === "web" ? "Web araması" : candidate.source === "image" ? "Görsel" : candidate.source === "manual" ? "Manuel" : "Kaynak belirsiz"}`}
-                            >
-                              {candidate.kind === "oem_candidate" ? "OEM adayı" : "Üretici"} · {candidate.source === "web" ? "Web" : candidate.source === "image" ? "Görsel" : candidate.source === "manual" ? "Manuel" : "Belirsiz"}
-                              {typeof candidate.confidence === "number" ? ` · ${Math.round(candidate.confidence * 100)}%` : ""}
-                            </span>
-                            <a
-                              href={buildGoogleAiSearchUrl(candidate.code)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              role="button"
-                              onClick={(event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                window.open(event.currentTarget.href, "_blank", "noopener,noreferrer");
-                              }}
-                              title={`Google'da ara: ${candidate.code}`}
-                              aria-label={`${candidate.code} kodunu Google'da ara`}
-                              className="relative z-20 inline-flex h-6 shrink-0 cursor-pointer items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 text-[9px] font-bold text-blue-700 pointer-events-auto transition-colors hover:border-blue-300 hover:bg-blue-100 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-                            >
-                              <Search className="h-3 w-3" />
-                              <span>Ara</span>
-                            </a>
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => {
-                                setOemNumber(candidate.code);
-                                setOemSource("manual");
-                                setReviewCodeConfirmed(candidate.code.trim().toUpperCase());
-                                setAiError("");
-                                setAiSuccess(`OEM adayı ${candidate.code} seçildi. Google Görseller'de doğrulayıp kaydettiğinde inceleme durumu kaldırılacak.`);
-                              }}
-                              className="h-6 shrink-0 whitespace-nowrap bg-emerald-600 px-2 text-[9px] font-bold text-white hover:bg-emerald-700"
-                            >
-                              <Check className="mr-1 h-3 w-3" />
-                              Bunu kullan
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setEditableReviewCodes((current) => current.filter((item) => (
-                                  !(item.kind === candidate.kind && item.code === candidate.code)
-                                )));
-                                if (reviewCodeConfirmed === candidate.code.trim().toUpperCase()) {
-                                  setReviewCodeConfirmed(null);
-                                }
-                                setAiSuccess(`OEM adayı ${candidate.code} kaldırıldı. Değişiklik ürünü kaydettiğinizde kalıcı olur.`);
-                              }}
-                              className="h-6 shrink-0 whitespace-nowrap border-red-200 px-2 text-[9px] font-bold text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
-                            >
-                              <Trash2 className="mr-1 h-3 w-3" />
-                              Kaldır
-                            </Button>
-                          </div>
-                        ))}
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <label className="font-bold text-slate-700">Parça Durumu</label>
+                          <select
+                            value={condition}
+                            onChange={(e) => setCondition(e.target.value)}
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
+                          >
+                            <option value="Orijinal Çıkma">Orijinal Çıkma</option>
+                            <option value="Sıfır - Orijinal">Sıfır - Orijinal</option>
+                            <option value="Revizyonlu">Revizyonlu</option>
+                            <option value="Sıfırlanmış - Virgin">Sıfırlanmış - Virgin</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="font-bold text-slate-700">Stok Durumu</label>
+                          <select
+                            value={inStock ? "true" : "false"}
+                            onChange={(e) => setInStock(e.target.value === "true")}
+                            className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
+                          >
+                            <option value="true">Stokta Var (Satışa Hazır)</option>
+                            <option value="false">Tükendi / Stokta Yok</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="font-bold text-slate-700">Detaylı Açıklama</label>
+                        <Textarea
+                          rows={10}
+                          placeholder="Parça özellikleri, soket pin kontrolleri ve kullanım alanları..."
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          className="min-h-[220px] resize-y text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="font-bold text-slate-700">Arama Etiketleri (Tags)</label>
+                        <Input
+                          placeholder="Virgülle ayırarak girin: 0281001781, Megane 2, ECU, Bosch"
+                          value={tagsInput}
+                          onChange={(e) => setTagsInput(e.target.value)}
+                          className="text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-3 border-t border-slate-100 pt-4">
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">SEO ve bağlantı</p>
+                          <p className="mt-0.5 text-[11px] text-slate-500">Arama motoru başlık ve açıklamasını buradan kontrol edebilirsiniz.</p>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-bold text-slate-700">URL / Slug</label>
+                          <Input
+                            value={slug}
+                            onChange={(e) => {
+                              setSlug(slugify(e.target.value));
+                              setSlugManuallyEdited(true);
+                            }}
+                            className="font-mono text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-bold text-slate-700">Meta Başlık</label>
+                          <Input
+                            value={metaTitle}
+                            onChange={(e) => setMetaTitle(e.target.value)}
+                            className="text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-bold text-slate-700">Meta Açıklama</label>
+                          <Textarea
+                            rows={3}
+                            value={metaDescription}
+                            onChange={(e) => setMetaDescription(e.target.value)}
+                            className="resize-y text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-bold text-slate-700">Meta Anahtar Kelimeler</label>
+                          <Input
+                            value={metaKeywords}
+                            onChange={(e) => setMetaKeywords(e.target.value)}
+                            className="text-xs"
+                          />
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-semibold text-slate-700">Ek ipucu <span className="font-normal text-slate-400">(isteğe bağlı)</span></label>
-                    <Input
-                      placeholder="Örn: Peugeot 307 ön sağ cam motoru, 1.6 HDi, 2005"
-                      value={aiHint}
-                      onChange={(e) => setAiHint(e.target.value)}
-                      className="h-8 border-indigo-200 bg-white text-xs font-medium placeholder:text-slate-400 focus:border-indigo-500"
-                    />
-                  </div>
-                  <div className="flex items-start gap-1.5 rounded-lg border border-amber-200/90 bg-amber-50/90 px-2.5 py-1.5 text-[10.5px] text-amber-800">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
-                    <span><strong>Kontrol et:</strong> AI teknik detaylarda veya uyumlulukta hata yapabilir; kaydetmeden önce bilgileri doğrula.</span>
-                  </div>
-                  {aiError && <p className="text-[11px] font-medium text-red-600">{aiError}</p>}
-                  {aiSuccess && <p className="text-[11px] font-medium text-emerald-600">{aiSuccess}</p>}
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Ürün Başlığı *</label>
-                  <Input
-                    placeholder="Örn: Renault Megane 2 Motor Beyni (ECU) Bosch 0281001781 Orijinal Çıkma"
-                    value={title}
-                    onChange={(e) => {
-                      setTitle(e.target.value);
-                      if (!slugManuallyEdited) {
-                        setSlug(slugify(e.target.value));
-                      }
-                    }}
-                    className="text-xs font-semibold"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Araç Markası *</label>
-                    <select
-                      value={brand}
-                      onChange={(e) => setBrand(e.target.value)}
-                      className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
-                      required
-                    >
-                      <option value="Genel Uyumlu">Genel Uyumlu</option>
-                      {brands?.map((b) => (
-                        <option key={b._id} value={b.name}>
-                          {b.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Kategori *</label>
-                    <select
-                      value={selectedCategoryId}
-                      onChange={(e) => setSelectedCategoryId(e.target.value)}
-                      className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
-                      required
-                    >
-                      {categories?.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* Optional product details */}
-            <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50/80 px-4 py-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-200/80 text-slate-600">
-                  <SlidersHorizontal className="h-4 w-4" />
-                </span>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Ürün detayları</h3>
-                  <p className="mt-0.5 text-[11px] text-slate-500">Uyumluluk, stok, açıklama ve arama görünürlüğünü zenginleştiren isteğe bağlı alanlar.</p>
-                </div>
-              </div>
-
-              <div className="space-y-4 p-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Raf / Depo Kodu</label>
-                    <Input
-                      placeholder="Örn: 201.07.0069, A12-04"
-                      value={shelfCode}
-                      onChange={(e) => setShelfCode(e.target.value)}
-                      className="font-mono text-xs"
-                    />
-                    <p className="text-[10px] leading-4 text-slate-400">Yalnızca depo içi takip için kullanılır.</p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Uyumlu Model / Seri</label>
-                    <Input
-                      placeholder="Örn: Megane 2, Clio 3"
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
-                      className="text-xs"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Parça Durumu</label>
-                    <select
-                      value={condition}
-                      onChange={(e) => setCondition(e.target.value)}
-                      className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
-                    >
-                      <option value="Orijinal Çıkma">Orijinal Çıkma</option>
-                      <option value="Sıfır - Orijinal">Sıfır - Orijinal</option>
-                      <option value="Revizyonlu">Revizyonlu</option>
-                      <option value="Sıfırlanmış - Virgin">Sıfırlanmış - Virgin</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Stok Durumu</label>
-                    <select
-                      value={inStock ? "true" : "false"}
-                      onChange={(e) => setInStock(e.target.value === "true")}
-                      className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
-                    >
-                      <option value="true">Stokta Var (Satışa Hazır)</option>
-                      <option value="false">Tükendi / Stokta Yok</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Detaylı Açıklama</label>
-                  <Textarea
-                    rows={10}
-                    placeholder="Parça özellikleri, soket pin kontrolleri ve kullanım alanları..."
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="min-h-[220px] resize-y text-xs"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-700">Arama Etiketleri (Tags)</label>
-                  <Input
-                    placeholder="Virgülle ayırarak girin: 0281001781, Megane 2, ECU, Bosch"
-                    value={tagsInput}
-                    onChange={(e) => setTagsInput(e.target.value)}
-                    className="text-xs"
-                  />
-                </div>
-
-                <div className="space-y-3 border-t border-slate-100 pt-4">
-                  <div>
-                    <p className="text-xs font-bold text-slate-800">SEO ve bağlantı</p>
-                    <p className="mt-0.5 text-[11px] text-slate-500">Arama motoru başlık ve açıklamasını buradan kontrol edebilirsiniz.</p>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">URL / Slug</label>
-                    <Input
-                      value={slug}
-                      onChange={(e) => {
-                        setSlug(slugify(e.target.value));
-                        setSlugManuallyEdited(true);
-                      }}
-                      className="font-mono text-xs"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Meta Başlık</label>
-                    <Input
-                      value={metaTitle}
-                      onChange={(e) => setMetaTitle(e.target.value)}
-                      className="text-xs"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Meta Açıklama</label>
-                    <Textarea
-                      rows={3}
-                      value={metaDescription}
-                      onChange={(e) => setMetaDescription(e.target.value)}
-                      className="resize-y text-xs"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-700">Meta Anahtar Kelimeler</label>
-                    <Input
-                      value={metaKeywords}
-                      onChange={(e) => setMetaKeywords(e.target.value)}
-                      className="text-xs"
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
-              </section>
+                  </section>
+                </section>
               </div>
 
             </div>
@@ -1561,175 +1439,84 @@ export default function AdminProductsPage() {
 
           {/* Main image */}
           <div
-            className="flex w-[min(94vw,1180px)] flex-col gap-4 lg:flex-row lg:items-stretch"
+            className="w-[min(94vw,1180px)]"
             onClick={(e) => e.stopPropagation()}
           >
-          <div className="min-w-0 flex-1">
-          <div
-            className="relative flex h-[min(58vh,620px)] w-full items-center justify-center overflow-hidden rounded-2xl bg-black/35 shadow-2xl lg:h-[min(74vh,720px)]"
-          >
-            <img
-              key={lightbox.index}
-              src={lightbox.images[lightbox.index]}
-              alt={`Görsel ${lightbox.index + 1}`}
-              onClick={handleLightboxImageClick}
-              onWheel={handleLightboxImageWheel}
-              style={{
-                transform: `scale(${lightboxZoom})`,
-                transformOrigin: lightboxZoomOrigin,
-              }}
-              className={`max-h-full max-w-full object-contain select-none transition-transform duration-200 ${
-                lightboxZoom > 1 ? "cursor-zoom-out" : "cursor-zoom-in"
-              }`}
-              draggable={false}
-            />
+            <div className="min-w-0 flex-1">
+              <div
+                className="relative flex h-[min(58vh,620px)] w-full items-center justify-center overflow-hidden rounded-2xl bg-black/35 shadow-2xl lg:h-[min(74vh,720px)]"
+              >
+                <img
+                  key={lightbox.index}
+                  src={lightbox.images[lightbox.index]}
+                  alt={`Görsel ${lightbox.index + 1}`}
+                  onClick={handleLightboxImageClick}
+                  onWheel={handleLightboxImageWheel}
+                  style={{
+                    transform: `scale(${lightboxZoom})`,
+                    transformOrigin: lightboxZoomOrigin,
+                  }}
+                  className={`max-h-full max-w-full object-contain select-none transition-transform duration-200 ${lightboxZoom > 1 ? "cursor-zoom-out" : "cursor-zoom-in"
+                    }`}
+                  draggable={false}
+                />
 
-            {/* Prev / Next arrows */}
-            {lightbox.images.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); lightboxPrev(); }}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors cursor-pointer"
-                  aria-label="Önceki"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); lightboxNext(); }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors cursor-pointer"
-                  aria-label="Sonraki"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Thumbnail strip */}
-          {lightbox.images.length > 1 && (
-            <div
-              className="flex items-center gap-2 mt-4 px-4 flex-wrap justify-center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {lightbox.images.map((img, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); resetLightboxZoom(); setLightbox((lb) => lb ? { ...lb, index: i } : null); }}
-                  className={`relative w-14 h-14 rounded-lg border-2 overflow-hidden bg-white/10 flex-shrink-0 transition-all cursor-pointer ${
-                    i === lightbox.index
-                      ? "border-white scale-110 shadow-lg"
-                      : "border-white/30 opacity-60 hover:opacity-100"
-                  }`}
-                >
-                  <img src={img} alt={`Küçük resim ${i + 1}`} className="w-full h-full object-contain" draggable={false} />
-                  {i === 0 && (
-                    <span className="absolute bottom-0.5 left-0.5 px-1 py-0.5 rounded text-[7px] font-black bg-amber-500 text-white shadow-xs leading-none">
-                      KAPAK
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Counter */}
-          <p className="mt-3 text-white/50 text-xs font-medium">
-            {lightbox.index + 1} / {lightbox.images.length} · Görsele tıkla: {lightboxZoom > 1 ? "uzaklaş" : "yakınlaş"}
-          </p>
-          </div>
-
-          {lightbox.product && (
-            <aside className="w-full rounded-2xl border border-white/15 bg-slate-950/95 p-4 shadow-xl lg:w-80 lg:flex-none">
-              <div className="border-b border-white/10 pb-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-300">Ürün önizleme</p>
-                <h2 className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-white" title={lightbox.product.title}>
-                  {lightbox.product.title}
-                </h2>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                  <div className="rounded-lg bg-white/5 px-2.5 py-2 text-white/55">
-                    <span className="block text-white/40">Mevcut OEM</span>
-                    <span className="mt-0.5 block truncate font-mono font-semibold text-white">{lightbox.product.oemNumber}</span>
-                  </div>
-                  <div className="rounded-lg bg-white/5 px-2.5 py-2 text-white/55">
-                    <span className="block text-white/40">Raf kodu</span>
-                    <span className="mt-0.5 block truncate font-mono font-semibold text-white">{lightbox.product.shelfCode || "—"}</span>
-                  </div>
-                </div>
-
-                {/* Hızlı Kapak Görseli Seçimi */}
+                {/* Prev / Next arrows */}
                 {lightbox.images.length > 1 && (
-                  <div className="mt-3 pt-3 border-t border-white/10">
-                    {lightbox.index === 0 ? (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold">
-                        <Star className="w-3.5 h-3.5 fill-current text-amber-400 shrink-0" />
-                        <span>Ana Kapak Görseli</span>
-                      </div>
-                    ) : (
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleSetLightboxCover}
-                        disabled={savingLightboxOem || generatingLightboxOem}
-                        className="h-8.5 w-full bg-amber-600 text-xs font-bold text-white hover:bg-amber-500 cursor-pointer shadow-md"
-                        title="Bu görseli ürünün 1. (ana kapak) görseli yapar"
-                      >
-                        <Star className="mr-1.5 h-3.5 w-3.5 fill-current" />
-                        Bu Görseli Kapak Yap
-                      </Button>
-                    )}
-                  </div>
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); lightboxPrev(); }}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors cursor-pointer"
+                      aria-label="Önceki"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); lightboxNext(); }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors cursor-pointer"
+                      aria-label="Sonraki"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </>
                 )}
               </div>
 
-              <form onSubmit={handleSaveLightboxOem} className="pt-4">
-                <label className="text-xs font-semibold text-white">Yeni OEM numarası</label>
-                <Input
-                  value={lightboxOemNumber}
-                  onChange={(e) => {
-                    setLightboxOemNumber(e.target.value);
-                    setLightboxOemStatus("");
-                  }}
-                  placeholder="OEM numarası"
-                  aria-label="Yeni OEM numarası"
-                  className="mt-2 h-10 border-white/15 bg-white text-xs font-mono text-slate-900"
-                  autoFocus
-                />
-                <p className="mt-2 text-[11px] leading-4 text-white/50">
-                  Üret seçeneği tam düzenleme formunda bir taslak açar; görseller ve raf kodu korunur. Kaydetmediğiniz sürece ürün değişmez.
-                </p>
-                <div className="mt-4 grid gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleGenerateLightboxOem}
-                    disabled={savingLightboxOem || generatingLightboxOem}
-                    className="h-10 w-full bg-emerald-600 text-xs font-bold text-white hover:bg-emerald-500 cursor-pointer"
-                  >
-                    {generatingLightboxOem ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Cpu className="mr-1.5 h-3.5 w-3.5" />}
-                    Yeni OEM ile Üret
-                  </Button>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    disabled={savingLightboxOem || generatingLightboxOem}
-                    className="h-10 w-full bg-blue-600 text-xs font-bold text-white hover:bg-blue-500 cursor-pointer"
-                  >
-                    {savingLightboxOem ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Check className="mr-1.5 h-3.5 w-3.5" />}
-                    Yalnız OEM&apos;i Kaydet
-                  </Button>
+              {/* Thumbnail strip */}
+              {lightbox.images.length > 1 && (
+                <div
+                  className="flex items-center gap-2 mt-4 px-4 flex-wrap justify-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {lightbox.images.map((img, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); resetLightboxZoom(); setLightbox((lb) => lb ? { ...lb, index: i } : null); }}
+                      className={`relative w-14 h-14 rounded-lg border-2 overflow-hidden bg-white/10 flex-shrink-0 transition-all cursor-pointer ${i === lightbox.index
+                        ? "border-white scale-110 shadow-lg"
+                        : "border-white/30 opacity-60 hover:opacity-100"
+                        }`}
+                    >
+                      <img src={img} alt={`Küçük resim ${i + 1}`} className="w-full h-full object-contain" draggable={false} />
+                      {i === 0 && (
+                        <span className="absolute bottom-0.5 left-0.5 px-1 py-0.5 rounded text-[7px] font-black bg-amber-500 text-white shadow-xs leading-none">
+                          KAPAK
+                        </span>
+                      )}
+                    </button>
+                  ))}
                 </div>
-                {lightboxOemStatus === "saved" && (
-                  <p className="mt-3 text-[11px] font-medium text-emerald-300">OEM numarası kaydedildi.</p>
-                )}
-                {lightboxOemStatus === "error" && (
-                  <p className="mt-3 text-[11px] font-medium text-red-300">OEM numarası boş bırakılamaz veya işlem tamamlanamadı.</p>
-                )}
-              </form>
-            </aside>
-          )}
+              )}
+
+              {/* Counter */}
+              <p className="mt-3 text-white/50 text-xs font-medium">
+                {lightbox.index + 1} / {lightbox.images.length} · Görsele tıkla: {lightboxZoom > 1 ? "uzaklaş" : "yakınlaş"}
+              </p>
+            </div>
+
           </div>
         </div>
       )}

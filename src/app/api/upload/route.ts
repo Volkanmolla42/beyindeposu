@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import sharp from "sharp";
 
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -39,17 +40,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const uploadDir = process.env.PRODUCT_UPLOAD_DIR
-      ? path.resolve(process.env.PRODUCT_UPLOAD_DIR)
-      : path.join(process.cwd(), "public", "uploads", "products");
-    const publicBasePath = (process.env.PRODUCT_UPLOAD_PUBLIC_PATH || "/uploads/products")
-      .replace(/\/+$/, "")
-      .replace(/^([^/])/, "/$1");
-    await mkdir(uploadDir, { recursive: true });
-
-    const uploadedUrls: string[] = [];
-    const label = fileSafePart(String(formData.get("label") || "product"));
-
     for (const file of filesToProcess) {
       if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
         return NextResponse.json(
@@ -63,19 +53,34 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
+    }
 
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
+    const uploadDir = process.env.PRODUCT_UPLOAD_DIR
+      ? path.resolve(process.env.PRODUCT_UPLOAD_DIR)
+      : path.join(process.cwd(), "public", "uploads", "products");
+    const publicBasePath = (process.env.PRODUCT_UPLOAD_PUBLIC_PATH || "/uploads/products")
+      .replace(/\/+$/, "")
+      .replace(/^([^/])/, "/$1");
+    await mkdir(uploadDir, { recursive: true });
 
+    const uploadedUrls: string[] = [];
+    const label = fileSafePart(String(formData.get("label") || "product"));
+
+    for (const file of filesToProcess) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const isAlreadyWebp = file.type === "image/webp" || /\.webp$/i.test(file.name);
+      const webp = isAlreadyWebp
+        ? buffer
+        : await sharp(buffer).rotate().webp({ quality: 90 }).toBuffer();
       const originalName = file.name || "upload.jpg";
-      const ext = path.extname(originalName) || ".jpg";
+      const ext = path.extname(originalName);
       const baseName = fileSafePart(path.basename(originalName, ext));
 
       const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
-      const fileName = `${label || baseName || "product"}-${uniqueSuffix}${ext.toLowerCase()}`;
+      const fileName = `${label || baseName || "product"}-${uniqueSuffix}.webp`;
       const filePath = path.join(uploadDir, fileName);
 
-      await writeFile(filePath, buffer);
+      await writeFile(filePath, webp);
       uploadedUrls.push(`${publicBasePath}/${fileName}`);
     }
 

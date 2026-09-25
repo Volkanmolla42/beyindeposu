@@ -249,14 +249,14 @@ export const generateProductDetails = action({
     const systemPrompt = `Sen otomotiv elektronik ve elektromekanik parçaları (Motor Beyinleri, Gövde/Konfor Modülleri, Fren/ABS, Hava Yastığı/Airbag, Şanzıman Beyinleri, Cam Krikosu Motorları, Silecek Motorları, Sigorta Kutuları / BSM / BSI / SAM) konusunda uzman bir baş teknik ürün yöneticisisin.
 
 GÖREVİN:
-Verilen OEM / Parça Numarasını, Exa web arama aracından gelen canlı sonuçları ve kullanıcı ipucunu inceleyerek parçanın türünü (Örn: Cam Motoru, Kapı Modülü, Motor Beyni, Gövde Beyni, ABS, Airbag, Şanzıman vb.), araç markasını, model/motor uyumluluğunu ve teknik özelliklerini mümkün olan en yüksek doğrulukla tespit edip eksiksiz JSON üretmektir.
+Verilen OEM / Parça Numarasını, Tako Search aracından gelen canlı sonuçları ve kullanıcı ipucunu inceleyerek parçanın türünü (Örn: Cam Motoru, Kapı Modülü, Motor Beyni, Gövde Beyni, ABS, Airbag, Şanzıman vb.), araç markasını, model/motor uyumluluğunu ve teknik özelliklerini mümkün olan en yüksek doğrulukla tespit edip eksiksiz JSON üretmektir.
 
 MEVCUT SİTE KATEGORİ LİSTESİ:
 ${categoriesContext}
 ${partTaxonomyHints}
 
 ÖNCELİKLİ DOĞRULAMA KURALI:
-1. Exa canlı parça arama sonuçları ve KULLANICI EK AÇIKLAMASI birincil doğrulama kaynağıdır. Kaynaklar çelişiyorsa kesinlik iddiasında bulunma ve needsReview mantığıyla temkinli içerik üret.
+1. Tako Search sonuçları ve KULLANICI EK AÇIKLAMASI birincil doğrulama kaynağıdır. Kaynaklar çelişiyorsa kesinlik iddiasında bulunma; bilinmeyen ayrıntıları uydurma.
 2. Parça bir "Cam Motoru" (Window Motor / Lève-vitre), "Silecek Motoru" (Wiper Motor), "Fan Motoru" veya "Röle" ise KESİNLİKLE Motor Beyni (ECU) veya Sigorta Kutusu (BSM) olarak uydurma. Gerçek parça türü neyse başlık, uyumlu araçlar ve tüm açıklamayı o parça türüne göre oluştur.
 3. PSA (96xxxxxx80) numaraları sadece ECU/BSM değildir; cam motoru, kilit motoru, sensör vb. olabilir. Arama sonucundaki donanım türüne kesinlikle sadık kal.
 
@@ -329,18 +329,11 @@ ${args.additionalHint ? `KULLANICI EK AÇIKLAMASI / DOĞRULAMA İPUCU: "${args.a
     const generated = await generateText({
       model: gateway(DEFAULT_GATEWAY_MODEL),
       system: systemPrompt,
-      prompt: `${userMessage}\n\nOEM kodunu doğrulamak için önce AI Gateway Exa web arama aracını kullan. Üretici ve güvenilir parça kataloglarını önceliklendir; arama kaynakları yetersizse bunu ürün alanlarında kesin gerçek gibi sunma.`,
+      prompt: `${userMessage}\n\nÜrün bilgisini doldurmadan önce bu OEM kodu için Tako Search ile tek bir web araması yap. Üretici ve güvenilir parça kataloglarını önceliklendir; arama kaynakları yetersizse doğrulanmamış ayrıntıları kesin gerçek gibi sunma.`,
       tools: {
-        webSearch: gateway.tools.exaSearch({
-          type: "fast",
-          numResults: 8,
-          contents: {
-            text: { maxCharacters: 6000, verbosity: "compact" },
-            highlights: { maxCharacters: 1200 },
-          },
-        }),
+        tako_search: gateway.tools.takoSearch(),
       },
-      toolChoice: { type: "tool", toolName: "webSearch" },
+      toolChoice: { type: "tool", toolName: "tako_search" },
       stopWhen: stepCountIs(2),
       temperature: 0,
       maxOutputTokens: 5500,
@@ -348,7 +341,7 @@ ${args.additionalHint ? `KULLANICI EK AÇIKLAMASI / DOĞRULAMA İPUCU: "${args.a
         ...(DEFAULT_GATEWAY_PROVIDER === "zai" ? ZAI_LOW_REASONING_OPTIONS : {}),
         gateway: {
           order: [DEFAULT_GATEWAY_PROVIDER],
-          tags: ["beyindeposu", "admin-product-generator", "exa"],
+          tags: ["beyindeposu", "admin-product-generator", "tako-search"],
         },
       },
     });

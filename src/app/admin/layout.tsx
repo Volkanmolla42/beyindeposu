@@ -143,7 +143,7 @@ export default function AdminLayout({
           </button>
           <Link href="/admin/products" className="flex items-center gap-2">
             <img
-              src="/images/logo_white.png"
+              src="/images/logo_white.webp"
               alt="Beyin Deposu"
               className="h-6 w-auto object-contain"
             />
@@ -207,7 +207,7 @@ export default function AdminLayout({
               onClick={() => setMobileMenuOpen(false)}
             >
               <img
-                src="/images/logo_white.png"
+              src="/images/logo_white.webp"
                 alt="Beyin Deposu"
                 className="h-7 w-auto object-contain"
               />

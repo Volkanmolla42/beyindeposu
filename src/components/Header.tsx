@@ -30,7 +30,7 @@ export default function Header() {
           {/* Official Beyin Deposu Logo */}
           <Link href="/" className="flex items-center group py-1">
             <img
-              src="/images/logo_transparent.png"
+              src="/images/logo_transparent.webp"
               alt="Beyin Deposu Logo"
               className="h-10 sm:h-12 w-auto object-contain"
             />

@@ -43,7 +43,7 @@ export default defineSchema({
     slug: v.string(), // SEO Bağlantısı / URL slug (Örn: renault-sagem-s113717205d-motor-beyni-ecu)
     oemNumber: v.string(), // Parça No / OEM Kodu (Örn: S113717205D)
     shelfCode: v.optional(v.string()), // Depo Raf Kodu (Örn: RAF-B08)
-    categoryId: v.id("categories"), // Kategori / Parça Türü (Foreign Key -> categories._id)
+    categoryId: v.optional(v.id("categories")), // Taslaklarda henüz kategori belirlenmemiş olabilir.
     brand: v.string(), // Araç Markası (Örn: Renault, Volkswagen, Mercedes-Benz)
     model: v.optional(v.string()), // Model / Yıl (Örn: Megane 2, Clio 3 veya Genel Uyumlu)
     condition: v.string(), // Durum ("Orijinal Çıkma", "Sıfır - Orijinal", "Revizyonlu")
@@ -58,35 +58,7 @@ export default defineSchema({
     metaKeywords: v.optional(v.string()), // Meta Kelimeleri (virgülle ayrılmış)
     tags: v.optional(v.array(v.string())), // Ürün Etiketleri (Tags)
 
-    // Kalite & İnceleme Kontrol Alanları
-    needsReview: v.optional(v.boolean()), // Etiket silik/okunamadı veya şüpheli mi? (true/false)
-    reviewReason: v.optional(v.string()), // İnceleme sebebi (Örn: "Etiket silik / parlamış", "OEM doğrulanamadı")
-    // "web" kesin doğrulama değildir; aday kod admin incelemesine düşer.
-    oemSource: v.optional(
-      v.union(
-        v.literal("image"),
-        v.literal("web"),
-        v.literal("manual"),
-        v.literal("unresolved")
-      )
-    ),
-    visibleOemNumber: v.optional(v.string()), // Görselde net veya kısmi görülen kod
-    reviewCodes: v.optional(
-      v.array(
-        v.object({
-          code: v.string(),
-          kind: v.union(v.literal("oem_candidate"), v.literal("secondary_code")),
-          source: v.optional(v.union(
-            v.literal("image"),
-            v.literal("web"),
-            v.literal("manual"),
-            v.literal("unresolved")
-          )),
-          confidence: v.optional(v.number()),
-          evidence: v.optional(v.string()),
-        })
-      )
-    ), // İncelemede kullanılacak muhtemel OEM ve üretici kodları
+    isDraft: v.optional(v.boolean()),
 
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -96,8 +68,7 @@ export default defineSchema({
     .index("by_shelfCode", ["shelfCode"])
     .index("by_categoryId", ["categoryId"])
     .index("by_brand", ["brand"])
-    .index("by_inStock", ["inStock"])
-    .index("by_needsReview", ["needsReview"]),
+    .index("by_inStock", ["inStock"]),
 
   // 4. Site Genel İletişim Ayarları
   siteSettings: defineTable({

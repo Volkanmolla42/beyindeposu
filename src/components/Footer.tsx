@@ -76,7 +76,7 @@ export default function Footer() {
           <div className="space-y-4">
             <Link href="/" className="inline-block">
               <img
-                src="/images/logo_white.png"
+                src="/images/logo_white.webp"
                 alt="Beyin Deposu"
                 className="h-10 sm:h-11 w-auto object-contain"
               />

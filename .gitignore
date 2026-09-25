@@ -44,3 +44,6 @@ next-env.d.ts
 # OCR models
 *.traineddata
 temp_sample/
+
+# uploads
+/public/uploads/
