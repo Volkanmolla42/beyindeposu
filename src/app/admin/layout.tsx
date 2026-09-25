@@ -9,7 +9,6 @@ import {
   Layers,
   Car,
   Settings,
-  ExternalLink,
   Menu,
   X,
   ChevronRight,
@@ -133,7 +132,7 @@ export default function AdminLayout({
     <div className="h-screen w-full bg-slate-50/70 text-slate-900 flex flex-col md:flex-row antialiased font-sans overflow-hidden">
       {/* Mobile Header Bar */}
       <header className="md:hidden bg-[#0f172a] text-white px-4 py-3 border-b border-slate-800 flex items-center justify-between shrink-0 z-40 shadow-xs">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800"
@@ -141,48 +140,20 @@ export default function AdminLayout({
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
-          <Link href="/admin/products" className="flex items-center gap-2">
-            <img
-              src="/images/logo_white.webp"
-              alt="Beyin Deposu"
-              className="h-6 w-auto object-contain"
-            />
-            <span className="text-[10px] font-bold text-slate-300 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
-              Panel
-            </span>
-          </Link>
+          <span className="min-w-0 truncate text-sm font-semibold text-white">
+            {currentItem.label}
+          </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          {unreadChatsCount > 0 && (
-            <Link
-              href="/admin/chats"
-              className="px-2 py-0.5 rounded-full bg-blue-600 text-white text-[11px] font-bold"
-            >
-              {unreadChatsCount}
-            </Link>
-          )}
+        {unreadChatsCount > 0 && (
           <Link
-            href="/"
-            target="_blank"
-            className="text-slate-400 hover:text-white p-1"
-            title="Mağazayı Görüntüle"
+            href="/admin/chats"
+            aria-label={`${unreadChatsCount} okunmamış sohbet`}
+            className="ml-3 shrink-0 px-2 py-1 rounded-full bg-blue-600 text-white text-[11px] font-bold"
           >
-            <ExternalLink className="w-4 h-4" />
+            {unreadChatsCount}
           </Link>
-          <button
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="text-rose-400 hover:text-rose-300 p-1 ml-1"
-            title="Çıkış Yap"
-          >
-            {loggingOut ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <LogOut className="w-4 h-4" />
-            )}
-          </button>
-        </div>
+        )}
       </header>
 
       {/* Mobile Overlay */}
@@ -202,7 +173,7 @@ export default function AdminLayout({
           {/* Logo Header */}
           <div className="h-16 px-5 border-b border-slate-800 flex items-center justify-between shrink-0">
             <Link
-              href="/admin/products"
+              href="/"
               className="flex items-center gap-2.5 group"
               onClick={() => setMobileMenuOpen(false)}
             >
@@ -334,15 +305,6 @@ export default function AdminLayout({
                 <span>{unreadChatsCount} Okunmamış Canlı Mesaj</span>
               </Link>
             )}
-
-            <Link
-              href="/"
-              target="_blank"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors shadow-2xs"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
-              <span>Mağaza</span>
-            </Link>
 
             <button
               onClick={handleLogout}

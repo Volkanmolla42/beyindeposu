@@ -13,13 +13,10 @@ import {
   X,
   Loader2,
   Eye,
-  SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  AlertTriangle,
-  CheckCircle2,
   Sparkles,
   Star,
 } from "lucide-react";
@@ -34,7 +31,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { slugify } from "../admin-utils";
 
@@ -474,7 +470,6 @@ export default function AdminProductsPage() {
 
         for (const chunk of uploadChunks) {
           const formData = new FormData();
-          formData.append("label", "draft-import");
           for (const { file } of chunk) formData.append("files", file, file.name);
 
           const response = await fetch("/api/upload", { method: "POST", body: formData });
@@ -948,29 +943,21 @@ export default function AdminProductsPage() {
 
       {/* Add / Edit Product Modal */}
       <Dialog open={addProductModalOpen} onOpenChange={setAddProductModalOpen}>
-        <DialogContent className="flex max-h-[92vh] max-w-6xl flex-col overflow-hidden">
-          <DialogHeader className="shrink-0">
-            <DialogTitle>{editingProduct ? "Ürünü Düzenle" : "Yeni Ürün Ekle"}</DialogTitle>
-            <DialogDescription>
-              Ürün detaylarını manuel olarak girebilir veya yapay zeka ile otomatik doldurabilirsiniz.
-            </DialogDescription>
+        <DialogContent className="fixed left-0 top-0 z-50 flex h-[100dvh] max-h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-white p-0 shadow-none [&>button]:right-2 [&>button]:top-2 [&>button]:h-11 [&>button]:w-11 [&>button]:opacity-100 md:left-1/2 md:top-1/2 md:h-[90dvh] md:max-h-[900px] md:w-[94vw] md:max-w-6xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-xl md:border md:shadow-2xl">
+          <DialogHeader className="shrink-0 border-b border-slate-200 px-4 py-4 pr-14 text-left sm:px-6">
+            <DialogTitle className="text-base sm:text-lg">{editingProduct ? "Ürünü Düzenle" : "Yeni Ürün"}</DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSaveProduct} className="flex min-h-0 flex-1 flex-col pt-2 text-xs">
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1 sm:pr-2">
-              <div className="grid grid-cols-1 gap-6 pb-5 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 lg:sticky lg:top-0 lg:self-start">
+          <form onSubmit={handleSaveProduct} className="flex min-h-0 flex-1 flex-col text-xs">
+            <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-4 sm:px-6">
+              <div className="grid min-w-0 grid-cols-1 gap-6 pb-4 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.2fr)]">
+                <section className="min-w-0 lg:sticky lg:top-0 lg:self-start">
                   <div className="mb-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">Ürün Görselleri</p>
-                      <p className="mt-0.5 text-[11px] text-slate-500">1. görsel otomatik ana kapak görselidir. Değiştirmek için görseli kapak yapabilirsiniz.</p>
-                    </div>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500 shadow-xs">
-                      {previewImages.length} görsel
-                    </span>
+                    <h3 className="text-sm font-bold text-slate-900">Görseller</h3>
+                    <span className="text-xs text-slate-500">{previewImages.length} görsel</span>
                   </div>
 
-                  <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-3 lg:aspect-square lg:p-4">
                     {previewImages[selectedFormImageIndex] ? (
                       <>
                         <button
@@ -994,7 +981,7 @@ export default function AdminProductsPage() {
                         {/* Kapak Görseli Rozeti / Butonu */}
                         <div className="absolute top-3 left-3 flex items-center gap-1.5">
                           {selectedFormImageIndex === 0 ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500 text-white text-[11px] font-bold shadow-md">
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-500 px-2 py-1 text-[10px] font-bold text-white shadow-md">
                               <Star className="w-3.5 h-3.5 fill-current" />
                               <span>Ana Kapak Görseli</span>
                             </span>
@@ -1002,7 +989,7 @@ export default function AdminProductsPage() {
                             <button
                               type="button"
                               onClick={() => handleSetCoverImage(selectedFormImageIndex)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-900/90 hover:bg-amber-600 text-white text-[11px] font-bold shadow-md backdrop-blur-xs transition-all cursor-pointer"
+                              className="inline-flex min-h-10 items-center gap-1.5 rounded-md bg-slate-900/90 px-3 py-2 text-[11px] font-bold text-white shadow-md transition-colors hover:bg-amber-600"
                               title="Bu görseli ana kapak görseli yap"
                             >
                               <Star className="w-3.5 h-3.5 fill-current" />
@@ -1019,11 +1006,11 @@ export default function AdminProductsPage() {
                     )}
                   </div>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-2 flex max-w-full gap-2 overflow-x-auto pb-1">
                     {previewImages.map((img, i) => (
                       <div
                         key={i}
-                        className={`group relative h-16 w-16 overflow-hidden rounded-lg border-2 bg-white p-1 transition-all ${i === selectedFormImageIndex ? "border-blue-600 shadow-sm" : "border-slate-200 hover:border-slate-400"
+                        className={`group relative h-16 w-16 shrink-0 overflow-hidden rounded-md border-2 bg-white p-1 transition-colors ${i === selectedFormImageIndex ? "border-blue-600" : "border-slate-200 hover:border-slate-400"
                           }`}
                       >
                         <button
@@ -1048,21 +1035,6 @@ export default function AdminProductsPage() {
                           </span>
                         )}
 
-                        {/* Diğer görseller için Hızlı Kapak Yap Butonu */}
-                        {i > 0 && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSetCoverImage(i);
-                            }}
-                            className="absolute left-0.5 top-0.5 rounded-full bg-slate-900/80 hover:bg-amber-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 cursor-pointer shadow-xs"
-                            title="Kapak Görseli Yap"
-                          >
-                            <Star className="h-2.5 w-2.5 fill-current" />
-                          </button>
-                        )}
-
                         <button
                           type="button"
                           onClick={() => {
@@ -1070,7 +1042,7 @@ export default function AdminProductsPage() {
                             setSelectedFormImageIndex((current) => Math.max(0, Math.min(current, previewImages.length - 2)));
                             resetFormImageZoom();
                           }}
-                          className="absolute -right-1 -top-1 rounded-full bg-red-600 p-0.5 text-white opacity-0 transition-opacity group-hover:opacity-100 cursor-pointer"
+                          className="absolute right-0.5 top-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
                           aria-label="Görseli kaldır"
                         >
                           <X className="h-3 w-3" />
@@ -1081,7 +1053,7 @@ export default function AdminProductsPage() {
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploadingImage}
-                      className="flex h-16 w-16 flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-white text-slate-400 transition-colors hover:border-blue-500 hover:text-blue-600 disabled:cursor-wait"
+                      className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-md border border-dashed border-slate-300 bg-white text-slate-500 transition-colors hover:border-blue-500 hover:text-blue-600 disabled:cursor-wait"
                     >
                       {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
                       <span className="mt-1 text-[9px] font-bold">Ekle</span>
@@ -1097,156 +1069,114 @@ export default function AdminProductsPage() {
                   </div>
                 </section>
 
-                <section className="min-w-0 space-y-4">
-                  {/* Required product information */}
-                  <section className="overflow-hidden rounded-2xl border border-blue-200 bg-white shadow-sm">
-                    <div className="flex items-center justify-between gap-3 border-b border-blue-100 bg-blue-50/70 px-4 py-3">
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
-                          <CheckCircle2 className="h-4 w-4" />
-                        </span>
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-bold text-slate-900">Zorunlu bilgiler</h3>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4 p-4">
-                      <div className="rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50/80 via-white to-purple-50/70 p-3.5">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex min-w-0 items-center gap-2.5">
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
-                              <Cpu className="h-4 w-4" />
-                            </span>
-                            <div className="min-w-0">
-                              <p className="text-xs font-bold text-slate-900">OEM kodu ile otomatik doldur</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                          <div className="flex min-w-0 flex-1 items-center">
-                            <Input
-                              placeholder="Örn: 0281001781, 8200000000"
-                              value={oemNumber}
-                              onChange={(e) => setOemNumber(e.target.value)}
-                              className="min-w-0 flex-1 font-mono text-xs"
-                              required
-                            />
-                          </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={handleAiAutoFill}
-                            disabled={aiGenerating || !oemNumber.trim()}
-                            className="h-9 w-full shrink-0 gap-1.5 bg-purple-600 text-xs font-semibold text-white shadow-xs hover:bg-purple-700 sm:w-auto"
-                            title="OEM numarasını webde arayıp ürün bilgilerini doldurur"
-                          >
-                            {aiGenerating ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Sparkles className="h-3.5 w-3.5" />
-                            )}
-                            <span>{aiGenerating ? "Dolduruluyor..." : "AI ile doldur"}</span>
-                          </Button>
-                        </div>
-
-                      </div>
-
-                      <label className="flex w-fit items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 font-semibold text-slate-700">
+                <section className="min-w-0 space-y-5">
+                  <section aria-labelledby="required-product-fields" className="min-w-0 space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 id="required-product-fields" className="text-sm font-bold text-slate-900">Ürün bilgileri</h3>
+                      <label className="flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
                         <input
                           type="checkbox"
                           checked={isDraft}
                           onChange={(event) => setIsDraft(event.target.checked)}
                           className="h-4 w-4 accent-blue-600"
                         />
-                        Taslak olarak kaydet
+                        Taslak
                       </label>
+                    </div>
 
-                      <div className="space-y-2">
-                        <div className="space-y-1">
-                          <label className="block text-[10px] font-semibold text-slate-700">Ek ipucu <span className="font-normal text-slate-400">(isteğe bağlı)</span></label>
-                          <Input
-                            placeholder="Örn: Peugeot 307 ön sağ cam motoru, 1.6 HDi, 2005"
-                            value={aiHint}
-                            onChange={(e) => setAiHint(e.target.value)}
-                            className="h-8 border-indigo-200 bg-white text-xs font-medium placeholder:text-slate-400 focus:border-indigo-500"
-                          />
-                        </div>
-                        <div className="flex items-start gap-1.5 rounded-lg border border-amber-200/90 bg-amber-50/90 px-2.5 py-1.5 text-[10.5px] text-amber-800">
-                          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
-                          <span><strong>Kontrol et:</strong> AI teknik detaylarda veya uyumlulukta hata yapabilir; kaydetmeden önce bilgileri doğrula.</span>
-                        </div>
-                        {aiError && <p className="text-[11px] font-medium text-red-600">{aiError}</p>}
-                        {aiSuccess && <p className="text-[11px] font-medium text-emerald-600">{aiSuccess}</p>}
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700">Ürün Başlığı *</label>
+                    <div className="space-y-1.5">
+                      <label htmlFor="product-oem" className="font-semibold text-slate-700">
+                        OEM kodu <span className="text-red-600" aria-hidden="true">*</span>
+                      </label>
+                      <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
                         <Input
-                          placeholder="Örn: Renault Megane 2 Motor Beyni (ECU) Bosch 0281001781 Orijinal Çıkma"
-                          value={title}
-                          onChange={(e) => {
-                            setTitle(e.target.value);
-                            if (!slugManuallyEdited) {
-                              setSlug(slugify(e.target.value));
-                            }
-                          }}
-                          className="text-xs font-semibold"
+                          id="product-oem"
+                          placeholder="Örn. 0281001781"
+                          value={oemNumber}
+                          onChange={(e) => setOemNumber(e.target.value)}
+                          className="h-11 min-w-0 flex-1 font-mono text-sm"
                           required
                         />
+                        <Button
+                          type="button"
+                          onClick={handleAiAutoFill}
+                          disabled={aiGenerating || !oemNumber.trim()}
+                          className="h-11 w-full shrink-0 gap-2 bg-purple-600 text-xs font-semibold text-white hover:bg-purple-700 sm:w-auto"
+                          title="OEM koduna göre ürün bilgilerini doldur"
+                        >
+                          {aiGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                          {aiGenerating ? "Dolduruluyor" : "AI ile doldur"}
+                        </Button>
+                      </div>
+                      <div className="space-y-1.5 pt-1">
+                        <label htmlFor="product-ai-hint" className="font-medium text-slate-600">AI ipucu</label>
+                        <Input
+                          id="product-ai-hint"
+                          placeholder="Araç veya parça bilgisi"
+                          value={aiHint}
+                          onChange={(e) => setAiHint(e.target.value)}
+                          className="h-11 text-sm"
+                        />
+                      </div>
+                      {aiError && <p role="alert" className="text-xs font-medium text-red-600">{aiError}</p>}
+                      {aiSuccess && <p role="status" className="text-xs font-medium text-emerald-700">{aiSuccess}</p>}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label htmlFor="product-title" className="font-semibold text-slate-700">
+                        Ürün başlığı <span className="text-red-600" aria-hidden="true">*</span>
+                      </label>
+                      <Input
+                        id="product-title"
+                        placeholder="Örn. Renault Megane motor beyni"
+                        value={title}
+                        onChange={(e) => {
+                          setTitle(e.target.value);
+                          if (!slugManuallyEdited) setSlug(slugify(e.target.value));
+                        }}
+                        className="h-11 min-w-0 text-sm font-semibold"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="min-w-0 space-y-1.5">
+                        <label htmlFor="product-brand" className="font-semibold text-slate-700">
+                          Araç markası <span className="text-red-600" aria-hidden="true">*</span>
+                        </label>
+                        <select
+                          id="product-brand"
+                          value={brand}
+                          onChange={(e) => setBrand(e.target.value)}
+                          className="h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                          required
+                        >
+                          <option value="Genel Uyumlu">Genel Uyumlu</option>
+                          {brands?.map((b) => <option key={b._id} value={b.name}>{b.name}</option>)}
+                        </select>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div className="space-y-1">
-                          <label className="font-bold text-slate-700">Araç Markası *</label>
-                          <select
-                            value={brand}
-                            onChange={(e) => setBrand(e.target.value)}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
-                            required
-                          >
-                            <option value="Genel Uyumlu">Genel Uyumlu</option>
-                            {brands?.map((b) => (
-                              <option key={b._id} value={b.name}>
-                                {b.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="font-bold text-slate-700">Kategori *</label>
-                          <select
-                            value={selectedCategoryId}
-                            onChange={(e) => setSelectedCategoryId(e.target.value)}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
-                            required
-                          >
-                            {categories?.map((c) => (
-                              <option key={c._id} value={c._id}>
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                      <div className="min-w-0 space-y-1.5">
+                        <label htmlFor="product-category" className="font-semibold text-slate-700">
+                          Kategori <span className="text-red-600" aria-hidden="true">*</span>
+                        </label>
+                        <select
+                          id="product-category"
+                          value={selectedCategoryId}
+                          onChange={(e) => setSelectedCategoryId(e.target.value)}
+                          className="h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                          required
+                        >
+                          {categories?.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                        </select>
                       </div>
                     </div>
                   </section>
 
                   {/* Optional product details */}
-                  <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50/80 px-4 py-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-200/80 text-slate-600">
-                        <SlidersHorizontal className="h-4 w-4" />
-                      </span>
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-900">Ürün detayları</h3>
-                        <p className="mt-0.5 text-[11px] text-slate-500">Uyumluluk, stok, açıklama ve arama görünürlüğünü zenginleştiren isteğe bağlı alanlar.</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4 p-4">
+                  <section aria-labelledby="optional-product-fields" className="min-w-0 space-y-4 border-t border-slate-200 pt-4">
+                    <h3 id="optional-product-fields" className="text-sm font-bold text-slate-900">Diğer bilgiler</h3>
+                    <div className="space-y-4">
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
                           <label className="font-bold text-slate-700">Raf / Depo Kodu</label>
@@ -1254,9 +1184,8 @@ export default function AdminProductsPage() {
                             placeholder="Örn: 201.07.0069, A12-04"
                             value={shelfCode}
                             onChange={(e) => setShelfCode(e.target.value)}
-                            className="font-mono text-xs"
+                            className="h-11 font-mono text-sm"
                           />
-                          <p className="text-[10px] leading-4 text-slate-400">Yalnızca depo içi takip için kullanılır.</p>
                         </div>
 
                         <div className="space-y-1">
@@ -1265,7 +1194,7 @@ export default function AdminProductsPage() {
                             placeholder="Örn: Megane 2, Clio 3"
                             value={model}
                             onChange={(e) => setModel(e.target.value)}
-                            className="text-xs"
+                            className="h-11 text-sm"
                           />
                         </div>
                       </div>
@@ -1276,7 +1205,7 @@ export default function AdminProductsPage() {
                           <select
                             value={condition}
                             onChange={(e) => setCondition(e.target.value)}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
+                            className="h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                           >
                             <option value="Orijinal Çıkma">Orijinal Çıkma</option>
                             <option value="Sıfır - Orijinal">Sıfır - Orijinal</option>
@@ -1290,7 +1219,7 @@ export default function AdminProductsPage() {
                           <select
                             value={inStock ? "true" : "false"}
                             onChange={(e) => setInStock(e.target.value === "true")}
-                            className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
+                            className="h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                           >
                             <option value="true">Stokta Var (Satışa Hazır)</option>
                             <option value="false">Tükendi / Stokta Yok</option>
@@ -1298,69 +1227,68 @@ export default function AdminProductsPage() {
                         </div>
                       </div>
 
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700">Detaylı Açıklama</label>
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-slate-700">Açıklama</label>
                         <Textarea
-                          rows={10}
-                          placeholder="Parça özellikleri, soket pin kontrolleri ve kullanım alanları..."
+                          rows={4}
+                          placeholder="Ürün açıklaması"
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
-                          className="min-h-[220px] resize-y text-xs"
+                          className="min-h-32 resize-y text-sm"
                         />
                       </div>
 
-                      <div className="space-y-1">
-                        <label className="font-bold text-slate-700">Arama Etiketleri (Tags)</label>
+                      <div className="space-y-1.5">
+                        <label className="font-semibold text-slate-700">Arama etiketleri</label>
                         <Input
                           placeholder="Virgülle ayırarak girin: 0281001781, Megane 2, ECU, Bosch"
                           value={tagsInput}
                           onChange={(e) => setTagsInput(e.target.value)}
-                          className="text-xs"
+                          className="h-11 text-sm"
                         />
                       </div>
 
-                      <div className="space-y-3 border-t border-slate-100 pt-4">
-                        <div>
-                          <p className="text-xs font-bold text-slate-800">SEO ve bağlantı</p>
-                          <p className="mt-0.5 text-[11px] text-slate-500">Arama motoru başlık ve açıklamasını buradan kontrol edebilirsiniz.</p>
+                      <section aria-labelledby="seo-product-fields" className="space-y-3 border-t border-slate-200 pt-4">
+                        <h4 id="seo-product-fields" className="text-sm font-bold text-slate-900">SEO alanları</h4>
+                        <div className="mt-3 space-y-3">
+                          <div className="space-y-1.5">
+                            <label className="font-semibold text-slate-700">URL / Slug</label>
+                            <Input
+                              value={slug}
+                              onChange={(e) => {
+                                setSlug(slugify(e.target.value));
+                                setSlugManuallyEdited(true);
+                              }}
+                              className="h-11 min-w-0 font-mono text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="font-semibold text-slate-700">Meta başlık</label>
+                            <Input
+                              value={metaTitle}
+                              onChange={(e) => setMetaTitle(e.target.value)}
+                              className="h-11 text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="font-semibold text-slate-700">Meta açıklama</label>
+                            <Textarea
+                              rows={3}
+                              value={metaDescription}
+                              onChange={(e) => setMetaDescription(e.target.value)}
+                              className="min-h-24 resize-y text-sm"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="font-semibold text-slate-700">Meta anahtar kelimeler</label>
+                            <Input
+                              value={metaKeywords}
+                              onChange={(e) => setMetaKeywords(e.target.value)}
+                              className="h-11 text-sm"
+                            />
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <label className="font-bold text-slate-700">URL / Slug</label>
-                          <Input
-                            value={slug}
-                            onChange={(e) => {
-                              setSlug(slugify(e.target.value));
-                              setSlugManuallyEdited(true);
-                            }}
-                            className="font-mono text-xs"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="font-bold text-slate-700">Meta Başlık</label>
-                          <Input
-                            value={metaTitle}
-                            onChange={(e) => setMetaTitle(e.target.value)}
-                            className="text-xs"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="font-bold text-slate-700">Meta Açıklama</label>
-                          <Textarea
-                            rows={3}
-                            value={metaDescription}
-                            onChange={(e) => setMetaDescription(e.target.value)}
-                            className="resize-y text-xs"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="font-bold text-slate-700">Meta Anahtar Kelimeler</label>
-                          <Input
-                            value={metaKeywords}
-                            onChange={(e) => setMetaKeywords(e.target.value)}
-                            className="text-xs"
-                          />
-                        </div>
-                      </div>
+                      </section>
                     </div>
                   </section>
                 </section>
@@ -1369,22 +1297,20 @@ export default function AdminProductsPage() {
             </div>
 
             {/* Form Actions */}
-            <div className="relative z-10 flex shrink-0 items-center justify-end gap-2 border-t border-slate-200 bg-white pt-3 shadow-[0_-8px_18px_-18px_rgba(15,23,42,0.45)]">
+            <div className="relative z-10 grid shrink-0 grid-cols-2 gap-2 border-t border-slate-200 bg-white p-4 sm:flex sm:items-center sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
                 onClick={() => setAddProductModalOpen(false)}
-                className="text-xs"
+                className="h-11 w-full text-xs sm:w-auto"
               >
                 Vazgeç
               </Button>
               <Button
                 type="submit"
-                size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-5 cursor-pointer shadow-xs"
+                className="h-11 w-full bg-blue-600 px-5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 sm:w-auto"
               >
-                {editingProduct ? "Değişiklikleri Kaydet" : "Ürünü Kaydet"}
+                {editingProduct ? "Kaydet" : "Ürünü Kaydet"}
               </Button>
             </div>
           </form>

@@ -56,6 +56,14 @@ export default function AdminChatsPage() {
     }
   }, [conversations, selectedChatId]);
 
+  useEffect(() => {
+    const conversationId = new URLSearchParams(window.location.search).get("conversationId");
+    if (!conversationId) return;
+
+    setChatStatusFilter("all");
+    setSelectedChatId(conversationId as Id<"conversations">);
+  }, []);
+
   // Mark chat as read by admin when opened
   useEffect(() => {
     if (selectedChatId) {
@@ -279,6 +287,17 @@ export default function AdminChatsPage() {
                 </div>
 
                 <div className="flex items-center gap-1.5">
+                  <Link
+                    href={`/admin/chats?conversationId=${encodeURIComponent(selectedConversation._id)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 md:h-7 md:w-7"
+                    title="Sohbeti yeni sekmede aç"
+                    aria-label="Sohbeti yeni sekmede aç"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+
                   {selectedConversation.status === "active" && (
                     <Button
                       size="sm"

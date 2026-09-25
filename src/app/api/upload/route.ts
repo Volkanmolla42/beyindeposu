@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
     await mkdir(uploadDir, { recursive: true });
 
     const uploadedUrls: string[] = [];
-    const label = fileSafePart(String(formData.get("label") || "product"));
+    const rawLabel = formData.get("label");
+    const label = rawLabel ? fileSafePart(String(rawLabel)) : "";
 
     for (const file of filesToProcess) {
       const buffer = Buffer.from(await file.arrayBuffer());
@@ -74,10 +75,14 @@ export async function POST(req: NextRequest) {
         : await sharp(buffer).rotate().webp({ quality: 90 }).toBuffer();
       const originalName = file.name || "upload.jpg";
       const ext = path.extname(originalName);
-      const baseName = fileSafePart(path.basename(originalName, ext));
+      let baseName = fileSafePart(path.basename(originalName, ext));
+      baseName = baseName.replace(/^draft[-_]?import[-_]?/i, "").replace(/[-_]?draft[-_]?import/i, "");
+
+      const cleanLabel = label.replace(/^draft[-_]?import[-_]?/i, "").replace(/[-_]?draft[-_]?import/i, "");
+      const prefix = cleanLabel || baseName || "product";
 
       const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e6)}`;
-      const fileName = `${label || baseName || "product"}-${uniqueSuffix}.webp`;
+      const fileName = `${prefix}-${uniqueSuffix}.webp`;
       const filePath = path.join(uploadDir, fileName);
 
       await writeFile(filePath, webp);
