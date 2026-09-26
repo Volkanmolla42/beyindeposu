@@ -8,7 +8,8 @@
     "dev:convex": "convex dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy": "git pull && npm i && npx convex deploy -y && npm run build && pm2 restart all"
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.95",
