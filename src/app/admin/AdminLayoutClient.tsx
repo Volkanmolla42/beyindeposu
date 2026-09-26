@@ -15,6 +15,7 @@ import {
   LogOut,
   User,
   Loader2,
+  ExternalLink,
 } from "lucide-react";
 import { useQuery, useConvexAuth } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -132,7 +133,7 @@ export default function AdminLayout({
     <div className="h-screen w-full bg-slate-50/70 text-slate-900 flex flex-col md:flex-row antialiased font-sans overflow-hidden">
       {/* Mobile Header Bar */}
       <header className="md:hidden bg-[#0f172a] text-white px-4 py-3 border-b border-slate-800 flex items-center justify-between shrink-0 z-40 shadow-xs">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="flex items-center gap-2.5 min-w-0">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800"
@@ -145,15 +146,32 @@ export default function AdminLayout({
           </span>
         </div>
 
-        {unreadChatsCount > 0 && (
-          <Link
-            href="/admin/chats"
-            aria-label={`${unreadChatsCount} okunmamış sohbet`}
-            className="ml-3 shrink-0 px-2 py-1 rounded-full bg-blue-600 text-white text-[11px] font-bold"
-          >
-            {unreadChatsCount}
-          </Link>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {pathname.startsWith("/admin/chats") && (
+            <Link
+              href="/admin/chats"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors shadow-2xs"
+              title="Sohbetleri yeni sekmede aç"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-slate-300" />
+              <span>Yeni Sekmede Aç</span>
+            </Link>
+          )}
+
+          {unreadChatsCount > 0 && (
+            <Link
+              href="/admin/chats"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${unreadChatsCount} okunmamış sohbet`}
+              className="shrink-0 px-2 py-1 rounded-full bg-blue-600 text-white text-[11px] font-bold"
+            >
+              {unreadChatsCount}
+            </Link>
+          )}
+        </div>
       </header>
 
       {/* Mobile Overlay */}
@@ -293,12 +311,27 @@ export default function AdminLayout({
             </Link>
             <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
             <span className="text-slate-900 font-bold">{currentItem.label}</span>
+
           </div>
 
           <div className="flex items-center gap-3">
+            {pathname.startsWith("/admin/chats") && (
+              <Link
+                href="/admin/chats"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
+                title="Sohbetleri yeni sekmede aç"
+              >
+                <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                <span>Yeni Sekmede Aç</span>
+              </Link>
+            )}
             {unreadChatsCount > 0 && (
               <Link
                 href="/admin/chats"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-xs font-semibold flex items-center gap-2 hover:bg-blue-100 transition-colors"
               >
                 <span className="w-2 h-2 rounded-full bg-blue-600" />

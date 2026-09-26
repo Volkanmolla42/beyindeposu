@@ -30,11 +30,7 @@ import { generateWhatsAppLink } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { ModernImageZoom } from "@/components/ModernImageZoom";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -45,7 +41,6 @@ export default function ProductDetailPage({ params }: PageProps) {
   const slug = resolvedParams.slug;
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [copiedOem, setCopiedOem] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -168,13 +163,12 @@ export default function ProductDetailPage({ params }: PageProps) {
 
             {/* Left Column: Interactive Product Images Gallery */}
             <div className="lg:col-span-6 space-y-4">
-              {/* Main Image Container */}
-              <div className="relative aspect-4/3 w-full rounded-2xl bg-slate-50/80 border border-slate-200 overflow-hidden flex items-center justify-center p-6 group">
-                <img
+              {/* Main Image Container with Modern Interactive Zoom */}
+              <div className="relative aspect-4/3 w-full rounded-2xl bg-slate-50/80 border border-slate-200 overflow-hidden flex items-center justify-center p-2 group shadow-xs">
+                <ModernImageZoom
                   src={galleryImages[activeImageIndex] || galleryImages[0]}
                   alt={product.title}
-                  onClick={() => setIsZoomOpen(true)}
-                  className="w-full h-full object-contain cursor-zoom-in transition-transform duration-300 group-hover:scale-102"
+                  className="w-full h-full aspect-4/3 border-0 bg-transparent rounded-xl"
                 />
 
                 {/* Prev / Next Arrows */}
@@ -186,7 +180,7 @@ export default function ProductDetailPage({ params }: PageProps) {
                         e.stopPropagation();
                         setActiveImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1));
                       }}
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md border border-slate-200 text-slate-700 flex items-center justify-center opacity-80 hover:opacity-100 hover:bg-white transition-all cursor-pointer"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 shadow-md border border-slate-200 text-slate-700 flex items-center justify-center opacity-80 hover:opacity-100 hover:bg-white transition-all cursor-pointer"
                       title="Önceki Görsel"
                     >
                       <ChevronLeft className="w-5 h-5" />
@@ -197,25 +191,13 @@ export default function ProductDetailPage({ params }: PageProps) {
                         e.stopPropagation();
                         setActiveImageIndex((prev) => (prev + 1) % galleryImages.length);
                       }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/90 shadow-md border border-slate-200 text-slate-700 flex items-center justify-center opacity-80 hover:opacity-100 hover:bg-white transition-all cursor-pointer"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 shadow-md border border-slate-200 text-slate-700 flex items-center justify-center opacity-80 hover:opacity-100 hover:bg-white transition-all cursor-pointer"
                       title="Sonraki Görsel"
                     >
                       <ChevronRight className="w-5 h-5" />
                     </button>
                   </>
                 )}
-
-                {/* Top Action Floating Badges */}
-                <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsZoomOpen(true)}
-                    className="w-8 h-8 rounded-lg bg-white/90 hover:bg-white text-slate-700 shadow-sm border border-slate-200 flex items-center justify-center transition-colors cursor-pointer"
-                    title="Tam Ekran Büyüt"
-                  >
-                    <Maximize2 className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
 
               {/* Thumbnails Strip + Working 360/Play Toggle */}
@@ -575,56 +557,6 @@ export default function ProductDetailPage({ params }: PageProps) {
           </div>
         )}
       </div>
-
-      {/* 5. Fullscreen Zoom Image Modal (Dialog) */}
-      <Dialog open={isZoomOpen} onOpenChange={setIsZoomOpen}>
-        <DialogContent className="max-w-4xl p-4 sm:p-6 bg-white rounded-2xl">
-          <DialogTitle className="text-sm font-bold text-slate-900 font-mono pb-2 border-b border-slate-100 flex items-center justify-between">
-            <span>{product.oemNumber} - {product.title}</span>
-          </DialogTitle>
-          <div className="relative aspect-4/3 w-full max-h-[70vh] flex items-center justify-center p-4 bg-slate-50 rounded-xl overflow-hidden">
-            <img
-              src={galleryImages[activeImageIndex] || galleryImages[0]}
-              alt={product.title}
-              className="w-full h-full object-contain"
-            />
-            {galleryImages.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setActiveImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1))}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-md border border-slate-200 text-slate-800 flex items-center justify-center cursor-pointer hover:bg-slate-50"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveImageIndex((prev) => (prev + 1) % galleryImages.length)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-md border border-slate-200 text-slate-800 flex items-center justify-center cursor-pointer hover:bg-slate-50"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </>
-            )}
-          </div>
-          {/* Thumbnails in Zoom Modal */}
-          {galleryImages.length > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-2">
-              {galleryImages.map((img, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setActiveImageIndex(i)}
-                  className={`w-16 h-12 rounded-lg overflow-hidden border-2 cursor-pointer ${activeImageIndex === i ? "border-blue-600" : "border-slate-200 opacity-60"
-                    }`}
-                >
-                  <img src={img} alt="thumb" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       <Footer />
     </div>
