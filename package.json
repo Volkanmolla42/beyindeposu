@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "deploy": "git pull && npm i && npx convex deploy -y && npm run build && pm2 restart all"
+    "deploy": "git pull && npm i && npx convex deploy -y && npm run build && pm2 restart beyindeposu"
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.95",
