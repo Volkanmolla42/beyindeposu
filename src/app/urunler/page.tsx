@@ -399,7 +399,7 @@ function ProductCatalogContent() {
                   <div className="relative flex-1">
                     <input
                       type="text"
-                      placeholder="OEM, Bosch No veya Parça Ara..."
+                      placeholder="OEM veya Parça No ile Ara..."
                       value={oemSearch}
                       onChange={(e) => setOemSearch(e.target.value)}
                       className="w-full bg-slate-50 hover:bg-slate-100/60 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all pr-7"

@@ -330,6 +330,24 @@ export const getFeatured = query({
   },
 });
 
+export const listPublicSitemapEntries = query({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
+    const result = await ctx.db
+      .query("products")
+      .filter((q) => q.neq(q.field("isDraft"), true))
+      .paginate(args.paginationOpts);
+
+    return {
+      ...result,
+      page: result.page.map((product) => ({
+        slug: product.slug,
+        lastModified: product.updatedAt ?? product.createdAt,
+      })),
+    };
+  },
+});
+
 export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {

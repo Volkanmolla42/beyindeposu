@@ -39,8 +39,8 @@ export default defineSchema({
 
   // 3. Ürünler Tablosu (Tam Kapsamlı ve Temiz Oto Elektronik Şeması)
   products: defineTable({
-    title: v.string(), // Ürün Başlığı (Örn: Renault Motor Beyni ECU Sagem S113717205D Orijinal Çıkma)
-    slug: v.string(), // SEO Bağlantısı / URL slug (Örn: renault-sagem-s113717205d-motor-beyni-ecu)
+    title: v.string(), // Ürün Başlığı (Örn: Renault Motor Beyni ECU S113717205D Orijinal Çıkma)
+    slug: v.string(), // SEO Bağlantısı / URL slug (Örn: renault-motor-beyni-ecu-s113717205d)
     oemNumber: v.string(), // Parça No / OEM Kodu (Örn: S113717205D)
     shelfCode: v.optional(v.string()), // Depo Raf Kodu (Örn: RAF-B08)
     categoryId: v.optional(v.id("categories")), // Taslaklarda henüz kategori belirlenmemiş olabilir.

@@ -64,13 +64,6 @@ export default function ProductDetailPage({ params }: PageProps) {
   const whatsappNumber = settings?.whatsappNumber || "";
   const displayPhone = settings?.phone || "";
 
-  // Dynamic SEO Title
-  useEffect(() => {
-    if (product) {
-      document.title = product.metaTitle || `${product.oemNumber} ${product.title} | Beyin Deposu`;
-    }
-  }, [product]);
-
   // Gallery Images fallback
   const galleryImages =
     product?.images && product.images.length > 0
@@ -332,7 +325,7 @@ export default function ProductDetailPage({ params }: PageProps) {
               <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs divide-y divide-slate-100 shadow-2xs">
                 <div className="grid grid-cols-2 p-3 bg-slate-50/60">
                   <span className="text-slate-500 font-medium flex items-center gap-1.5">
-                    <Cpu className="w-3.5 h-3.5 text-slate-400" /> OEM / Bosch No
+                    <Cpu className="w-3.5 h-3.5 text-slate-400" /> OEM / Parça No
                   </span>
                   <span className="font-mono font-bold text-slate-900">{product.oemNumber}</span>
                 </div>

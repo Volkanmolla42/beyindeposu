@@ -8,6 +8,14 @@ import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import LiveChatWidget from "@/components/LiveChatWidget";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import {
+  ORGANIZATION_JSON_LD,
+  SEO_IMAGE,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_URL,
+  serializeJsonLd,
+} from "@/lib/seo";
 
 const GA_MEASUREMENT_ID = "G-K1QH76J0XM";
 
@@ -22,8 +30,41 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BEYİN DEPOSU | Türkiye'nin Oto Elektronik Parça Merkezi",
-  description: "ECU (Motor Beyinleri), ABS, Airbag, BCM, BSI, SAM ve binlerce orijinal oto elektronik kontrol modülleri. Orijinal, garantili ve aynı gün kargo.",
+  metadataBase: new URL(SITE_URL),
+  alternates: { canonical: "/" },
+  title: {
+    default: "Beyin Deposu | Oto Elektronik Parça Merkezi",
+    template: "%s | Beyin Deposu",
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  creator: SITE_NAME,
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    title: "Beyin Deposu | Oto Elektronik Parça Merkezi",
+    description: SITE_DESCRIPTION,
+    images: [{ url: SEO_IMAGE, width: 1200, height: 630, alt: SITE_NAME }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Beyin Deposu | Oto Elektronik Parça Merkezi",
+    description: SITE_DESCRIPTION,
+    images: [SEO_IMAGE],
+  },
 };
 
 export default function RootLayout({
@@ -38,6 +79,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       >
         <body className="min-h-full flex flex-col">
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: serializeJsonLd(ORGANIZATION_JSON_LD) }}
+          />
           <Script id="google-analytics-init" strategy="afterInteractive">
             {`window.dataLayer = window.dataLayer || [];
 function gtag(){window.dataLayer.push(arguments);}

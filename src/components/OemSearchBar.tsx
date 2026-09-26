@@ -80,7 +80,7 @@ export default function OemSearchBar({
                 setIsOpen(true);
               }}
               onFocus={() => setIsOpen(true)}
-              placeholder="OEM, BOSCH, SIEMENS, PARÇA NO, ARAÇ MODELİ..."
+              placeholder="OEM NO, PARÇA NO, ARAÇ MODELİ..."
               className={
                 variant === "hero"
                   ? "w-full pl-12 pr-10 py-3.5 bg-slate-900/90 text-white placeholder:text-slate-400 rounded-xl text-sm sm:text-base border border-slate-700/80 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 uppercase font-mono tracking-wider font-semibold transition-all"

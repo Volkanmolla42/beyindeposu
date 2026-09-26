@@ -188,7 +188,7 @@ export default function AdminBrandsPage() {
             </span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Desteklenen otomotiv üreticilerini ve resmi vektör logolarını yönetin.
+            Desteklenen araç markalarını ve resmi vektör logolarını yönetin.
           </p>
         </div>
 

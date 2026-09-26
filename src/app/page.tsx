@@ -109,7 +109,7 @@ export default function HomePage() {
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="OEM, BOSCH, SIEMENS, PARÇA NO, ARAÇ MODELİ, VIN..."
+                placeholder="OEM NO, PARÇA NO, ARAÇ MODELİ, VIN..."
                 className="flex-1 bg-white text-slate-900 placeholder:text-slate-400 font-mono text-sm px-4 py-3.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase font-semibold shadow-inner"
               />
               <button
