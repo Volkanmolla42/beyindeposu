@@ -134,9 +134,12 @@ export default function BatchImportPage() {
 
       if (parts.length > 1) {
         rootName = parts[0];
-        // Dosyanın bulunduğu klasör
+        // Dosyanın bulunduğu klasör ve raf kodu tespiti
         const dirParts = parts.slice(0, parts.length - 1);
-        const folderKey = dirParts.join("/");
+        const shelfMatch = file.name.match(/^(\d{3}(?:\.\d{2})?\.\d{3,4})/);
+        const isShelfFolder = shelfMatch && dirParts[dirParts.length - 1] === shelfMatch[1];
+        const effectiveParts = !isShelfFolder && shelfMatch ? [...dirParts, shelfMatch[1]] : dirParts;
+        const folderKey = effectiveParts.join("/");
 
         // Sadece görsel dosyalarını al
         if (/\.(webp|jpg|jpeg|png)$/i.test(file.name)) {
