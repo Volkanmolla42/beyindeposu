@@ -37,6 +37,8 @@ import { slugify } from "../admin-utils";
 type FolderProductGroup = {
   key: string;
   shelfCode?: string;
+  brandHint?: string;
+  categoryId?: Id<"categories">;
   files: File[];
   uploadedUrls: string[];
 };
@@ -120,7 +122,18 @@ function applyOemResearchResult(
 
 const MAX_AI_IMAGE_BYTES = 900 * 1024;
 
-async function prepareProductImageForAi(imageUrl: string): Promise<ArrayBuffer> {
+type ProductImageAiFocus = {
+  zoom: number;
+  xPercent: number;
+  yPercent: number;
+  viewportWidth: number;
+  viewportHeight: number;
+};
+
+async function prepareProductImageForAi(
+  imageUrl: string,
+  focus?: ProductImageAiFocus,
+): Promise<ArrayBuffer> {
   const response = await fetch(imageUrl, {
     cache: "no-store",
     credentials: "same-origin",
@@ -135,17 +148,49 @@ async function prepareProductImageForAi(imageUrl: string): Promise<ArrayBuffer> 
 
   const bitmap = await createImageBitmap(sourceImage);
   try {
-    let scale = Math.min(1, 2048 / Math.max(bitmap.width, bitmap.height));
+    const imageAspect = bitmap.width / bitmap.height;
+    const viewportAspect = focus && focus.viewportWidth > 0 && focus.viewportHeight > 0
+      ? focus.viewportWidth / focus.viewportHeight
+      : imageAspect;
+    const contentWidth = imageAspect >= viewportAspect ? focus?.viewportWidth ?? 1 : (focus?.viewportHeight ?? 1) * imageAspect;
+    const contentHeight = contentWidth / imageAspect;
+    const xOffset = focus ? ((focus.viewportWidth - contentWidth) / 2) : 0;
+    const yOffset = focus ? ((focus.viewportHeight - contentHeight) / 2) : 0;
+    const focusedCenterX = focus
+      ? Math.min(1, Math.max(0, ((focus.xPercent / 100 * focus.viewportWidth) - xOffset) / contentWidth)) * bitmap.width
+      : bitmap.width / 2;
+    const focusedCenterY = focus
+      ? Math.min(1, Math.max(0, ((focus.yPercent / 100 * focus.viewportHeight) - yOffset) / contentHeight)) * bitmap.height
+      : bitmap.height / 2;
+    const cropWidth = focus && focus.zoom > 1 ? bitmap.width / focus.zoom : bitmap.width;
+    const cropHeight = focus && focus.zoom > 1 ? bitmap.height / focus.zoom : bitmap.height;
+    const cropX = focus && focus.zoom > 1
+      ? Math.min(bitmap.width - cropWidth, Math.max(0, focusedCenterX - cropWidth / 2))
+      : 0;
+    const cropY = focus && focus.zoom > 1
+      ? Math.min(bitmap.height - cropHeight, Math.max(0, focusedCenterY - cropHeight / 2))
+      : 0;
+    let scale = Math.min(focus && focus.zoom > 1 ? focus.zoom : 1, 2048 / Math.max(cropWidth, cropHeight));
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Görsel işlenemedi.");
 
     for (let attempt = 0; attempt < 12; attempt += 1) {
-      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      canvas.width = Math.max(1, Math.round(cropWidth * scale));
+      canvas.height = Math.max(1, Math.round(cropHeight * scale));
       context.fillStyle = "#fff";
       context.fillRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      context.drawImage(
+        bitmap,
+        cropX,
+        cropY,
+        cropWidth,
+        cropHeight,
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+      );
 
       const quality = Math.max(0.55, 0.9 - (attempt % 4) * 0.1);
       const webp = await new Promise<Blob>((resolve, reject) => {
@@ -165,7 +210,11 @@ async function prepareProductImageForAi(imageUrl: string): Promise<ArrayBuffer> 
   throw new Error("Seçili görsel analiz için çok büyük. Daha yakın ve kırpılmış bir görsel yükleyin.");
 }
 
-function groupFolderImages(files: File[]): FolderProductGroup[] {
+function groupFolderImages(
+  files: File[],
+  brandOptions: Array<{ name: string; slug: string }>,
+  categoryOptions: Array<{ _id: Id<"categories">; name: string; slug: string }>,
+): FolderProductGroup[] {
   const byDirectory = new Map<string, { file: File; stem: string }[]>();
 
   for (const file of files) {
@@ -190,6 +239,21 @@ function groupFolderImages(files: File[]): FolderProductGroup[] {
 
   for (const [directory, siblings] of byDirectory) {
     const directoryParts = directory.split("/").filter(Boolean);
+    const firstPath = (siblings[0]?.file.webkitRelativePath || siblings[0]?.file.name)
+      .split(/[\\/]/)
+      .filter(Boolean);
+    const hintPath = firstPath.slice(0, -1).map((segment) => slugify(segment));
+    const matchedBrand = hintPath
+      .map((segment) => brandOptions.find((option) => (
+        segment === slugify(option.name) || segment === option.slug
+      )))
+      .find((option) => option !== undefined);
+    const matchedCategory = [...hintPath]
+      .reverse()
+      .map((segment) => categoryOptions.find((option) => (
+        segment === slugify(option.name) || segment === option.slug
+      )))
+      .find((option) => option !== undefined);
     const folderName = directoryParts[directoryParts.length - 1] || "";
     const isCodeFolder = /^(?=.*\d)[a-z0-9]+(?:[._-][a-z0-9]+)+$/i.test(folderName);
     const isProductFolder = isCodeFolder && siblings.every(
@@ -212,6 +276,8 @@ function groupFolderImages(files: File[]): FolderProductGroup[] {
       const group = groups.get(key) || {
         key,
         shelfCode: /\d/.test(productCode) ? productCode : undefined,
+        brandHint: matchedBrand?.name,
+        categoryId: matchedCategory?._id,
         files: [],
         uploadedUrls: [],
       };
@@ -259,6 +325,7 @@ export default function AdminProductsPage() {
   const [selectedFormImageIndex, setSelectedFormImageIndex] = useState(0);
   const [formImageZoom, setFormImageZoom] = useState(1);
   const [formImageZoomOrigin, setFormImageZoomOrigin] = useState("center center");
+  const [formImageZoomViewport, setFormImageZoomViewport] = useState({ width: 1, height: 1 });
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [lightboxZoomOrigin, setLightboxZoomOrigin] = useState("center center");
@@ -306,12 +373,14 @@ export default function AdminProductsPage() {
   const resetFormImageZoom = () => {
     setFormImageZoom(1);
     setFormImageZoomOrigin("center center");
+    setFormImageZoomViewport({ width: 1, height: 1 });
   };
   const setFormImageZoomOriginFromPoint = (target: HTMLElement, clientX: number, clientY: number) => {
     const rect = target.getBoundingClientRect();
     const x = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
     const y = Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100));
     setFormImageZoomOrigin(`${x}% ${y}%`);
+    setFormImageZoomViewport({ width: rect.width, height: rect.height });
   };
   const handleFormImageClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (formImageZoom > 1) {
@@ -362,6 +431,12 @@ export default function AdminProductsPage() {
 
   const categories = useQuery(api.categories.list, { onlyActive: false });
   const brands = useQuery(api.brands.list);
+  const selectedCategoryName = categories?.find((category) => category._id === selectedCategoryId)?.name;
+  const getOemContext = () => ({
+    ...(brand && brand !== "Genel Uyumlu" ? { brandHint: brand } : {}),
+    ...(selectedCategoryName ? { partTypeHint: selectedCategoryName } : {}),
+    ...(model.trim() ? { vehicleHint: model.trim() } : {}),
+  });
 
   const products = pageData?.items;
   const totalItems = pageData?.totalItems ?? 0;
@@ -463,8 +538,10 @@ export default function AdminProductsPage() {
 
   // AI Auto Fill Handler
   const handleAiAutoFill = async () => {
-    if (!oemNumber.trim()) {
-      setAiError("Lütfen önce OEM numarasını girin.");
+    const enteredOemNumber = oemNumber.trim();
+    const selectedImage = previewImages[selectedFormImageIndex];
+    if (!enteredOemNumber && !selectedImage) {
+      setAiError("OEM kodu girin veya ürün görseli seçin.");
       return;
     }
 
@@ -476,17 +553,38 @@ export default function AdminProductsPage() {
     try {
       const hintText = [
         aiHint.trim(),
-        brand !== "Genel Uyumlu" ? `Marka: ${brand}` : "",
+        brand !== "Genel Uyumlu" ? `Araç markası: ${brand}` : "",
+        model.trim() ? `Araç modeli: ${model.trim()}` : "",
+        selectedCategoryName ? `Parça kategorisi: ${selectedCategoryName}` : "",
       ]
         .filter(Boolean)
         .join(" - ");
 
+      let imageBytes: ArrayBuffer | undefined;
+      if (!enteredOemNumber && selectedImage) {
+        const [xPercent = "50%", yPercent = "50%"] = formImageZoomOrigin.split(" ");
+        const parsedXPercent = Number.parseFloat(xPercent);
+        const parsedYPercent = Number.parseFloat(yPercent);
+        const imageFocus = formImageZoom > 1
+          ? {
+            zoom: formImageZoom,
+            xPercent: Number.isFinite(parsedXPercent) ? parsedXPercent : 50,
+            yPercent: Number.isFinite(parsedYPercent) ? parsedYPercent : 50,
+            viewportWidth: formImageZoomViewport.width,
+            viewportHeight: formImageZoomViewport.height,
+          }
+          : undefined;
+        imageBytes = await prepareProductImageForAi(selectedImage, imageFocus);
+      }
+
       const result = await generateProductDetailsAction({
-        oemNumber: oemNumber.trim(),
+        ...(enteredOemNumber ? { oemNumber: enteredOemNumber } : {}),
+        ...(imageBytes ? { imageBytes } : {}),
         additionalHint: hintText || undefined,
       });
 
       if (result) {
+        if (!enteredOemNumber && result.oemNumber.trim()) setOemNumber(result.oemNumber);
         if (result.title) {
           setTitle(result.title);
           if (!slugManuallyEdited) {
@@ -512,7 +610,9 @@ export default function AdminProductsPage() {
           }
         }
 
-        setAiSuccess("Ürün bilgileri dolduruldu. Kaydetmeden önce kontrol edin.");
+        setAiSuccess(!enteredOemNumber && !result.oemNumber.trim()
+          ? "Bilgiler görselden dolduruldu. OEM kodu okunamadı; elle girin."
+          : "Ürün bilgileri dolduruldu. Kaydetmeden önce kontrol edin.");
         setTimeout(() => setAiSuccess(""), 4000);
       }
     } catch (err: any) {
@@ -540,12 +640,24 @@ export default function AdminProductsPage() {
     let actionTimeout: ReturnType<typeof setTimeout> | undefined;
 
     try {
-      const imageBytes = await prepareProductImageForAi(selectedImage);
+      const [xPercent = "50%", yPercent = "50%"] = formImageZoomOrigin.split(" ");
+      const parsedXPercent = Number.parseFloat(xPercent);
+      const parsedYPercent = Number.parseFloat(yPercent);
+      const imageFocus = formImageZoom > 1
+        ? {
+          zoom: formImageZoom,
+          xPercent: Number.isFinite(parsedXPercent) ? parsedXPercent : 50,
+          yPercent: Number.isFinite(parsedYPercent) ? parsedYPercent : 50,
+          viewportWidth: formImageZoomViewport.width,
+          viewportHeight: formImageZoomViewport.height,
+        }
+        : undefined;
+      const imageBytes = await prepareProductImageForAi(selectedImage, imageFocus);
       if (requestId !== imageAiRequestIdRef.current) return;
       phase = "reading";
       setImageAiStage("reading");
       const result = await Promise.race([
-        extractOemNumbersFromImageAction({ imageBytes }),
+        extractOemNumbersFromImageAction({ imageBytes, ...getOemContext() }),
         new Promise<never>((_, reject) => {
           actionTimeout = setTimeout(
             () => reject(new Error("Convex action 60 saniye içinde yanıt vermedi.")),
@@ -574,6 +686,7 @@ export default function AdminProductsPage() {
               code,
               visualConfidenceScore: confidenceScore,
             })),
+            ...getOemContext(),
           }),
           new Promise<never>((_, reject) => {
             actionTimeout = setTimeout(
@@ -638,6 +751,7 @@ export default function AdminProductsPage() {
             code,
             visualConfidenceScore: confidenceScore,
           })),
+          ...getOemContext(),
         }),
         new Promise<never>((_, reject) => {
           actionTimeout = setTimeout(
@@ -705,7 +819,11 @@ export default function AdminProductsPage() {
   const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
     event.target.value = "";
-    const groups = groupFolderImages(selectedFiles);
+    if (!brands || !categories) {
+      alert("Marka ve kategori listesi yükleniyor. Tekrar deneyin.");
+      return;
+    }
+    const groups = groupFolderImages(selectedFiles, brands, categories);
     const totalImages = groups.reduce((total, group) => total + group.files.length, 0);
 
     if (groups.length === 0) {
@@ -774,7 +892,9 @@ export default function AdminProductsPage() {
 
         const result = await createDraftBatch({
           products: productBatch.map((group) => ({
-            shelfCode: group.shelfCode,
+            ...(group.shelfCode ? { shelfCode: group.shelfCode } : {}),
+            ...(group.brandHint ? { brand: group.brandHint } : {}),
+            ...(group.categoryId ? { categoryId: group.categoryId } : {}),
             images: group.uploadedUrls,
           })),
         });
@@ -1374,7 +1494,7 @@ export default function AdminProductsPage() {
                       onClick={handleExtractOemNumbers}
                       disabled={aiGenerating || imageAiLoading || !previewImages[selectedFormImageIndex]}
                       className="h-11 w-full gap-2 bg-slate-900 text-xs font-semibold text-white hover:bg-slate-800"
-                      title="Seçili görseldeki OEM kodlarını Mimo ile oku"
+                      title={formImageZoom > 1 ? "Yakınlaştırılmış alanı Mimo ile oku" : "Seçili görseli Mimo ile oku; etikete yakınlaştırabilirsiniz"}
                     >
                       {imageAiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
                       {imageAiLoading
@@ -1505,12 +1625,14 @@ export default function AdminProductsPage() {
                         <Button
                           type="button"
                           onClick={handleAiAutoFill}
-                          disabled={aiGenerating || imageAiLoading || !oemNumber.trim()}
+                          disabled={aiGenerating || imageAiLoading || (!oemNumber.trim() && !previewImages[selectedFormImageIndex])}
                           className="h-11 w-full shrink-0 gap-2 bg-purple-600 text-xs font-semibold text-white hover:bg-purple-700 sm:w-auto"
-                          title="OEM koduna göre ürün bilgilerini doldur"
+                          title={oemNumber.trim()
+                            ? "OEM koduna göre ürün bilgilerini doldur"
+                            : "Seçili görseli Mimo’ya göndererek ürün bilgilerini doldur"}
                         >
                           {aiGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                          {aiGenerating ? "Dolduruluyor" : "AI ile doldur"}
+                          {aiGenerating ? "Dolduruluyor" : oemNumber.trim() ? "OEM’den doldur" : "Görselden doldur"}
                         </Button>
                       </div>
                       <div className="space-y-1.5 pt-1">

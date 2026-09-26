@@ -442,9 +442,15 @@ export const createDraftBatch = mutation({
   args: {
     products: v.array(v.object({
       shelfCode: v.optional(v.string()),
+      brand: v.optional(v.string()),
+      categoryId: v.optional(v.id("categories")),
       images: v.array(v.string()),
     })),
   },
+  returns: v.object({
+    created: v.number(),
+    skipped: v.number(),
+  }),
   handler: async (ctx, args) => {
     const now = Date.now();
     let created = 0;
@@ -468,17 +474,18 @@ export const createDraftBatch = mutation({
         }
       }
 
-      const codeSlug = (shelfCode || `urun-${index + 1}`)
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
+
+
+
+
 
       await ctx.db.insert("products", {
         title: "",
-        slug: `taslak-${codeSlug}-${now}-${index}`,
+        slug: "",
         oemNumber: "",
         shelfCode,
-        brand: "",
+        ...(product.categoryId ? { categoryId: product.categoryId } : {}),
+        brand: product.brand || "",
         condition: "",
         inStock: false,
         description: "",
