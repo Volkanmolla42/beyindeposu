@@ -5,8 +5,28 @@ import { QueryCtx } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 
 async function resolveProductWithCategory(ctx: QueryCtx, p: Doc<"products">) {
-  const { imageStorageIds: legacyImageStorageIds, ...product } = p;
-  void legacyImageStorageIds;
+  const product = {
+    _id: p._id,
+    _creationTime: p._creationTime,
+    title: p.title,
+    slug: p.slug,
+    oemNumber: p.oemNumber,
+    shelfCode: p.shelfCode,
+    categoryId: p.categoryId,
+    brand: p.brand,
+    model: p.model,
+    condition: p.condition,
+    inStock: p.inStock,
+    description: p.description,
+    images: p.images,
+    metaTitle: p.metaTitle,
+    metaDescription: p.metaDescription,
+    metaKeywords: p.metaKeywords,
+    tags: p.tags,
+    isDraft: p.isDraft,
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
+  };
   const cat = p.categoryId
     ? await ctx.db.get(p.categoryId)
     : null;
@@ -469,6 +489,21 @@ export const createDraftBatch = mutation({
           .withIndex("by_shelfCode", (q) => q.eq("shelfCode", shelfCode))
           .first();
         if (existing) {
+          if (existing.isDraft === true) {
+            const contextPatch: {
+              brand?: string;
+              categoryId?: typeof product.categoryId;
+            } = {};
+            if ((!existing.brand || existing.brand === "Genel Uyumlu") && product.brand?.trim()) {
+              contextPatch.brand = product.brand.trim();
+            }
+            if (!existing.categoryId && product.categoryId) {
+              contextPatch.categoryId = product.categoryId;
+            }
+            if (Object.keys(contextPatch).length > 0) {
+              await ctx.db.patch(existing._id, { ...contextPatch, updatedAt: now });
+            }
+          }
           skipped += 1;
           continue;
         }

@@ -17,10 +17,9 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Sparkles,
   Star,
 } from "lucide-react";
-import { useQuery, useMutation, useAction } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -53,163 +52,6 @@ type FolderUploadProgress = {
   error?: string;
 };
 
-type OemResearchVerdict = "confirmed" | "supported" | "inconclusive" | "contradicted";
-
-type ProductOemResearch = {
-  results: Array<{
-    code: string;
-    visualConfidenceScore: number;
-    confidenceScore: number;
-    verdict: OemResearchVerdict;
-    finding: string;
-    sources: Array<{
-      title: string;
-      url: string;
-      snippet: string;
-    }>;
-  }>;
-  recommendedOem: string | null;
-};
-
-type ProductOemExtraction = {
-  imageUrl: string;
-  oemCandidates: Array<{
-    code: string;
-    confidenceScore: number;
-    visualConfidenceScore?: number;
-  }>;
-  webResearch?: ProductOemResearch;
-};
-
-type ImageAiStage = "preparing" | "reading" | "researching";
-
-function getOemResearchVerdictStyle(verdict: OemResearchVerdict) {
-  switch (verdict) {
-    case "confirmed":
-      return { label: "Kaynaklarla doğrulandı", className: "bg-emerald-50 text-emerald-800" };
-    case "supported":
-      return { label: "Kaynak desteği var", className: "bg-blue-50 text-blue-800" };
-    case "contradicted":
-      return { label: "Kaynaklar çelişiyor", className: "bg-red-50 text-red-800" };
-    default:
-      return { label: "Kanıt yetersiz", className: "bg-amber-50 text-amber-800" };
-  }
-}
-
-function applyOemResearchResult(
-  extraction: ProductOemExtraction,
-  research: ProductOemResearch,
-): ProductOemExtraction {
-  const researchByCode = new Map(research.results.map((candidate) => [
-    candidate.code.replace(/[^a-z0-9]/gi, "").toUpperCase(),
-    candidate,
-  ]));
-  const oemCandidates = extraction.oemCandidates
-    .map((candidate) => {
-      const match = researchByCode.get(candidate.code.replace(/[^a-z0-9]/gi, "").toUpperCase());
-      return match
-        ? {
-          ...candidate,
-          visualConfidenceScore: candidate.visualConfidenceScore ?? candidate.confidenceScore,
-          confidenceScore: match.confidenceScore,
-        }
-        : candidate;
-    })
-    .sort((a, b) => b.confidenceScore - a.confidenceScore);
-
-  return { ...extraction, oemCandidates, webResearch: research };
-}
-
-const MAX_AI_IMAGE_BYTES = 900 * 1024;
-
-type ProductImageAiFocus = {
-  zoom: number;
-  xPercent: number;
-  yPercent: number;
-  viewportWidth: number;
-  viewportHeight: number;
-};
-
-async function prepareProductImageForAi(
-  imageUrl: string,
-  focus?: ProductImageAiFocus,
-): Promise<ArrayBuffer> {
-  const response = await fetch(imageUrl, {
-    cache: "no-store",
-    credentials: "same-origin",
-    signal: AbortSignal.timeout(20_000),
-  });
-  if (!response.ok) throw new Error("Seçili görsel okunamadı.");
-
-  const sourceImage = await response.blob();
-  if (!sourceImage.type.startsWith("image/")) {
-    throw new Error("Seçili dosya geçerli bir görsel değil.");
-  }
-
-  const bitmap = await createImageBitmap(sourceImage);
-  try {
-    const imageAspect = bitmap.width / bitmap.height;
-    const viewportAspect = focus && focus.viewportWidth > 0 && focus.viewportHeight > 0
-      ? focus.viewportWidth / focus.viewportHeight
-      : imageAspect;
-    const contentWidth = imageAspect >= viewportAspect ? focus?.viewportWidth ?? 1 : (focus?.viewportHeight ?? 1) * imageAspect;
-    const contentHeight = contentWidth / imageAspect;
-    const xOffset = focus ? ((focus.viewportWidth - contentWidth) / 2) : 0;
-    const yOffset = focus ? ((focus.viewportHeight - contentHeight) / 2) : 0;
-    const focusedCenterX = focus
-      ? Math.min(1, Math.max(0, ((focus.xPercent / 100 * focus.viewportWidth) - xOffset) / contentWidth)) * bitmap.width
-      : bitmap.width / 2;
-    const focusedCenterY = focus
-      ? Math.min(1, Math.max(0, ((focus.yPercent / 100 * focus.viewportHeight) - yOffset) / contentHeight)) * bitmap.height
-      : bitmap.height / 2;
-    const cropWidth = focus && focus.zoom > 1 ? bitmap.width / focus.zoom : bitmap.width;
-    const cropHeight = focus && focus.zoom > 1 ? bitmap.height / focus.zoom : bitmap.height;
-    const cropX = focus && focus.zoom > 1
-      ? Math.min(bitmap.width - cropWidth, Math.max(0, focusedCenterX - cropWidth / 2))
-      : 0;
-    const cropY = focus && focus.zoom > 1
-      ? Math.min(bitmap.height - cropHeight, Math.max(0, focusedCenterY - cropHeight / 2))
-      : 0;
-    let scale = Math.min(focus && focus.zoom > 1 ? focus.zoom : 1, 2048 / Math.max(cropWidth, cropHeight));
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Görsel işlenemedi.");
-
-    for (let attempt = 0; attempt < 12; attempt += 1) {
-      canvas.width = Math.max(1, Math.round(cropWidth * scale));
-      canvas.height = Math.max(1, Math.round(cropHeight * scale));
-      context.fillStyle = "#fff";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(
-        bitmap,
-        cropX,
-        cropY,
-        cropWidth,
-        cropHeight,
-        0,
-        0,
-        canvas.width,
-        canvas.height,
-      );
-
-      const quality = Math.max(0.55, 0.9 - (attempt % 4) * 0.1);
-      const webp = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
-          (blob) => blob ? resolve(blob) : reject(new Error("Görsel WebP biçiminde hazırlanamadı.")),
-          "image/webp",
-          quality,
-        );
-      });
-      if (webp.size <= MAX_AI_IMAGE_BYTES) return await webp.arrayBuffer();
-      if (attempt % 4 === 3) scale *= 0.84;
-    }
-  } finally {
-    bitmap.close();
-  }
-
-  throw new Error("Seçili görsel analiz için çok büyük. Daha yakın ve kırpılmış bir görsel yükleyin.");
-}
-
 function groupFolderImages(
   files: File[],
   brandOptions: Array<{ name: string; slug: string }>,
@@ -236,24 +78,52 @@ function groupFolderImages(
 
   const groups = new Map<string, FolderProductGroup>();
   const collator = new Intl.Collator("tr", { numeric: true, sensitivity: "base" });
+  const categoryFolderAliases: Record<string, string[]> = {
+    "motor-beyinleri-ecu": ["ecu", "ecm"],
+    "abs-esp-beyinleri": ["abs", "esp"],
+    "airbag-beyinleri": ["airbag", "srs"],
+    "bcm-bsi-sam-modulleri": ["bcm", "bsi", "sam"],
+    "uch-sam-modulleri": ["uch", "sam"],
+    "sigorta-kutulari": ["sigorta", "fuse"],
+  };
+  const ignoredCategoryTokens = new Set([
+    "beyin", "beyinleri", "modul", "modulleri", "unitesi", "uniteleri",
+    "kontrol", "kutusu", "kutulari", "paneli", "panelleri",
+  ]);
+  const segmentTokens = (segment: string) => slugify(segment).split("-").filter(Boolean);
 
   for (const [directory, siblings] of byDirectory) {
     const directoryParts = directory.split("/").filter(Boolean);
-    const firstPath = (siblings[0]?.file.webkitRelativePath || siblings[0]?.file.name)
-      .split(/[\\/]/)
-      .filter(Boolean);
-    const hintPath = firstPath.slice(0, -1).map((segment) => slugify(segment));
-    const matchedBrand = hintPath
-      .map((segment) => brandOptions.find((option) => (
+    const normalizedSegments = directoryParts.map((segment) => slugify(segment));
+    const matchedBrand = [...brandOptions]
+      .sort((a, b) => slugify(b.name).length - slugify(a.name).length)
+      .find((option) => {
+        const brandSlug = slugify(option.name);
+        const brandTokens = brandSlug.split("-").filter(Boolean);
+        return normalizedSegments.some((segment) => {
+          if (segment === brandSlug || segment === option.slug) return true;
+          const tokens = segmentTokens(segment);
+          if (brandTokens.length > 1) {
+            return brandTokens.every((token) => tokens.includes(token));
+          }
+          return tokens.includes(brandSlug);
+        });
+      });
+    const matchedCategory = [...normalizedSegments].reverse().reduce<
+      Array<{ _id: Id<"categories">; name: string; slug: string }>
+    >((matches, segment) => {
+      if (matches.length > 0) return matches;
+      const exact = categoryOptions.find((option) => (
         segment === slugify(option.name) || segment === option.slug
-      )))
-      .find((option) => option !== undefined);
-    const matchedCategory = [...hintPath]
-      .reverse()
-      .map((segment) => categoryOptions.find((option) => (
-        segment === slugify(option.name) || segment === option.slug
-      )))
-      .find((option) => option !== undefined);
+      ));
+      if (exact) return [exact];
+      const tokens = segmentTokens(segment);
+      return categoryOptions.filter((option) => {
+        const categoryTokens = segmentTokens(option.name).filter((token) => !ignoredCategoryTokens.has(token));
+        const aliases = categoryFolderAliases[option.slug] || [];
+        return tokens.some((token) => categoryTokens.includes(token) || aliases.includes(token));
+      });
+    }, [])[0];
     const folderName = directoryParts[directoryParts.length - 1] || "";
     const isCodeFolder = /^(?=.*\d)[a-z0-9]+(?:[._-][a-z0-9]+)+$/i.test(folderName);
     const isProductFolder = isCodeFolder && siblings.every(
@@ -325,7 +195,6 @@ export default function AdminProductsPage() {
   const [selectedFormImageIndex, setSelectedFormImageIndex] = useState(0);
   const [formImageZoom, setFormImageZoom] = useState(1);
   const [formImageZoomOrigin, setFormImageZoomOrigin] = useState("center center");
-  const [formImageZoomViewport, setFormImageZoomViewport] = useState({ width: 1, height: 1 });
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [lightboxZoomOrigin, setLightboxZoomOrigin] = useState("center center");
@@ -373,14 +242,12 @@ export default function AdminProductsPage() {
   const resetFormImageZoom = () => {
     setFormImageZoom(1);
     setFormImageZoomOrigin("center center");
-    setFormImageZoomViewport({ width: 1, height: 1 });
   };
   const setFormImageZoomOriginFromPoint = (target: HTMLElement, clientX: number, clientY: number) => {
     const rect = target.getBoundingClientRect();
     const x = Math.min(100, Math.max(0, ((clientX - rect.left) / rect.width) * 100));
     const y = Math.min(100, Math.max(0, ((clientY - rect.top) / rect.height) * 100));
     setFormImageZoomOrigin(`${x}% ${y}%`);
-    setFormImageZoomViewport({ width: rect.width, height: rect.height });
   };
   const handleFormImageClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (formImageZoom > 1) {
@@ -403,17 +270,6 @@ export default function AdminProductsPage() {
   const [metaKeywords, setMetaKeywords] = useState("");
   const [tagsInput, setTagsInput] = useState("");
 
-  // AI Auto-Fill State
-  const [aiGenerating, setAiGenerating] = useState(false);
-  const [aiHint, setAiHint] = useState("");
-  const [aiError, setAiError] = useState("");
-  const [aiSuccess, setAiSuccess] = useState("");
-  const [imageAiLoading, setImageAiLoading] = useState(false);
-  const [imageAiStage, setImageAiStage] = useState<ImageAiStage | null>(null);
-  const [imageAiError, setImageAiError] = useState("");
-  const [imageAiResult, setImageAiResult] = useState<ProductOemExtraction | null>(null);
-  const imageAiRequestIdRef = useRef(0);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [folderUploading, setFolderUploading] = useState(false);
@@ -431,21 +287,12 @@ export default function AdminProductsPage() {
 
   const categories = useQuery(api.categories.list, { onlyActive: false });
   const brands = useQuery(api.brands.list);
-  const selectedCategoryName = categories?.find((category) => category._id === selectedCategoryId)?.name;
-  const getOemContext = () => ({
-    ...(brand && brand !== "Genel Uyumlu" ? { brandHint: brand } : {}),
-    ...(selectedCategoryName ? { partTypeHint: selectedCategoryName } : {}),
-    ...(model.trim() ? { vehicleHint: model.trim() } : {}),
-  });
 
   const products = pageData?.items;
   const totalItems = pageData?.totalItems ?? 0;
   const totalPages = pageData?.totalPages ?? 1;
 
-  // Mutations & Actions
-  const generateProductDetailsAction = useAction(api.ai.generateProductDetails);
-  const extractOemNumbersFromImageAction = useAction(api.ai.extractOemNumbersFromImage);
-  const researchOemCandidatesAction = useAction(api.ai.researchOemCandidates);
+  // Mutations
   const createProduct = useMutation(api.products.create);
   const createDraftBatch = useMutation(api.products.createDraftBatch);
   const updateProduct = useMutation(api.products.update);
@@ -453,7 +300,6 @@ export default function AdminProductsPage() {
   const deleteProduct = useMutation(api.products.deleteProduct);
 
   const resetProductForm = () => {
-    imageAiRequestIdRef.current += 1;
     setTitle("");
     setSlug("");
     setSlugManuallyEdited(false);
@@ -474,21 +320,10 @@ export default function AdminProductsPage() {
     setMetaKeywords("");
     setTagsInput("");
     setEditingProduct(null);
-    setAiHint("");
-    setAiError("");
-    setAiSuccess("");
-    setImageAiLoading(false);
-    setImageAiStage(null);
-    setImageAiError("");
-    setImageAiResult(null);
   };
 
   const handleSetCoverImage = (indexToCover: number) => {
     if (indexToCover <= 0 || indexToCover >= previewImages.length) return;
-    imageAiRequestIdRef.current += 1;
-    setImageAiLoading(false);
-    setImageAiStage(null);
-    setImageAiResult(null);
     setPreviewImages((prev) => {
       const copy = [...prev];
       const [item] = copy.splice(indexToCover, 1);
@@ -505,9 +340,6 @@ export default function AdminProductsPage() {
   };
 
   const handleOpenEditProduct = (p: any) => {
-    imageAiRequestIdRef.current += 1;
-    setImageAiLoading(false);
-    setImageAiStage(null);
     setEditingProduct(p);
     setIsDraft(p.isDraft === true);
     setTitle(p.title);
@@ -528,258 +360,7 @@ export default function AdminProductsPage() {
     setMetaDescription(p.metaDescription || "");
     setMetaKeywords(p.metaKeywords || "");
     setTagsInput(p.tags ? p.tags.join(", ") : "");
-    setAiHint("");
-    setAiError("");
-    setAiSuccess("");
-    setImageAiError("");
-    setImageAiResult(null);
     setAddProductModalOpen(true);
-  };
-
-  // AI Auto Fill Handler
-  const handleAiAutoFill = async () => {
-    const enteredOemNumber = oemNumber.trim();
-    const selectedImage = previewImages[selectedFormImageIndex];
-    if (!enteredOemNumber && !selectedImage) {
-      setAiError("OEM kodu girin veya ürün görseli seçin.");
-      return;
-    }
-
-    setAiGenerating(true);
-    setAiError("");
-    setAiSuccess("");
-    setImageAiResult(null);
-
-    try {
-      const hintText = [
-        aiHint.trim(),
-        brand !== "Genel Uyumlu" ? `Araç markası: ${brand}` : "",
-        model.trim() ? `Araç modeli: ${model.trim()}` : "",
-        selectedCategoryName ? `Parça kategorisi: ${selectedCategoryName}` : "",
-      ]
-        .filter(Boolean)
-        .join(" - ");
-
-      let imageBytes: ArrayBuffer | undefined;
-      if (!enteredOemNumber && selectedImage) {
-        const [xPercent = "50%", yPercent = "50%"] = formImageZoomOrigin.split(" ");
-        const parsedXPercent = Number.parseFloat(xPercent);
-        const parsedYPercent = Number.parseFloat(yPercent);
-        const imageFocus = formImageZoom > 1
-          ? {
-            zoom: formImageZoom,
-            xPercent: Number.isFinite(parsedXPercent) ? parsedXPercent : 50,
-            yPercent: Number.isFinite(parsedYPercent) ? parsedYPercent : 50,
-            viewportWidth: formImageZoomViewport.width,
-            viewportHeight: formImageZoomViewport.height,
-          }
-          : undefined;
-        imageBytes = await prepareProductImageForAi(selectedImage, imageFocus);
-      }
-
-      const result = await generateProductDetailsAction({
-        ...(enteredOemNumber ? { oemNumber: enteredOemNumber } : {}),
-        ...(imageBytes ? { imageBytes } : {}),
-        additionalHint: hintText || undefined,
-      });
-
-      if (result) {
-        if (!enteredOemNumber && result.oemNumber.trim()) setOemNumber(result.oemNumber);
-        if (result.title) {
-          setTitle(result.title);
-          if (!slugManuallyEdited) {
-            setSlug(slugify(result.title));
-          }
-        }
-        if (result.brand) setBrand(result.brand);
-        if (result.model) setModel(result.model);
-        if (result.description) setDescription(result.description);
-        if (result.metaTitle) setMetaTitle(result.metaTitle);
-        if (result.metaDescription) setMetaDescription(result.metaDescription);
-        if (result.metaKeywords) setMetaKeywords(result.metaKeywords);
-        if (result.tags && result.tags.length > 0) {
-          setTagsInput(result.tags.join(", "));
-        }
-
-        if (result.categoryId) {
-          setSelectedCategoryId(result.categoryId);
-        } else if (result.categorySlug && categories) {
-          const matched = categories.find((c) => c.slug === result.categorySlug);
-          if (matched) {
-            setSelectedCategoryId(matched._id);
-          }
-        }
-
-        setAiSuccess(!enteredOemNumber && !result.oemNumber.trim()
-          ? "Bilgiler görselden dolduruldu. OEM kodu okunamadı; elle girin."
-          : "Ürün bilgileri dolduruldu. Kaydetmeden önce kontrol edin.");
-        setTimeout(() => setAiSuccess(""), 4000);
-      }
-    } catch (err: any) {
-      setAiError(err?.message || "Detaylar üretilirken hata oluştu.");
-    } finally {
-      setAiGenerating(false);
-    }
-  };
-
-  const handleExtractOemNumbers = async () => {
-    const selectedImage = previewImages[selectedFormImageIndex];
-    if (!selectedImage) {
-      setImageAiError("Önce araştırılacak bir görsel seçin.");
-      return;
-    }
-
-    setImageAiLoading(true);
-    setImageAiStage("preparing");
-    const requestId = ++imageAiRequestIdRef.current;
-    let phase: ImageAiStage = "preparing";
-    setImageAiError("");
-    setImageAiResult(null);
-    setAiError("");
-    setAiSuccess("");
-    let actionTimeout: ReturnType<typeof setTimeout> | undefined;
-
-    try {
-      const [xPercent = "50%", yPercent = "50%"] = formImageZoomOrigin.split(" ");
-      const parsedXPercent = Number.parseFloat(xPercent);
-      const parsedYPercent = Number.parseFloat(yPercent);
-      const imageFocus = formImageZoom > 1
-        ? {
-          zoom: formImageZoom,
-          xPercent: Number.isFinite(parsedXPercent) ? parsedXPercent : 50,
-          yPercent: Number.isFinite(parsedYPercent) ? parsedYPercent : 50,
-          viewportWidth: formImageZoomViewport.width,
-          viewportHeight: formImageZoomViewport.height,
-        }
-        : undefined;
-      const imageBytes = await prepareProductImageForAi(selectedImage, imageFocus);
-      if (requestId !== imageAiRequestIdRef.current) return;
-      phase = "reading";
-      setImageAiStage("reading");
-      const result = await Promise.race([
-        extractOemNumbersFromImageAction({ imageBytes, ...getOemContext() }),
-        new Promise<never>((_, reject) => {
-          actionTimeout = setTimeout(
-            () => reject(new Error("Convex action 60 saniye içinde yanıt vermedi.")),
-            60_000,
-          );
-        }),
-      ]);
-      if (requestId !== imageAiRequestIdRef.current) return;
-
-      const extraction: ProductOemExtraction = {
-        imageUrl: selectedImage,
-        oemCandidates: result.oemCandidates,
-      };
-      setImageAiResult(extraction);
-
-      if (result.oemCandidates.length > 0) {
-        if (actionTimeout) {
-          clearTimeout(actionTimeout);
-          actionTimeout = undefined;
-        }
-        phase = "researching";
-        setImageAiStage("researching");
-        const research = await Promise.race([
-          researchOemCandidatesAction({
-            oemCandidates: result.oemCandidates.map(({ code, confidenceScore }) => ({
-              code,
-              visualConfidenceScore: confidenceScore,
-            })),
-            ...getOemContext(),
-          }),
-          new Promise<never>((_, reject) => {
-            actionTimeout = setTimeout(
-              () => reject(new Error("OEM web araştırması 120 saniye içinde yanıt vermedi.")),
-              120_000,
-            );
-          }),
-        ]);
-        if (requestId !== imageAiRequestIdRef.current) return;
-        setImageAiResult((current) => current?.imageUrl === selectedImage
-          ? applyOemResearchResult(current, research)
-          : current);
-      }
-    } catch (err: any) {
-      if (requestId === imageAiRequestIdRef.current) {
-        const message = typeof err?.message === "string" ? err.message : "OEM kodları okunamadı.";
-        const timedOut = /timeout|timed out|deadline|abort/i.test(message);
-        setImageAiError(timedOut
-          ? phase === "preparing"
-            ? "Görsel 20 saniye içinde hazırlanamadı. Tekrar deneyin."
-            : phase === "reading"
-              ? "Mimo 45 saniye içinde yanıt vermedi. Tekrar deneyin."
-              : "OEM web araştırması 120 saniye içinde tamamlanamadı. Tekrar deneyin."
-          : message);
-      }
-    } finally {
-      if (actionTimeout) clearTimeout(actionTimeout);
-      if (requestId === imageAiRequestIdRef.current) {
-        setImageAiLoading(false);
-        setImageAiStage(null);
-      }
-    }
-  };
-
-  const handleResearchOemCandidates = async () => {
-    const selectedImage = previewImages[selectedFormImageIndex];
-    const extraction = imageAiResult;
-    if (!selectedImage || !extraction || extraction.imageUrl !== selectedImage || extraction.oemCandidates.length === 0) {
-      setImageAiError("Önce görselden OEM adaylarını okuyun.");
-      return;
-    }
-
-    setImageAiLoading(true);
-    setImageAiStage("researching");
-    const requestId = ++imageAiRequestIdRef.current;
-    setImageAiError("");
-    const resetExtraction: ProductOemExtraction = {
-      ...extraction,
-      oemCandidates: extraction.oemCandidates.map((candidate) => ({
-        code: candidate.code,
-        confidenceScore: candidate.visualConfidenceScore ?? candidate.confidenceScore,
-      })),
-      webResearch: undefined,
-    };
-    setImageAiResult(resetExtraction);
-    let actionTimeout: ReturnType<typeof setTimeout> | undefined;
-
-    try {
-      const result = await Promise.race([
-        researchOemCandidatesAction({
-          oemCandidates: resetExtraction.oemCandidates.map(({ code, confidenceScore }) => ({
-            code,
-            visualConfidenceScore: confidenceScore,
-          })),
-          ...getOemContext(),
-        }),
-        new Promise<never>((_, reject) => {
-          actionTimeout = setTimeout(
-            () => reject(new Error("Convex action 120 saniye içinde yanıt vermedi.")),
-            120_000,
-          );
-        }),
-      ]);
-      if (requestId !== imageAiRequestIdRef.current) return;
-
-      setImageAiResult((current) => current?.imageUrl === selectedImage
-        ? applyOemResearchResult(current, result)
-        : current);
-    } catch (err: any) {
-      if (requestId === imageAiRequestIdRef.current) {
-        const message = typeof err?.message === "string" ? err.message : "OEM web araştırması tamamlanamadı.";
-        const timedOut = /timeout|timed out|deadline|abort/i.test(message);
-        setImageAiError(timedOut
-          ? "OEM web araştırması 120 saniye içinde tamamlanamadı. Tekrar deneyin."
-          : message);
-      }
-    } finally {
-      if (actionTimeout) clearTimeout(actionTimeout);
-      if (requestId === imageAiRequestIdRef.current) {
-        setImageAiLoading(false);
-        setImageAiStage(null);
-      }
-    }
   };
 
   // Upload image to the persistent aapanel product media directory.
@@ -1346,14 +927,7 @@ export default function AdminProductsPage() {
       {/* Add / Edit Product Modal */}
       <Dialog
         open={addProductModalOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            imageAiRequestIdRef.current += 1;
-            setImageAiLoading(false);
-            setImageAiStage(null);
-          }
-          setAddProductModalOpen(open);
-        }}
+        onOpenChange={setAddProductModalOpen}
       >
         <DialogContent className="fixed left-0 top-0 z-50 flex h-[100dvh] max-h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-white p-0 shadow-none [&>button]:right-2 [&>button]:top-2 [&>button]:h-11 [&>button]:w-11 [&>button]:opacity-100 md:left-1/2 md:top-1/2 md:h-[90dvh] md:max-h-[900px] md:w-[94vw] md:max-w-6xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-xl md:border md:shadow-2xl">
           <DialogHeader className="shrink-0 border-b border-slate-200 px-4 py-4 pr-14 text-left sm:px-6">
@@ -1428,11 +1002,7 @@ export default function AdminProductsPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            imageAiRequestIdRef.current += 1;
-                            setImageAiLoading(false);
-                            setImageAiStage(null);
                             setSelectedFormImageIndex(i);
-                            setImageAiResult(null);
                             resetFormImageZoom();
                           }}
                           className="h-full w-full cursor-pointer"
@@ -1454,12 +1024,8 @@ export default function AdminProductsPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            imageAiRequestIdRef.current += 1;
-                            setImageAiLoading(false);
-                            setImageAiStage(null);
                             setPreviewImages((prev) => prev.filter((_, index) => index !== i));
                             setSelectedFormImageIndex((current) => Math.max(0, Math.min(current, previewImages.length - 2)));
-                            setImageAiResult(null);
                             resetFormImageZoom();
                           }}
                           className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
@@ -1488,104 +1054,6 @@ export default function AdminProductsPage() {
                     />
                   </div>
 
-                  <div className="mt-3 space-y-2">
-                    <Button
-                      type="button"
-                      onClick={handleExtractOemNumbers}
-                      disabled={aiGenerating || imageAiLoading || !previewImages[selectedFormImageIndex]}
-                      className="h-11 w-full gap-2 bg-slate-900 text-xs font-semibold text-white hover:bg-slate-800"
-                      title={formImageZoom > 1 ? "Yakınlaştırılmış alanı Mimo ile oku" : "Seçili görseli Mimo ile oku; etikete yakınlaştırabilirsiniz"}
-                    >
-                      {imageAiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
-                      {imageAiLoading
-                        ? imageAiStage === "reading" ? "Mimo okuyor" : imageAiStage === "researching" ? "Kaynaklar taranıyor" : "Görsel hazırlanıyor"
-                        : "Görselden OEM oku"}
-                    </Button>
-                    {imageAiError && <p role="alert" className="text-xs font-medium text-red-600">{imageAiError}</p>}
-                    {imageAiResult && imageAiResult.imageUrl === previewImages[selectedFormImageIndex] && (
-                      <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                        <p className="font-semibold text-slate-800">Mimo’nun OEM adayları</p>
-                        {imageAiResult.oemCandidates.length > 0 ? (
-                          <div className="space-y-1.5">
-                            {imageAiResult.oemCandidates.map(({ code, confidenceScore, visualConfidenceScore }) => (
-                              <div key={code} className="flex flex-wrap items-center justify-between gap-2 rounded bg-white px-2 py-1.5 ring-1 ring-slate-200">
-                                <span className="font-mono text-xs text-slate-800">{code}</span>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-slate-700">
-                                    {visualConfidenceScore !== undefined ? `Son ${confidenceScore}` : `Görsel ${confidenceScore}`}/100
-                                  </span>
-                                  {visualConfidenceScore !== undefined && (
-                                    <span className="text-[10px] tabular-nums text-slate-500">Görsel {visualConfidenceScore}</span>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                            <p className="text-[11px] text-slate-500">
-                              {imageAiResult.webResearch ? "Son puan görsel ve web kanıtını birlikte değerlendirir." : "İlk puan Mimo’nun görsel okuma tahminidir."}
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="text-slate-600">Görselden OEM kodu okunamadı.</p>
-                        )}
-                        {imageAiResult.oemCandidates.length > 0 && (
-                          <div className="space-y-2 border-t border-slate-200 pt-2">
-                            <Button
-                              type="button"
-                              onClick={handleResearchOemCandidates}
-                              disabled={aiGenerating || imageAiLoading}
-                              className="h-10 w-full gap-2 bg-indigo-600 text-xs font-semibold text-white hover:bg-indigo-700"
-                              title="Mimo’nun bulduğu OEM adaylarını Tako Search kaynaklarıyla incele"
-                            >
-                              {imageAiLoading && imageAiStage === "researching"
-                                ? <Loader2 className="h-4 w-4 animate-spin" />
-                                : <Search className="h-4 w-4" />}
-                              {imageAiLoading && imageAiStage === "researching"
-                                ? "Tako kaynakları tarıyor"
-                                : imageAiResult.webResearch ? "Kaynakları yeniden ara" : "OEM’leri web’de doğrula"}
-                            </Button>
-                            {imageAiResult.webResearch && (
-                              <div className="space-y-2 rounded-md border border-indigo-100 bg-white p-2.5">
-                                {imageAiResult.webResearch.recommendedOem && (
-                                  <p className="text-xs font-semibold text-emerald-800">
-                                    Kaynaklarla doğrulanan OEM: <span className="font-mono">{imageAiResult.webResearch.recommendedOem}</span>
-                                  </p>
-                                )}
-                                {imageAiResult.webResearch.results.map((candidate) => {
-                                  const verdictStyle = getOemResearchVerdictStyle(candidate.verdict);
-                                  return (
-                                    <div key={candidate.code} className="space-y-1.5 rounded border border-slate-200 p-2">
-                                      <div className="flex flex-wrap items-center justify-between gap-2">
-                                        <span className="font-mono text-xs font-semibold text-slate-900">{candidate.code}</span>
-                                        <div className="flex items-center gap-1.5">
-                                          <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${verdictStyle.className}`}>
-                                            {verdictStyle.label}
-                                          </span>
-                                        </div>
-                                      </div>
-                                      <p className="text-[11px] leading-4 text-slate-600">{candidate.finding}</p>
-                                      {candidate.sources.length > 0 && (
-                                        <ul className="space-y-1 border-t border-slate-100 pt-1">
-                                          {candidate.sources.map((source) => (
-                                            <li key={source.url} className="text-[11px] leading-4">
-                                              <a href={source.url} target="_blank" rel="noreferrer" className="font-medium text-blue-700 underline decoration-blue-200 underline-offset-2">
-                                                {source.title}
-                                              </a>
-                                              {source.snippet && <p className="line-clamp-2 text-slate-500">{source.snippet}</p>}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                                <p className="text-[10px] text-slate-500">100 yalnızca güçlü eşleşmede, 0 açık çelişkide verilir. Kanıt yokluğu kodun yanlış olduğunu kanıtlamaz.</p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
                 </section>
 
                 <section className="min-w-0 space-y-5">
@@ -1607,46 +1075,14 @@ export default function AdminProductsPage() {
                       <label htmlFor="product-oem" className="font-semibold text-slate-700">
                         OEM kodu <span className="text-red-600" aria-hidden="true">*</span>
                       </label>
-                      <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
-                        <Input
-                          id="product-oem"
-                          placeholder="Örn. 0281001781"
-                          value={oemNumber}
-                          onChange={(e) => {
-                            imageAiRequestIdRef.current += 1;
-                            setImageAiLoading(false);
-                            setImageAiStage(null);
-                            setOemNumber(e.target.value);
-                            setImageAiResult(null);
-                          }}
-                          className="h-11 min-w-0 flex-1 font-mono text-sm"
-                          required
-                        />
-                        <Button
-                          type="button"
-                          onClick={handleAiAutoFill}
-                          disabled={aiGenerating || imageAiLoading || (!oemNumber.trim() && !previewImages[selectedFormImageIndex])}
-                          className="h-11 w-full shrink-0 gap-2 bg-purple-600 text-xs font-semibold text-white hover:bg-purple-700 sm:w-auto"
-                          title={oemNumber.trim()
-                            ? "OEM koduna göre ürün bilgilerini doldur"
-                            : "Seçili görseli Mimo’ya göndererek ürün bilgilerini doldur"}
-                        >
-                          {aiGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                          {aiGenerating ? "Dolduruluyor" : oemNumber.trim() ? "OEM’den doldur" : "Görselden doldur"}
-                        </Button>
-                      </div>
-                      <div className="space-y-1.5 pt-1">
-                        <label htmlFor="product-ai-hint" className="font-medium text-slate-600">AI ipucu</label>
-                        <Input
-                          id="product-ai-hint"
-                          placeholder="Araç veya parça bilgisi"
-                          value={aiHint}
-                          onChange={(e) => setAiHint(e.target.value)}
-                          className="h-11 text-sm"
-                        />
-                      </div>
-                      {aiError && <p role="alert" className="text-xs font-medium text-red-600">{aiError}</p>}
-                      {aiSuccess && <p role="status" className="text-xs font-medium text-emerald-700">{aiSuccess}</p>}
+                      <Input
+                        id="product-oem"
+                        placeholder="Örn. 0281001781"
+                        value={oemNumber}
+                        onChange={(e) => setOemNumber(e.target.value)}
+                        className="h-11 min-w-0 flex-1 font-mono text-sm"
+                        required
+                      />
                     </div>
 
                     <div className="space-y-1.5">
