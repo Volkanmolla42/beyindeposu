@@ -18,8 +18,14 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Star,
+  Sparkles,
+  ExternalLink,
+  CheckCircle2,
+  AlertTriangle,
+  Camera,
+  Scan,
 } from "lucide-react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { Id } from "../../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -270,7 +276,15 @@ export default function AdminProductsPage() {
   const [metaKeywords, setMetaKeywords] = useState("");
   const [tagsInput, setTagsInput] = useState("");
 
+  // AI OEM Generation State
+  const [aiLoading, setAiLoading] = useState(false);
+  const [scanImageLoading, setScanImageLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSuccessMessage, setAiSuccessMessage] = useState<string | null>(null);
+  const [aiSources, setAiSources] = useState<Array<{ title: string; url: string }>>([]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scanImageInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [folderUploading, setFolderUploading] = useState(false);
   const [folderUploadProgress, setFolderUploadProgress] = useState<FolderUploadProgress | null>(null);
@@ -298,6 +312,7 @@ export default function AdminProductsPage() {
   const updateProduct = useMutation(api.products.update);
   const toggleStock = useMutation(api.products.toggleStock);
   const deleteProduct = useMutation(api.products.deleteProduct);
+  const lookupOemAction = useAction(api.oem.lookupOem);
 
   const resetProductForm = () => {
     setTitle("");
@@ -319,7 +334,255 @@ export default function AdminProductsPage() {
     setMetaDescription("");
     setMetaKeywords("");
     setTagsInput("");
+    setAiLoading(false);
+    setScanImageLoading(false);
+    setAiError(null);
+    setAiSuccessMessage(null);
+    setAiSources([]);
     setEditingProduct(null);
+  };
+
+  const populateProductForm = (data: any) => {
+    if (data.detectedOem || data.cleanOem) {
+      setOemNumber(data.detectedOem || data.cleanOem);
+    }
+    if (data.title) {
+      setTitle(data.title);
+      setSlug(slugify(data.title));
+      setSlugManuallyEdited(false);
+    }
+    if (data.brand) {
+      const matchedBrand = brands?.find(
+        (b) => b.name.toLowerCase() === data.brand.toLowerCase()
+      );
+      if (matchedBrand) {
+        setBrand(matchedBrand.name);
+      } else {
+        setBrand(data.brand);
+      }
+    }
+    if (data.matchedCategoryId) {
+      setSelectedCategoryId(data.matchedCategoryId);
+    } else if (data.suggestedCategoryName && categories) {
+      const found = categories.find(
+        (c) =>
+          c.name.toLowerCase().includes(data.suggestedCategoryName.toLowerCase()) ||
+          data.suggestedCategoryName.toLowerCase().includes(c.name.toLowerCase())
+      );
+      if (found) setSelectedCategoryId(found._id);
+    }
+    if (data.model) {
+      setModel(data.model);
+    }
+    if (data.condition) {
+      setCondition(data.condition);
+    }
+    if (data.description) {
+      setDescription(data.description);
+    }
+    if (Array.isArray(data.tags)) {
+      setTagsInput(data.tags.join(", "));
+    }
+    if (data.metaTitle) {
+      setMetaTitle(data.metaTitle);
+    }
+    if (data.metaDescription) {
+      setMetaDescription(data.metaDescription);
+    }
+    if (data.metaKeywords) {
+      setMetaKeywords(data.metaKeywords);
+    }
+    if (Array.isArray(data.sources)) {
+      setAiSources(data.sources);
+    } else {
+      setAiSources([]);
+    }
+  };
+
+  const handleGenerateFromOem = async () => {
+    const trimmed = oemNumber.trim();
+    if (!trimmed) {
+      setAiError("Lütfen önce bir OEM kodu giriniz.");
+      return;
+    }
+
+    setAiLoading(true);
+    setAiError(null);
+    setAiSuccessMessage(null);
+    setAiSources([]);
+
+    try {
+      let data: any = null;
+
+      // 1. Convex Action ile doğrudan dene (Convex backend standardı)
+      try {
+        const convexResult = await lookupOemAction({ oemNumber: trimmed });
+        if (convexResult.success) {
+          data = convexResult;
+        } else if (
+          convexResult.error?.includes("GEMINI_API_KEY") ||
+          convexResult.error?.includes("ortam değişkeni")
+        ) {
+          data = null; // Convex env değişkeni henüz set edilmemişse Next.js API rotasına düş
+        } else {
+          throw new Error(convexResult.error);
+        }
+      } catch {
+        data = null;
+      }
+
+      // 2. Convex Action sonucu yoksa Next.js API rotasından (.env.local) çek
+      if (!data) {
+        const res = await fetch("/api/ai/oem-lookup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            oemNumber: trimmed,
+            categories: categories?.map((c) => ({
+              _id: c._id,
+              name: c.name,
+              slug: c.slug,
+            })),
+            brands: brands?.map((b) => b.name),
+          }),
+        });
+
+        const json = await res.json();
+        if (!res.ok) {
+          throw new Error(json.error || "OEM parça bilgileri doğrulanamadı.");
+        }
+        data = json;
+      }
+
+      populateProductForm(data);
+
+      setAiSuccessMessage(
+        `OEM kodu doğrulandı: ${data.brand || ""} ${data.model || ""}. Form otomatik dolduruldu.`
+      );
+    } catch (err: any) {
+      setAiError(err.message || "OEM analizi sırasında bir hata meydana geldi.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const scanAndFillFromBase64 = async (base64Data: string, mimeType: string) => {
+    const res = await fetch("/api/ai/oem-from-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        imageBase64: base64Data,
+        imageMimeType: mimeType,
+        categories: categories?.map((c) => ({
+          _id: c._id,
+          name: c.name,
+          slug: c.slug,
+        })),
+        brands: brands?.map((b) => b.name),
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Görsel üzerindeki etiket veya OEM numarası okunamadı.");
+    }
+
+    populateProductForm(data);
+
+    const codesInfo =
+      Array.isArray(data.detectedCodes) && data.detectedCodes.length > 0
+        ? ` (Okunan Kodlar: ${data.detectedCodes.join(", ")})`
+        : "";
+
+    setAiSuccessMessage(
+      `📸 Parça etiketi başarıyla okundu: ${data.detectedOem || ""} - ${data.brand || ""} ${data.model || ""}${codesInfo}. Form 100/100 SEO formatında dolduruldu.`
+    );
+  };
+
+  const handleScanPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setScanImageLoading(true);
+    setAiError(null);
+    setAiSuccessMessage(null);
+
+    try {
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Galeriye eklemek için arka planda upload et
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("label", oemNumber.trim() || slugify(title) || "oem-scan");
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        const uploadJson = await uploadRes.json();
+        if (uploadJson.url) {
+          setPreviewImages((prev) => {
+            if (!prev.includes(uploadJson.url)) {
+              return [...prev, uploadJson.url];
+            }
+            return prev;
+          });
+        }
+      } catch (uploadErr) {
+        console.warn("Galeriye otomatik ekleme atlandı:", uploadErr);
+      }
+
+      await scanAndFillFromBase64(base64Data, file.type || "image/jpeg");
+    } catch (err: any) {
+      setAiError(err.message || "Fotoğraftan OEM okunurken bir hata oluştu.");
+    } finally {
+      setScanImageLoading(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleScanActivePreviewImage = async () => {
+    const currentImgUrl = previewImages[selectedFormImageIndex];
+    if (!currentImgUrl) {
+      setAiError("Lütfen önce taranacak bir görsel seçiniz.");
+      return;
+    }
+
+    setScanImageLoading(true);
+    setAiError(null);
+    setAiSuccessMessage(null);
+
+    try {
+      let base64Data = "";
+      let mimeType = "image/jpeg";
+
+      if (currentImgUrl.startsWith("data:")) {
+        base64Data = currentImgUrl;
+        const mimeMatch = currentImgUrl.match(/^data:([^;]+);base64,/);
+        if (mimeMatch) mimeType = mimeMatch[1];
+      } else {
+        const res = await fetch(currentImgUrl);
+        const blob = await res.blob();
+        mimeType = blob.type || "image/jpeg";
+        base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      await scanAndFillFromBase64(base64Data, mimeType);
+    } catch (err: any) {
+      setAiError(err.message || "Seçili görsel taranırken bir hata oluştu.");
+    } finally {
+      setScanImageLoading(false);
+    }
   };
 
   const handleSetCoverImage = (indexToCover: number) => {
@@ -360,6 +623,10 @@ export default function AdminProductsPage() {
     setMetaDescription(p.metaDescription || "");
     setMetaKeywords(p.metaKeywords || "");
     setTagsInput(p.tags ? p.tags.join(", ") : "");
+    setAiLoading(false);
+    setAiError(null);
+    setAiSuccessMessage(null);
+    setAiSources([]);
     setAddProductModalOpen(true);
   };
 
@@ -975,13 +1242,31 @@ export default function AdminProductsPage() {
                             <button
                               type="button"
                               onClick={() => handleSetCoverImage(selectedFormImageIndex)}
-                              className="inline-flex min-h-10 items-center gap-1.5 rounded-md bg-slate-900/90 px-3 py-2 text-[11px] font-bold text-white shadow-md transition-colors hover:bg-amber-600"
+                              className="inline-flex min-h-10 items-center gap-1.5 rounded-md bg-slate-900/90 px-3 py-2 text-[11px] font-bold text-white shadow-md transition-colors hover:bg-amber-600 cursor-pointer"
                               title="Bu görseli ana kapak görseli yap"
                             >
                               <Star className="w-3.5 h-3.5 fill-current" />
                               <span>Bu Görseli Kapak Yap</span>
                             </button>
                           )}
+                        </div>
+
+                        {/* Bu Görselden OEM Oku Butonu */}
+                        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={handleScanActivePreviewImage}
+                            disabled={scanImageLoading || aiLoading}
+                            className="inline-flex min-h-10 items-center gap-1.5 rounded-md bg-sky-600 hover:bg-sky-700 px-3 py-2 text-[11px] font-bold text-white shadow-md transition-colors disabled:opacity-50 cursor-pointer"
+                            title="Bu fotoğraftaki etiketi tarayıp OEM kodunu ve ürün detaylarını çıkar"
+                          >
+                            {scanImageLoading ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Scan className="w-3.5 h-3.5" />
+                            )}
+                            <span>{scanImageLoading ? "Okunuyor..." : "Bu Fotoğraftan OEM Oku"}</span>
+                          </button>
                         </div>
                       </>
                     ) : (
@@ -1071,18 +1356,131 @@ export default function AdminProductsPage() {
                       </label>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label htmlFor="product-oem" className="font-semibold text-slate-700">
-                        OEM kodu <span className="text-red-600" aria-hidden="true">*</span>
-                      </label>
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <label htmlFor="product-oem" className="font-semibold text-slate-700">
+                          OEM kodu <span className="text-red-600" aria-hidden="true">*</span>
+                        </label>
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => scanImageInputRef.current?.click()}
+                            disabled={scanImageLoading || aiLoading}
+                            className="h-8 gap-1.5 text-xs font-semibold text-sky-700 bg-sky-50 border-sky-200 hover:bg-sky-100 hover:text-sky-800 transition-colors shadow-2xs cursor-pointer"
+                            title="Parça etiketinin fotoğrafını yükleyerek OEM kodunu ve ürün detaylarını otomatik okuyup doldurun"
+                          >
+                            {scanImageLoading ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-600" />
+                                <span>Görsel Taranıyor...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Camera className="h-3.5 w-3.5 text-sky-600" />
+                                <span>Fotoğraftan OEM Oku & Doldur</span>
+                              </>
+                            )}
+                          </Button>
+                          <input
+                            ref={scanImageInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleScanPhotoUpload}
+                            className="hidden"
+                          />
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleGenerateFromOem}
+                            disabled={aiLoading || scanImageLoading || !oemNumber.trim()}
+                            className="h-8 gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border-indigo-200 hover:bg-indigo-100 hover:text-indigo-800 transition-colors shadow-2xs cursor-pointer"
+                          >
+                            {aiLoading ? (
+                              <>
+                                <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" />
+                                <span>AI Doğruluyor...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                                <span>OEM ile AI Üret</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
                       <Input
                         id="product-oem"
-                        placeholder="Örn. 0281001781"
+                        placeholder="Örn. 0281001781 veya 8K0941003C"
                         value={oemNumber}
-                        onChange={(e) => setOemNumber(e.target.value)}
+                        onChange={(e) => {
+                          setOemNumber(e.target.value);
+                          if (aiError) setAiError(null);
+                        }}
                         className="h-11 min-w-0 flex-1 font-mono text-sm"
                         required
                       />
+                      <p className="text-[11px] text-slate-400">
+                        OEM kodunu yazıp <strong>&quot;OEM ile AI Üret&quot;</strong> butonuna basabilir veya etiket fotoğrafını yükleyip <strong>&quot;Fotoğraftan OEM Oku & Doldur&quot;</strong> ile tüm alanları otomatik oluşturabilirsiniz.
+                      </p>
+
+                      {/* AI Error Feedback */}
+                      {aiError && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2.5 text-xs text-red-700 animate-in fade-in">
+                          <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <span className="font-semibold block">Otomotiv Doğrulama Uyarısı:</span>
+                            {aiError}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setAiError(null)}
+                            className="text-red-400 hover:text-red-600 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+
+                      {/* AI Success Feedback & Sources */}
+                      {aiSuccessMessage && (
+                        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg space-y-1.5 text-xs text-emerald-800 animate-in fade-in">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 font-semibold">
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span>{aiSuccessMessage}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setAiSuccessMessage(null)}
+                              className="text-emerald-500 hover:text-emerald-700 cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          {aiSources.length > 0 && (
+                            <div className="pt-1.5 border-t border-emerald-200/60 text-[11px] flex flex-wrap gap-2 items-center text-emerald-700">
+                              <span className="font-medium text-slate-600">Doğrulanan Web Kaynakları:</span>
+                              {aiSources.slice(0, 3).map((source, i) => (
+                                <a
+                                  key={i}
+                                  href={source.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 text-blue-600 underline hover:text-blue-800 max-w-[200px] truncate"
+                                >
+                                  {source.title || "Kaynak"}
+                                  <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-1.5">

@@ -28,6 +28,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
 import { generateWhatsAppLink } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -483,8 +484,10 @@ export default function ProductDetailPage({ params }: PageProps) {
             {/* Tab 1: Açıklama */}
             {activeTab === "desc" && (
               <div className="space-y-4 animate-in fade-in-50 duration-200">
-                <div className="p-6 bg-slate-50/80 rounded-2xl border border-slate-200 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
-                  {product.description || "Bu ürün orijinal oto elektronik parçası olup çalışır durumda ve garantilidir."}
+                <div className="p-6 bg-slate-50/80 rounded-2xl border border-slate-200 text-sm text-slate-700 leading-relaxed">
+                  <MarkdownRenderer
+                    content={product.description || "Bu ürün orijinal oto elektronik parçası olup çalışır durumda ve garantilidir."}
+                  />
                 </div>
 
                 {/* 4 Feature Badges */}
