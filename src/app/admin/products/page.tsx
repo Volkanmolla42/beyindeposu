@@ -862,9 +862,9 @@ export default function AdminProductsPage() {
   return (
     <div className="space-y-4">
       {/* Page Header */}
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+      <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-lg font-bold text-slate-900 flex flex-wrap items-center gap-x-2 gap-y-1">
             <span>Ürün Kataloğu Yönetimi</span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
               {totalItems.toLocaleString("tr-TR")} Ürün
@@ -875,7 +875,7 @@ export default function AdminProductsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
           <input
             ref={(element) => {
               folderInputRef.current = element;
@@ -889,7 +889,7 @@ export default function AdminProductsPage() {
           />
           <Link
             href="/admin/batch-import"
-            className="inline-flex items-center gap-1.5 h-9 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 px-3 text-xs font-bold transition-colors shadow-xs"
+            className="col-span-2 inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-700 shadow-xs transition-colors hover:bg-indigo-100 sm:col-span-1 sm:h-9 sm:w-auto"
           >
             <Sparkles className="w-4 h-4 text-indigo-600" />
             <span>Toplu İçe Aktar (AI)</span>
@@ -899,14 +899,14 @@ export default function AdminProductsPage() {
             onClick={() => folderInputRef.current?.click()}
             disabled={folderUploading}
             variant="outline"
-            className="h-9 rounded-lg text-xs font-semibold"
+            className="h-10 w-full justify-center rounded-lg text-xs font-semibold sm:h-9 sm:w-auto"
           >
             {folderUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             <span>{folderUploading ? "Yükleniyor" : "Klasör Yükle"}</span>
           </Button>
           <Button
             onClick={handleOpenAddProduct}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold h-9 rounded-lg gap-1.5 cursor-pointer shadow-xs"
+            className="h-10 w-full justify-center gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 sm:h-9 sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             <span>Yeni Ürün Ekle</span>
@@ -927,21 +927,21 @@ export default function AdminProductsPage() {
       )}
 
       {/* Filters Toolbar */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
-        <div className="relative sm:col-span-2">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-5 sm:gap-3">
+        <div className="relative min-w-0 sm:col-span-2">
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
           <Input
             placeholder="OEM No, parça adı veya raf kodu ara..."
             value={searchProduct}
             onChange={(e) => setSearchProduct(e.target.value)}
-            className="pl-9 bg-white border-slate-200 text-slate-900 text-xs h-9 rounded-lg"
+            className="h-10 min-w-0 rounded-lg border-slate-200 bg-white pl-9 text-xs text-slate-900 sm:h-9"
           />
         </div>
 
         <select
           value={draftStatus}
           onChange={(e) => setDraftStatus(e.target.value as "all" | "draft" | "published")}
-          className="h-9 rounded-lg border border-slate-200 bg-white px-3 font-medium text-slate-700 text-xs focus:outline-none focus:border-blue-500"
+          className="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none sm:h-9"
         >
           <option value="all">Tüm durumlar</option>
           <option value="draft">Taslak</option>
@@ -951,7 +951,7 @@ export default function AdminProductsPage() {
         <select
           value={selectedBrandFilter}
           onChange={(e) => setSelectedBrandFilter(e.target.value)}
-          className="h-9 rounded-lg border border-slate-200 bg-white px-3 font-medium text-slate-700 text-xs focus:outline-none focus:border-blue-500"
+          className="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none sm:h-9"
         >
           <option value="">Tüm Markalar</option>
           {brands?.map((b) => (
@@ -964,7 +964,7 @@ export default function AdminProductsPage() {
         <select
           value={selectedCategoryFilter}
           onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-          className="h-9 rounded-lg border border-slate-200 bg-white px-3 font-medium text-slate-700 text-xs focus:outline-none focus:border-blue-500"
+          className="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none sm:h-9"
         >
           <option value="">Tüm Kategoriler</option>
           {categories?.map((c) => (
@@ -977,8 +977,8 @@ export default function AdminProductsPage() {
 
       {/* Products Table Card */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-700">
+        <div className="hidden overflow-x-auto xl:block">
+          <table className="w-full min-w-[920px] text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-500 font-semibold uppercase text-[11px] tracking-wider border-b border-slate-200">
               <tr>
                 <th className="p-3.5">Görsel</th>
@@ -1094,9 +1094,113 @@ export default function AdminProductsPage() {
           </table>
         </div>
 
+        <div className="space-y-2 p-3 xl:hidden">
+          {products && products.length > 0 ? (
+            products.map((p) => (
+              <article key={p._id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-2xs">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-50 p-1">
+                    {p.images?.[0] ? (
+                      <button
+                        type="button"
+                        onClick={() => openLightbox(p.images!, 0)}
+                        aria-label={`${p.title || "Ürün"} görselini büyüt`}
+                        className="h-full w-full cursor-zoom-in"
+                      >
+                        <img src={p.images[0]} alt={p.title} className="h-full w-full object-contain" />
+                      </button>
+                    ) : (
+                      <Cpu className="h-5 w-5 text-slate-400" />
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h2 className="line-clamp-2 break-words text-sm font-semibold leading-5 text-slate-900">
+                      {p.title || "Taslak ürün"}
+                    </h2>
+                    {(p.brand || p.model) && (
+                      <p className="mt-0.5 truncate text-xs text-slate-500">
+                        {[p.brand, p.model].filter(Boolean).join(" · ")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-slate-100 pt-3 text-xs">
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">OEM No</div>
+                    <div className="mt-0.5 break-all font-mono font-semibold text-slate-800">{p.oemNumber || "—"}</div>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Raf Kodu</div>
+                    <div className="mt-0.5 break-all font-mono font-semibold text-slate-800">{p.shelfCode || "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Durum</div>
+                    <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${p.isDraft === true ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+                      {p.isDraft === true ? "Taslak" : "Yayında"}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Stok</div>
+                    <button
+                      type="button"
+                      onClick={() => toggleStock({ id: p._id, inStock: !p.inStock })}
+                      aria-label={`${p.title || "Ürün"}: ${p.inStock ? "stokta, tükendi olarak işaretle" : "tükendi, stokta olarak işaretle"}`}
+                      className={`mt-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold transition-colors ${p.inStock
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                        }`}
+                    >
+                      {p.inStock ? "Stokta" : "Tükendi"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-3 flex items-center justify-end gap-2 border-t border-slate-100 pt-2">
+                  {p.isDraft !== true && (
+                    <Link
+                      href={`/urunler/${p.slug}`}
+                      target="_blank"
+                      aria-label={`${p.title || "Ürün"} sayfasını görüntüle`}
+                      className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Link>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditProduct(p)}
+                    aria-label={`${p.title || "Ürün"} ürününü düzenle`}
+                    className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-blue-50 hover:text-blue-600"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteProduct(p)}
+                    aria-label={`${p.title || "Ürün"} ürününü sil`}
+                    className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </article>
+            ))
+          ) : pageData === undefined ? (
+            <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
+              Yükleniyor...
+            </div>
+          ) : (
+            <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
+              Kayıtlı ürün bulunamadı.
+            </div>
+          )}
+        </div>
+
         {/* Admin Pagination Controls */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <div className="text-slate-500 font-medium">
+        <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 p-4 text-center text-xs sm:flex-row sm:gap-4 sm:text-left">
+          <div className="max-w-full text-slate-500 font-medium leading-5">
             Toplam <span className="font-bold text-slate-900">{totalItems.toLocaleString("tr-TR")}</span> kayıttan{" "}
             <span className="font-bold text-blue-600">
               {totalItems > 0 ? (currentPage - 1) * pageSize + 1 : 0}-{Math.min(currentPage * pageSize, totalItems)}

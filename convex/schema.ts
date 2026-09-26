@@ -11,6 +11,7 @@ export default defineSchema({
     slug: v.string(), // URL slug (Örn: motor-beyinleri-ecu)
     description: v.optional(v.string()),
     imageStorageId: v.optional(v.id("_storage")), // Convex Storage Dosya ID'si
+    imageUrl: v.optional(v.string()), // Yerel veya harici görsel URL'i (/images/cat-*.jpg)
     order: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
     // SEO & Meta Alanları

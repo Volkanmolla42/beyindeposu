@@ -95,6 +95,7 @@ export const INITIAL_BRANDS = [
   { name: "Jeep", slug: "jeep", logoUrl: "/images/brands/jeep.svg", order: 29 },
   { name: "Iveco", slug: "iveco", logoUrl: "/images/brands/iveco.svg", order: 30 },
   { name: "Subaru", slug: "subaru", logoUrl: "/images/brands/subaru.svg", order: 31 },
+  { name: "Genel / Diğer", slug: "genel", logoUrl: "/images/brands/genel.svg", order: 32 },
 ];
 
 export const seedAll = mutation({
@@ -118,7 +119,6 @@ export const seedAll = mutation({
         });
         created++;
       } else {
-        // Update logo to point to local codebase path if needed
         await ctx.db.patch(found._id, {
           logoUrl: item.logoUrl,
           order: item.order,
