@@ -16,6 +16,7 @@ import {
   User,
   Loader2,
   ExternalLink,
+  Sparkles,
 } from "lucide-react";
 import { useQuery, useConvexAuth } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -43,6 +44,11 @@ const NAV_GROUPS: NavGroup[] = [
         href: "/admin/products",
         label: "Ürünler",
         icon: Package,
+      },
+      {
+        href: "/admin/batch-import",
+        label: "Toplu İçe Aktar (AI)",
+        icon: Sparkles,
       },
       {
         href: "/admin/categories",

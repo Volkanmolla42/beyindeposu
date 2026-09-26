@@ -5,6 +5,7 @@ import {
   formatCategoriesList,
   formatBrandsList,
   parseLlmJson,
+  DEFAULT_GEMINI_MODELS,
 } from "@/lib/ai/oem-assistant";
 
 export async function POST(req: NextRequest) {
@@ -48,7 +49,7 @@ ${brandsListStr}
 `;
 
     let response: any;
-    const modelsToTry = ["gemini-3.5-flash-lite", "gemini-3.7-flash"];
+    const modelsToTry = DEFAULT_GEMINI_MODELS;
     let lastError: any = null;
 
     for (const model of modelsToTry) {

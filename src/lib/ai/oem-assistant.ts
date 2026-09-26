@@ -6,6 +6,11 @@
  * şablonunu, JSON şemalarını ve LLM yanıt ayrıştırıcısını tek bir merkezde toplar.
  */
 
+export const DEFAULT_GEMINI_MODELS = [
+  "gemini-3.5-flash-lite", // Birincil en iyi model
+  "gemini-3.1-flash-lite", // Yedek (backup) model
+] as const;
+
 export const SEO_DESCRIPTION_MARKDOWN_TEMPLATE = `AŞAĞIDAKİ 100/100 SEO UYUMLU ŞABLONA BİREBİR UYGUN MARKDOWN FORMATINDA OLUŞTURULMALIDIR:
 
 ## [OEM No] [Marka] [Parça Tam Adı]
@@ -56,6 +61,7 @@ export const COMMON_JSON_OUTPUT_SCHEMA = `{
   "suggestedCategoryName": "Kategori Adı (Örn: BCM - BSI - SAM Modülleri veya Motor Beyni ECU)",
   "model": "Uyumlu model ve kasa bilgisi (Örn: Sharan / Galaxy / Alhambra (1996-2002))",
   "condition": "Orijinal Çıkma",
+  "isDraft": false,
   "title": "SEO ve pazar yeri uyumlu ürün başlığı (Örn: VW Sharan Ford Galaxy Merkezi Kilit Konfor Beyni 7M3962258L)",
   "detectedCodes": ["Görselde veya parça üzerinde okunan tüm alt kodlar"],
   "description": "${SEO_DESCRIPTION_MARKDOWN_TEMPLATE.replace(/\n/g, "\\n")}",
@@ -100,21 +106,25 @@ export function getVisionLookupSystemInstruction(): string {
 
 GÖREVİN:
 Kullanıcının yüklediği parça veya etiket fotoğrafını analiz etmek:
-1. Görseldeki etiketi veya parça kabartmasını incele. Etikette yazan tüm üretici kodlarını, parça numaralarını ve barkodları oku.
-2. Ana araç üreticisi OEM parça numarasını (Örn: VAG grubu için 7M3962258L, 8K0..., BMW için 11 haneli kod, Mercedes için A..., Bosch için 0281... vb.) tespit et.
-3. Eğer görselde bir otomotiv parçası yoksa veya etiket okunamaz/tanınamaz durumdaysa "isValidOem: false" dön ve nedenini açıkla.
-4. Parça geçerliyse otomotiv külliyatından ve kataloglardan yararlanarak 100/100 SEO uyumlu ürün bilgilerini eksiksiz üret.
+1. Görseldeki etiketi veya parça kabartmasını incele. Ana araç üreticisi OEM parça numarasını tespit et.
+2. ÖNEMLİ KURAL - GÖRSELDE OEM KODU YOKSA VEYA OKUNAMIYORSA:
+   - Parça üzerinde etiket yoksa, silinmişse veya fotoğraftan OEM kodu net şekilde okunamıyorsa:
+     "detectedOem": "İNCELEME GEREKLİ",
+     "cleanOem": "İNCELEME GEREKLİ",
+     "isDraft": true,
+     "title": "[Marka] (İNCELEME GEREKLİ)",
+     "description": "",
+     "model": "",
+     "tags": ["inceleme-gerekli"],
+     "metaTitle": "",
+     "metaDescription": "",
+     "metaKeywords": ""
+   - KESİNLİKLE uydurma parça açıklaması, araç uyumluluk listesi, montaj notu vb. DOLDURMA! Açıklama ve model alanlarını tamamen boş bırak.
+   - Verilen Raf/Depo kodunu (Örn: 501.04.0027) KESİNLİKLE OEM kodu yerine yazma!
+3. Parça etiketi ve OEM kodu net okunabiliyorsa OEM numarasını çıkar, "isDraft": false yap ve bilgileri eksiksiz doldur.
 
 ÇIKTI FORMATI:
 SADECE aşağıdaki JSON nesnesini dön. Markdown kod bloğu haricinde hiçbir ek metin yazma:
-
-Eğer görselde otomotiv parça etiketi veya OEM kodu bulunamazsa:
-{
-  "isValidOem": false,
-  "reason": "Yüklenen görsel üzerinde okunabilir bir otomotiv parça veya OEM numarası tespit edilemedi. Lütfen parçanın üzerindeki etiketin net bir fotoğrafını yükleyiniz."
-}
-
-Eğer geçerli bir parça tespit edilirse:
 ${COMMON_JSON_OUTPUT_SCHEMA}`;
 }
 
@@ -183,6 +193,19 @@ export function parseLlmJson(rawText: string): any {
       escaped = char === "\\" && !escaped;
     }
 
-    return JSON.parse(result);
+    try {
+      return JSON.parse(result);
+    } catch (parseErr: any) {
+      const posMatch = String(parseErr?.message || "").match(/at position (\d+)/i);
+      if (posMatch) {
+        const pos = parseInt(posMatch[1], 10);
+        const sub = result.slice(0, pos);
+        const lastValidBrace = sub.lastIndexOf("}");
+        if (lastValidBrace !== -1) {
+          return JSON.parse(sub.slice(0, lastValidBrace + 1));
+        }
+      }
+      throw parseErr;
+    }
   }
 }

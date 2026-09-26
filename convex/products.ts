@@ -44,8 +44,8 @@ async function resolvePublicProduct(ctx: QueryCtx, p: Doc<"products">) {
   const publicProduct = { ...resolvedProduct };
 
   // Raf ve taslak durumu admin alanlarıdır.
-  delete publicProduct.shelfCode;
-  delete publicProduct.isDraft;
+  delete (publicProduct as any).shelfCode;
+  delete (publicProduct as any).isDraft;
 
   if (publicProduct.tags && p.shelfCode) {
     const shelfToken = p.shelfCode.replace(/[^a-z0-9]/gi, "").toLowerCase();

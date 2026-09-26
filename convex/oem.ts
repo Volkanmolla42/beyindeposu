@@ -114,7 +114,7 @@ ${brandsListStr}
 `;
 
     let response: any;
-    const modelsToTry = ["gemini-3.5-flash-lite", "gemini-3.7-flash"];
+    const modelsToTry = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
     let lastError: any = null;
 
     for (const model of modelsToTry) {

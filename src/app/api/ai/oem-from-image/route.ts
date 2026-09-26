@@ -5,6 +5,7 @@ import {
   formatCategoriesList,
   formatBrandsList,
   parseLlmJson,
+  DEFAULT_GEMINI_MODELS,
 } from "@/lib/ai/oem-assistant";
 
 export async function POST(req: NextRequest) {
@@ -48,8 +49,7 @@ SİSTEMDE KAYITLI MARKALAR:
 ${brandsListStr}`;
 
     let response: any;
-    // For vision, try gemini-3.7-flash first (best vision reasoning), then fallback to gemini-3.5-flash-lite
-    const modelsToTry = ["gemini-3.7-flash", "gemini-3.5-flash-lite"];
+    const modelsToTry = DEFAULT_GEMINI_MODELS;
     let lastError: any = null;
 
     for (const model of modelsToTry) {
