@@ -887,6 +887,13 @@ export default function AdminProductsPage() {
             onChange={handleFolderUpload}
             className="hidden"
           />
+          <Link
+            href="/admin/batch-import"
+            className="inline-flex items-center gap-1.5 h-9 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 px-3 text-xs font-bold transition-colors shadow-xs"
+          >
+            <Sparkles className="w-4 h-4 text-indigo-600" />
+            <span>Toplu İçe Aktar (AI)</span>
+          </Link>
           <Button
             type="button"
             onClick={() => folderInputRef.current?.click()}
@@ -976,6 +983,7 @@ export default function AdminProductsPage() {
               <tr>
                 <th className="p-3.5">Görsel</th>
                 <th className="p-3.5">OEM No</th>
+                <th className="p-3.5">Raf Kodu</th>
                 <th className="p-3.5">Parça Başlığı</th>
                 <th className="p-3.5">Durum</th>
                 <th className="p-3.5">Stok</th>
@@ -1008,10 +1016,19 @@ export default function AdminProductsPage() {
                     <td className="p-3.5 font-mono font-bold text-slate-900">
                       {p.oemNumber || "—"}
                     </td>
+                    <td className="p-3.5">
+                      {p.shelfCode ? (
+                        <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-700">
+                          {p.shelfCode}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </td>
                     <td className="p-3.5 max-w-xs">
                       <div className="font-semibold text-slate-900 truncate">{p.title || "Taslak ürün"}</div>
                       <div className="text-[11px] text-slate-500 truncate">
-                        {[p.brand, p.model, p.shelfCode].filter(Boolean).join(" · ") || ""}
+                        {[p.brand, p.model].filter(Boolean).join(" · ") || ""}
                       </div>
                     </td>
                     <td className="p-3.5">
@@ -1062,13 +1079,13 @@ export default function AdminProductsPage() {
                 ))
               ) : pageData === undefined ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-400 text-xs">
+                  <td colSpan={7} className="p-8 text-center text-slate-400 text-xs">
                     Yükleniyor...
                   </td>
                 </tr>
               ) : (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-400 text-xs">
+                  <td colSpan={7} className="p-8 text-center text-slate-400 text-xs">
                     Kayıtlı ürün bulunamadı.
                   </td>
                 </tr>
