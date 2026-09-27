@@ -578,13 +578,6 @@ export const toggleStock = mutation({
 export const deleteProduct = mutation({
   args: { id: v.id("products") },
   handler: async (ctx, args) => {
-    const product = await ctx.db.get(args.id);
-    // Remove Convex Storage assets left by legacy product records.
-    if (product && product.imageStorageIds) {
-      for (const storageId of product.imageStorageIds) {
-        await ctx.storage.delete(storageId);
-      }
-    }
     await ctx.db.delete(args.id);
   },
 });

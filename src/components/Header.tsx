@@ -3,9 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Search, Menu, X } from "lucide-react";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { Menu, Search, X } from "lucide-react";
+
+const navLinks = [
+  { href: "/", label: "Ana Sayfa" },
+  { href: "/kurumsal", label: "Kurumsal" },
+  { href: "/urunler", label: "Ürünler" },
+  { href: "/markalar", label: "Markalar" },
+  { href: "/iletisim", label: "İletişim" },
+];
 
 export default function Header() {
   const pathname = usePathname();
@@ -13,45 +19,37 @@ export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
 
-  const settings = useQuery(api.siteSettings.get);
-
-  const navLinks = [
-    { href: "/", label: "ANA SAYFA" },
-    { href: "/kurumsal", label: "KURUMSAL" },
-    { href: "/urunler", label: "ÜRÜNLER" },
-    { href: "/markalar", label: "MARKALAR" },
-    { href: "/iletisim", label: "İLETİŞİM" },
-  ];
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (searchInput.trim()) {
+      window.location.href = `/urunler?q=${encodeURIComponent(searchInput.trim())}`;
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-18">
-          {/* Official Beyin Deposu Logo */}
-          <Link href="/" className="flex items-center group py-1">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="container">
+        <div className="flex h-16 items-center justify-between sm:h-[72px]">
+          <Link href="/" className="flex shrink-0 items-center rounded-lg focus-visible:outline-none">
             <img
               src="/images/logo_transparent.webp"
-              alt="Beyin Deposu Logo"
-              className="h-10 sm:h-12 w-auto object-contain"
+              alt="Beyin Deposu ana sayfa"
+              className="h-9 w-auto object-contain sm:h-10"
             />
           </Link>
 
-          {/* Desktop Navigation Links matching Screenshot */}
-          <nav className="hidden md:flex items-center gap-8 text-[13px] font-extrabold tracking-wider">
+          <nav aria-label="Ana menü" className="hidden items-center gap-1 md:flex">
             {navLinks.map((link) => {
-              const isActive =
-                link.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(link.href);
+              const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
               return (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`relative py-1 transition-colors ${
-                    isActive
-                      ? "text-blue-600 font-black after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-blue-600"
-                      : "text-slate-700 hover:text-blue-600"
-                  }`}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${isActive
+                    ? "bg-blue-50 text-blue-800"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    }`}
                 >
                   {link.label}
                 </Link>
@@ -59,82 +57,68 @@ export default function Header() {
             })}
           </nav>
 
-          {/* Right Action Icons: Search Icon & Admin Link */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
             <button
-              onClick={() => setSearchOpen(!searchOpen)}
-              className="p-2 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
-              aria-label="Arama"
+              type="button"
+              onClick={() => setSearchOpen((open) => !open)}
+              aria-label={searchOpen ? "Aramayı kapat" : "Arama"}
+              aria-expanded={searchOpen}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-blue-700"
             >
-              <Search className="w-5 h-5" />
+              {searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
             </button>
-
-            {/* Mobile Menu Button */}
             <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer"
+              type="button"
+              onClick={() => setMobileMenuOpen((open) => !open)}
+              aria-label={mobileMenuOpen ? "Menüyü kapat" : "Menüyü aç"}
+              aria-expanded={mobileMenuOpen}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 md:hidden"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
           </div>
         </div>
 
-        {/* Search Bar Dropdown when search icon clicked */}
         {searchOpen && (
-          <div className="py-3 pb-4 border-t border-slate-100 animate-in fade-in-0 duration-150">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (searchInput.trim()) {
-                  window.location.href = `/urunler?q=${encodeURIComponent(searchInput.trim())}`;
-                }
-              }}
-              className="flex items-center gap-2 max-w-xl mx-auto"
-            >
+          <div className="border-t border-slate-100 py-3 sm:py-4">
+            <form onSubmit={handleSearchSubmit} className="mx-auto flex max-w-2xl items-center gap-2 rounded-full border border-slate-300 bg-slate-50 p-1.5 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100">
+              <Search className="ml-3 h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" />
               <input
-                type="text"
+                type="search"
                 value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="OEM No, Parça No veya Araç Modeli Yazın..."
-                className="w-full px-4 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-blue-600 uppercase font-mono"
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="OEM no, parça no veya araç modeli"
+                aria-label="Ürün ara"
+                className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-500"
                 autoFocus
               />
-              <button
-                type="submit"
-                className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 cursor-pointer shrink-0"
-              >
+              <button type="submit" className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700">
                 Ara
               </button>
             </form>
           </div>
         )}
-      </div>
 
-      {/* Mobile Drawer */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-white border-t border-slate-200 px-4 py-4 space-y-2">
-          {navLinks.map((link) => {
-            const isActive =
-              link.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(link.href);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block px-3 py-2 rounded-lg text-sm font-bold ${
-                  isActive
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-slate-700 hover:bg-slate-50"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
-        </div>
-      )}
+        {mobileMenuOpen && (
+          <nav aria-label="Mobil menü" className="space-y-1 border-t border-slate-100 py-3 md:hidden">
+            {navLinks.map((link) => {
+              const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={isActive ? "page" : undefined}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block rounded-full px-4 py-3 text-sm font-medium ${isActive ? "bg-blue-50 text-blue-800" : "text-slate-700 hover:bg-slate-100"
+                    }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
+      </div>
     </header>
   );
 }

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import Link from "next/link";
-import Image from "next/image";
 
 interface OemSearchBarProps {
   className?: string;
@@ -65,13 +64,13 @@ export default function OemSearchBar({
       <div
         className={
           variant === "hero"
-            ? "glass-panel rounded-2xl p-3 sm:p-4 border border-blue-500/30 shadow-2xl backdrop-blur-xl"
-            : "bg-white rounded-xl p-2 border border-slate-200 shadow-md"
+            ? "rounded-full border border-slate-300 bg-white p-1.5 shadow-sm transition-colors focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100"
+            : "rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm"
         }
       >
-        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2">
+        <form onSubmit={handleSearchSubmit} className="flex items-center gap-1.5">
           <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" aria-hidden="true" />
             <input
               type="text"
               value={searchTerm}
@@ -80,11 +79,12 @@ export default function OemSearchBar({
                 setIsOpen(true);
               }}
               onFocus={() => setIsOpen(true)}
-              placeholder="OEM NO, PARÇA NO, ARAÇ MODELİ..."
+              placeholder="OEM no, parça no, araç modeli veya VIN"
+              aria-label="OEM numarası, parça numarası, araç modeli veya VIN ile ara"
               className={
                 variant === "hero"
-                  ? "w-full pl-12 pr-10 py-3.5 bg-slate-900/90 text-white placeholder:text-slate-400 rounded-xl text-sm sm:text-base border border-slate-700/80 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 uppercase font-mono tracking-wider font-semibold transition-all"
-                  : "w-full pl-11 pr-8 py-2.5 bg-slate-50 text-slate-900 placeholder:text-slate-400 rounded-lg text-sm border border-slate-200 focus:outline-none focus:border-blue-500 font-mono uppercase font-semibold"
+                  ? "w-full rounded-full border-0 bg-transparent py-3.5 pl-12 pr-10 text-sm font-mono font-medium uppercase tracking-wide text-slate-900 placeholder:font-sans placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-500 focus:outline-none focus:ring-0 sm:text-base"
+                  : "w-full rounded-full border-0 bg-slate-50 py-2.5 pl-11 pr-8 text-sm font-mono font-medium uppercase text-slate-900 placeholder:font-sans placeholder:normal-case placeholder:text-slate-500 focus:bg-white focus:outline-none focus:ring-0"
               }
             />
             {searchTerm && (
@@ -94,7 +94,8 @@ export default function OemSearchBar({
                   setSearchTerm("");
                   setIsOpen(false);
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                aria-label="Aramayı temizle"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -102,17 +103,17 @@ export default function OemSearchBar({
           </div>
           <Button
             type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 sm:px-8 h-12 rounded-xl text-sm sm:text-base shadow-lg shadow-blue-500/30 transition-all shrink-0"
+            className="h-11 shrink-0 rounded-full bg-blue-600 px-5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 sm:px-7"
           >
-            <span>ARA</span>
+            <span>Ara</span>
           </Button>
         </form>
 
         {/* Popular searches tag bar */}
-        {variant === "hero" && (
-          <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center gap-2 overflow-x-auto no-scrollbar text-xs">
-            <span className="text-slate-400 font-medium whitespace-nowrap">
-              Popüler Aramalar:
+        {variant === "hero" && popularOems.length > 0 && (
+          <div className="mt-2.5 flex items-center gap-2 overflow-x-auto border-t border-slate-100 px-2 pt-2.5 no-scrollbar text-xs">
+            <span className="whitespace-nowrap font-medium text-slate-500">
+              Popüler OEM:
             </span>
             <div className="flex items-center gap-1.5 flex-nowrap">
               {popularOems.map((oem) => (
@@ -120,7 +121,7 @@ export default function OemSearchBar({
                   key={oem}
                   type="button"
                   onClick={() => handleQuickTagClick(oem)}
-                  className="px-2.5 py-1 rounded-md bg-slate-800/80 hover:bg-blue-600 text-slate-300 hover:text-white font-mono transition-colors text-[11px] border border-slate-700/60 cursor-pointer whitespace-nowrap"
+                  className="whitespace-nowrap rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 font-mono text-[11px] font-medium text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
                 >
                   {oem}
                 </button>
@@ -132,7 +133,7 @@ export default function OemSearchBar({
 
       {/* Live Instant Search Dropdown */}
       {isOpen && searchTerm.trim().length > 1 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in-0 slide-in-from-top-2 duration-150">
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg animate-in fade-in-0 slide-in-from-top-2 duration-150">
           <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
             <span>&quot;{searchTerm}&quot; için arama sonuçları</span>
             <span className="text-blue-600">

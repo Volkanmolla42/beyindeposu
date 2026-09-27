@@ -9,8 +9,7 @@ export default defineSchema({
   categories: defineTable({
     name: v.string(), // Kategori Adı (Örn: Motor Beyinleri (ECU))
     slug: v.string(), // URL slug (Örn: motor-beyinleri-ecu)
-    description: v.optional(v.string()),
-    imageStorageId: v.optional(v.id("_storage")), // Convex Storage Dosya ID'si
+    description: v.optional(v.string()), // Convex Storage Dosya ID'si
     imageUrl: v.optional(v.string()), // Yerel veya harici görsel URL'i (/images/cat-*.jpg)
     order: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
@@ -50,8 +49,7 @@ export default defineSchema({
     condition: v.string(), // Durum ("Orijinal Çıkma", "Sıfır - Orijinal", "Revizyonlu")
     inStock: v.boolean(), // Stok Durumu: true / false
     description: v.string(), // Detaylı Ürün Açıklaması & Kullanım Alanları
-    images: v.array(v.string()), // Ürün Görselleri (Çözümlenmiş URL'ler)
-    imageStorageIds: v.optional(v.array(v.id("_storage"))), // Eski kayıtlarla uyumluluk; görüntüleme/yüklemede kullanılmaz
+    images: v.array(v.string()), // Ürün Görselleri (Çözümlenmiş URL'ler) // Eski kayıtlarla uyumluluk; görüntüleme/yüklemede kullanılmaz
 
     // SEO & Meta Alanları
     metaTitle: v.optional(v.string()), // Meta Başlığı
@@ -70,15 +68,6 @@ export default defineSchema({
     .index("by_categoryId", ["categoryId"])
     .index("by_brand", ["brand"])
     .index("by_inStock", ["inStock"]),
-
-  // 4. Site Genel İletişim Ayarları
-  siteSettings: defineTable({
-    whatsappNumber: v.optional(v.string()),
-    phone: v.optional(v.string()),
-    email: v.optional(v.string()),
-    workingHours: v.optional(v.string()),
-    address: v.optional(v.string()),
-  }),
 
   // 6. Canlı Destek Sohbet Oturumları (Live Support Conversations)
   conversations: defineTable({

@@ -16,19 +16,10 @@ export const list = query({
 
     const sorted = cats.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-    // Resolve Convex Storage image URL or fallback to local imageUrl
-    return await Promise.all(
-      sorted.map(async (c) => {
-        let imageUrl: string | null = null;
-        if (c.imageStorageId) {
-          imageUrl = await ctx.storage.getUrl(c.imageStorageId);
-        }
-        return {
-          ...c,
-          image: imageUrl || c.imageUrl || undefined,
-        };
-      })
-    );
+    return sorted.map((c) => ({
+      ...c,
+      image: c.imageUrl || undefined,
+    }));
   },
 });
 
@@ -42,14 +33,9 @@ export const getBySlug = query({
 
     if (!cat) return null;
 
-    let imageUrl: string | null = null;
-    if (cat.imageStorageId) {
-      imageUrl = await ctx.storage.getUrl(cat.imageStorageId);
-    }
-
     return {
       ...cat,
-      image: imageUrl || cat.imageUrl || undefined,
+      image: cat.imageUrl || undefined,
     };
   },
 });
@@ -60,14 +46,9 @@ export const getById = query({
     const cat = await ctx.db.get(args.id);
     if (!cat) return null;
 
-    let imageUrl: string | null = null;
-    if (cat.imageStorageId) {
-      imageUrl = await ctx.storage.getUrl(cat.imageStorageId);
-    }
-
     return {
       ...cat,
-      image: imageUrl || cat.imageUrl || undefined,
+      image: cat.imageUrl || undefined,
     };
   },
 });
@@ -77,7 +58,6 @@ export const create = mutation({
     name: v.string(),
     slug: v.string(),
     description: v.optional(v.string()),
-    imageStorageId: v.optional(v.id("_storage")),
     imageUrl: v.optional(v.string()),
     order: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
@@ -109,7 +89,6 @@ export const update = mutation({
     name: v.string(),
     slug: v.string(),
     description: v.optional(v.string()),
-    imageStorageId: v.optional(v.id("_storage")),
     imageUrl: v.optional(v.string()),
     order: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
@@ -119,66 +98,10 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
-    const existing = await ctx.db.get(id);
-    
-    // If the storage ID changed, delete the old storage file to save space
-    if (existing?.imageStorageId && fields.imageStorageId && existing.imageStorageId !== fields.imageStorageId) {
-      await ctx.storage.delete(existing.imageStorageId);
-    }
-
     await ctx.db.patch(id, {
       ...fields,
       updatedAt: Date.now(),
     });
-  },
-});
-
-export const setImageStorageId = mutation({
-  args: {
-    id: v.id("categories"),
-    storageId: v.id("_storage"),
-  },
-  handler: async (ctx, args) => {
-    const cat = await ctx.db.get(args.id);
-    if (!cat) return;
-    if (cat.imageStorageId && cat.imageStorageId !== args.storageId) {
-      await ctx.storage.delete(cat.imageStorageId);
-    }
-    await ctx.db.patch(args.id, {
-      imageStorageId: args.storageId,
-      updatedAt: Date.now(),
-    });
-  },
-});
-
-export const bulkSetCategoryStorageIds = mutation({
-  args: {
-    updates: v.array(
-      v.object({
-        slug: v.string(),
-        storageId: v.id("_storage"),
-      })
-    ),
-  },
-  handler: async (ctx, args) => {
-    const categories = await ctx.db.query("categories").collect();
-    const catBySlug = new Map(categories.map((c) => [c.slug.toLowerCase(), c]));
-    let count = 0;
-
-    for (const update of args.updates) {
-      const cat = catBySlug.get(update.slug.toLowerCase());
-      if (cat) {
-        if (cat.imageStorageId && cat.imageStorageId !== update.storageId) {
-          await ctx.storage.delete(cat.imageStorageId);
-        }
-        await ctx.db.patch(cat._id, {
-          imageStorageId: update.storageId,
-          updatedAt: Date.now(),
-        });
-        count++;
-      }
-    }
-    return { updatedCount: count };
   },
 });
 
@@ -197,10 +120,6 @@ export const deleteCategory = mutation({
       throw new Error("Bu kategoriye bağlı ürünler bulunmaktadır. Önce ürünlerin kategorisini değiştiriniz veya ürünleri siliniz.");
     }
 
-    if (cat.imageStorageId) {
-      await ctx.storage.delete(cat.imageStorageId);
-    }
-
     await ctx.db.delete(args.id);
   },
 });
@@ -210,119 +129,119 @@ export const INITIAL_CATEGORIES = [
     name: "Motor Beyinleri (ECU)",
     slug: "motor-beyinleri-ecu",
     order: 1,
-    imageUrl: "/images/cat-ecu.jpg",
+    imageUrl: "/images/cat-ecu.webp",
     description: "Motor kontrol üniteleri (ECU / ECM), enjeksiyon ve ateşleme yönetim modülleri.",
   },
   {
     name: "ABS / ESP Beyinleri",
     slug: "abs-esp-beyinleri",
     order: 2,
-    imageUrl: "/images/cat-abs.jpg",
+    imageUrl: "/images/cat-abs.webp",
     description: "ABS hidrolik pompaları, ESP kontrol modülleri ve fren elektronik üniteleri.",
   },
   {
     name: "Airbag Beyinleri",
     slug: "airbag-beyinleri",
     order: 3,
-    imageUrl: "/images/cat-airbag.jpg",
+    imageUrl: "/images/cat-airbag.webp",
     description: "Hava yastığı kontrol modülleri, SRS ve çarpışma sensör beyinleri.",
   },
   {
     name: "BCM / BSI Beyinleri",
     slug: "bcm-bsi-sam-modulleri",
     order: 4,
-    imageUrl: "/images/cat-bcm.jpg",
+    imageUrl: "/images/cat-bcm.webp",
     description: "Gövde kontrol üniteleri (BCM), BSI ve konfor yönetim modülleri.",
   },
   {
     name: "UCH / SAM Modülleri",
     slug: "uch-sam-modulleri",
     order: 5,
-    imageUrl: "/images/cat-uch.jpg",
+    imageUrl: "/images/cat-uch.webp",
     description: "Renault UCH, Mercedes SAM ve araç içi merkezi kontrol modülleri.",
   },
   {
     name: "Sigorta Kutuları",
     slug: "sigorta-kutulari",
     order: 6,
-    imageUrl: "/images/cat-fusebox.jpg",
+    imageUrl: "/images/cat-fusebox.webp",
     description: "Motor içi ve kabin içi elektronik sigorta ve röle dağıtım kutuları.",
   },
   {
     name: "Gösterge Panelleri",
     slug: "gosterge-panelleri",
     order: 7,
-    imageUrl: "/images/cat-cluster.jpg",
+    imageUrl: "/images/cat-cluster.webp",
     description: "Dijital ve analog gösterge kadranları, cluster ekranları.",
   },
   {
     name: "Direksiyon Kumanda Modülleri",
     slug: "direksiyon-kumanda-modulleri",
     order: 8,
-    imageUrl: "/images/cat-steering.jpg",
+    imageUrl: "/images/cat-steering.webp",
     description: "Direksiyon açı sensörleri, korna sargıları ve direksiyon altı silecek/sinyal kolları.",
   },
   {
     name: "Direksiyon Kolon & Pompa",
     slug: "direksiyon-kolon-pompa",
     order: 9,
-    imageUrl: "/images/cat-steering-pump.jpg",
+    imageUrl: "/images/cat-steering-pump.webp",
     description: "Elektrikli direksiyon kolonları, hidrolik ve elektronik direksiyon pompaları.",
   },
   {
     name: "Klima Kontrol Üniteleri",
     slug: "klima-kontrol-uniteleri",
     order: 10,
-    imageUrl: "/images/cat-climate.jpg",
+    imageUrl: "/images/cat-climate.webp",
     description: "Dijital ve manuel klima kontrol panelleri ve modülleri.",
   },
   {
     name: "Multimedya Üniteleri",
     slug: "multimedya-uniteleri",
     order: 11,
-    imageUrl: "/images/cat-multimedia.jpg",
+    imageUrl: "/images/cat-multimedia.webp",
     description: "Orijinal fabrika çıkışlı navigasyon, teyp ve multimedya ekranları.",
   },
   {
     name: "Konfor Modülleri",
     slug: "konfor-modulleri",
     order: 12,
-    imageUrl: "/images/cat-comfort.jpg",
+    imageUrl: "/images/cat-comfort.webp",
     description: "Kapı, cam ve tavan konfor elektronik modülleri.",
   },
   {
     name: "Şanzıman Beyinleri",
     slug: "sanziman-beyinleri",
     order: 13,
-    imageUrl: "/images/cat-transmission.jpg",
+    imageUrl: "/images/cat-transmission.webp",
     description: "Otomatik ve çift kavramalı şanzıman mekatronik ve elektronik kontrol üniteleri.",
   },
   {
     name: "ECU Beyin Setleri",
     slug: "ecu-setleri",
     order: 14,
-    imageUrl: "/images/cat-ecu-kit.jpg",
+    imageUrl: "/images/cat-ecu-kit.webp",
     description: "Motor beyni, kontak, immobilizer ve anahtar komple setleri.",
   },
   {
     name: "Cam Motorları",
     slug: "cam-motorlari",
     order: 15,
-    imageUrl: "/images/cat-window-motor.jpg",
+    imageUrl: "/images/cat-window-motor.webp",
     description: "Ön ve arka elektrikli cam krikoları ve cam motorları.",
   },
   {
     name: "Kumanda Panel ve Düğmeler",
     slug: "kumanda-panel-ve-dugmeler",
     order: 16,
-    imageUrl: "/images/cat-switches.jpg",
+    imageUrl: "/images/cat-switches.webp",
     description: "Cam açma düğmeleri, ayna ayar anahtarları ve iç kontrol butonları.",
   },
   {
     name: "Diğer Elektronik Parçalar",
     slug: "diger-elektronik-parcalar",
     order: 17,
-    imageUrl: "/images/cat-electronics.jpg",
+    imageUrl: "/images/cat-electronics.webp",
     description: "Sensörler, valfler, trim elektronik parçaları ve genel oto elektrik aksamı.",
   },
 ];

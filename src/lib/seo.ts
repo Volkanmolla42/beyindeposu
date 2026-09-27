@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { SITE_CONFIG } from "@/config/site";
 
-export const SITE_NAME = "Beyin Deposu";
+export const SITE_NAME = SITE_CONFIG.name;
+export const SITE_TITLE = SITE_CONFIG.title;
 export const SITE_URL = new URL(
   process.env.SITE_URL?.trim() || "https://beyindeposu.com",
 ).origin;
-export const SITE_DESCRIPTION =
-  "ECU, ABS, airbag ve diğer oto elektronik parçaları. Ürün uyumluluğu, stok ve sipariş bilgisi için Beyin Deposu ile iletişime geçin.";
+export const SITE_DESCRIPTION = SITE_CONFIG.description;
 export const SEO_IMAGE = "/images/seo-cover.webp";
 
 export const ORGANIZATION_JSON_LD = {
@@ -51,7 +52,7 @@ export function createPageMetadata({
     url: SEO_IMAGE,
     width: 1200,
     height: 630,
-    alt: SITE_NAME,
+    alt: `${SITE_NAME} oto elektronik parça kataloğu`,
   };
 
   return {

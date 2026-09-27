@@ -1,9 +1,10 @@
 import { Doc, Id } from "../../convex/_generated/dataModel";
+import { SITE_CONTACT } from "@/config/site";
 
 export type Product = Doc<"products">;
 export type Category = Doc<"categories">;
 export type Brand = Doc<"brands">;
-export type SiteSettings = Doc<"siteSettings">;
+export type SiteSettings = typeof SITE_CONTACT;
 export type Conversation = Doc<"conversations">;
 export type ChatMessage = Doc<"messages">;
 

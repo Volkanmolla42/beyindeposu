@@ -5,15 +5,13 @@ import { usePathname } from "next/navigation";
 import { X, Send } from "lucide-react";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { generateWhatsAppLink } from "@/lib/utils";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { SITE_CONTACT } from "@/config/site";
 
 export default function FloatingWhatsApp() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const settings = useQuery(api.siteSettings.get);
-  const whatsappNumber = settings?.whatsappNumber || "";
+  const whatsappNumber = SITE_CONTACT.whatsappNumber;
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();

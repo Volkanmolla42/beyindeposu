@@ -1,21 +1,35 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
+function normalizeBrandLogoUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  return url.replace(/\.webp$/i, ".svg");
+}
+
 export const list = query({
   args: {},
   handler: async (ctx) => {
     const brands = await ctx.db.query("brands").collect();
-    return brands.sort((a, b) => (a.order ?? 99) - (b.order ?? 99));
+    return brands
+      .sort((a, b) => (a.order ?? 99) - (b.order ?? 99))
+      .map((b) => ({
+        ...b,
+        logoUrl: normalizeBrandLogoUrl(b.logoUrl),
+      }));
   },
 });
 
 export const getPopular = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db
+    const brands = await ctx.db
       .query("brands")
       .withIndex("by_popular", (q) => q.eq("popular", true))
       .take(50);
+    return brands.map((b) => ({
+      ...b,
+      logoUrl: normalizeBrandLogoUrl(b.logoUrl),
+    }));
   },
 });
 
@@ -62,7 +76,7 @@ export const deleteBrand = mutation({
   },
 });
 
-// 31+ Comprehensive brand catalog with local codebase SVG paths
+// 31+ Comprehensive brand catalog with local WebP paths
 export const INITIAL_BRANDS = [
   { name: "Renault", slug: "renault", logoUrl: "/images/brands/renault.svg", order: 1 },
   { name: "Volkswagen", slug: "volkswagen", logoUrl: "/images/brands/volkswagen.svg", order: 2 },

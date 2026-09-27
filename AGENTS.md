@@ -1,3 +1,31 @@
+# Repository Guidelines
+
+## Project Structure
+
+`src/app/` holds routes and admin pages; `src/components/` shared UI; `src/{config,lib,types}/` support code. `convex/` contains backend and schema; `scripts/` import tools; `public/images/` website assets; `docs/` research.
+
+## Development Commands
+
+- `npm ci` installs dependencies.
+- `npm run dev` starts Next.js and Convex; `npm run dev:next` and `npm run dev:convex` start one service.
+- `npm run lint` runs ESLint; `npm run build` builds; `npm start` serves the build.
+
+## Style, Assets, and Copy
+
+Use strict TypeScript, two-space indentation, double quotes, semicolons, and the `@/` alias for `src/` imports. Name React components `PascalCase`; keep route directories and utility files lowercase. Convert each image to WebP before website use; store website images in `public/images/` and never use PNG assets on the site. Keep UI copy purposeful; omit redundant titles, subtitles, hints, and helper text.
+
+## Testing
+
+No test runner or test files are configured. Available automated checks are `npm run lint` and `npm run build`; preview affected routes for UI changes.
+
+## Commits and Pull Requests
+
+Recent history has no consistent subject format (`up` and descriptive feature summaries both appear). Use short imperative subjects, such as `Add admin product filters`. PRs should summarize changes, list checks, link related issues when available, and include UI screenshots.
+
+## Configuration and Safety
+
+Keep credentials in `.env.local`, never commit secrets, and add required keys to `.env.example`. Do not run `git push` or other risky Git commands. Do not modify Convex production without explicit approval.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

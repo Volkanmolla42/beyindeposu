@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../../convex/_generated/api";
-import { Id } from "../../../../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,7 +24,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { slugify } from "../admin-utils";
+import { slugify, LOCAL_CATEGORY_IMAGES } from "../admin-utils";
 
 export default function AdminCategoriesPage() {
   const [catSearch, setCatSearch] = useState("");
@@ -38,21 +37,17 @@ export default function AdminCategoriesPage() {
   const [catSlugManuallyEdited, setCatSlugManuallyEdited] = useState(false);
   const [catDescription, setCatDescription] = useState("");
   const [catPreviewImage, setCatPreviewImage] = useState<string>("");
-  const [catStorageId, setCatStorageId] = useState<Id<"_storage"> | null>(null);
-  const [catUploading, setCatUploading] = useState(false);
-  const [catOrder, setCatOrder] = useState<number>(1);
+      const [catOrder, setCatOrder] = useState<number>(1);
   const [catIsActive, setCatIsActive] = useState<boolean>(true);
   const [catMetaTitle, setCatMetaTitle] = useState("");
   const [catMetaDescription, setCatMetaDescription] = useState("");
   const [catMetaKeywords, setCatMetaKeywords] = useState("");
   const [categoryError, setCategoryError] = useState<string>("");
 
-  const catFileInputRef = useRef<HTMLInputElement>(null);
-
+  
   // Queries & Mutations
   const categories = useQuery(api.categories.list, { onlyActive: false });
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-  const createCategory = useMutation(api.categories.create);
+    const createCategory = useMutation(api.categories.create);
   const updateCategory = useMutation(api.categories.update);
   const deleteCategory = useMutation(api.categories.deleteCategory);
 
@@ -62,8 +57,7 @@ export default function AdminCategoriesPage() {
     setCatSlugManuallyEdited(false);
     setCatDescription("");
     setCatPreviewImage("");
-    setCatStorageId(null);
-    setCatOrder((categories?.length || 0) + 1);
+        setCatOrder((categories?.length || 0) + 1);
     setCatIsActive(true);
     setCatMetaTitle("");
     setCatMetaDescription("");
@@ -84,8 +78,7 @@ export default function AdminCategoriesPage() {
     setCatSlugManuallyEdited(true);
     setCatDescription(c.description || "");
     setCatPreviewImage(c.image || "");
-    setCatStorageId(c.imageStorageId || null);
-    setCatOrder(c.order ?? 1);
+        setCatOrder(c.order ?? 1);
     setCatIsActive(c.isActive ?? true);
     setCatMetaTitle(c.metaTitle || "");
     setCatMetaDescription(c.metaDescription || "");
@@ -94,29 +87,7 @@ export default function AdminCategoriesPage() {
     setCategoryModalOpen(true);
   };
 
-  const handleCategoryFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setCatUploading(true);
-    try {
-      const postUrl = await generateUploadUrl();
-      const result = await fetch(postUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      const { storageId } = await result.json();
-      setCatStorageId(storageId);
-      setCatPreviewImage(URL.createObjectURL(file));
-    } catch (err) {
-      console.error("Kategori görseli yüklenemedi:", err);
-      alert("Görsel yüklenirken bir hata oluştu.");
-    } finally {
-      setCatUploading(false);
-    }
-  };
-
+  
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     setCategoryError("");
@@ -128,8 +99,8 @@ export default function AdminCategoriesPage() {
         name: catName,
         slug: generatedSlug,
         description: catDescription || undefined,
-        imageStorageId: catStorageId || undefined,
-        order: Number(catOrder),
+        imageUrl: catPreviewImage || LOCAL_CATEGORY_IMAGES[generatedSlug] || undefined,
+                order: Number(catOrder),
         isActive: catIsActive,
         metaTitle: catMetaTitle.trim() || undefined,
         metaDescription: catMetaDescription.trim() || undefined,
@@ -319,33 +290,7 @@ export default function AdminCategoriesPage() {
                   <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
                   <span>Kategori Görseli</span>
                 </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={catFileInputRef}
-                  onChange={handleCategoryFileUpload}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={catUploading}
-                  onClick={() => catFileInputRef.current?.click()}
-                  className="bg-white border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium gap-1 cursor-pointer h-7"
-                >
-                  {catUploading ? (
-                    <>
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      <span>Yükleniyor...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-3 h-3 text-slate-500" />
-                      <span>Görsel Yükle</span>
-                    </>
-                  )}
-                </Button>
+                <span className="text-[10px] text-slate-400">Statik WebP görsel</span>
               </div>
 
               {catPreviewImage ? (
@@ -356,7 +301,7 @@ export default function AdminCategoriesPage() {
                       type="button"
                       onClick={() => {
                         setCatPreviewImage("");
-                        setCatStorageId(null);
+                        
                       }}
                       className="absolute top-0.5 right-0.5 bg-slate-800/80 text-white rounded-full p-0.5 hover:bg-red-600 cursor-pointer"
                     >

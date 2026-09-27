@@ -39,15 +39,12 @@ export default function AdminBrandsPage() {
   const [brandPopular, setBrandPopular] = useState(false);
   const [brandOrder, setBrandOrder] = useState<number>(1);
   const [brandIsActive, setBrandIsActive] = useState<boolean>(true);
-  const [brandUploading, setBrandUploading] = useState(false);
-  const [brandError, setBrandError] = useState("");
+    const [brandError, setBrandError] = useState("");
 
-  const brandFileInputRef = useRef<HTMLInputElement>(null);
-
+  
   // Queries & Mutations
   const brands = useQuery(api.brands.list);
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
-  const createBrand = useMutation(api.brands.create);
+    const createBrand = useMutation(api.brands.create);
   const updateBrand = useMutation(api.brands.update);
   const deleteBrand = useMutation(api.brands.deleteBrand);
 
@@ -73,7 +70,7 @@ export default function AdminBrandsPage() {
     setBrandName(b.name);
     setBrandSlug(b.slug);
     setSlugManuallyEdited(true);
-    setBrandLogoUrl(b.logoUrl || "");
+    setBrandLogoUrl(LOCAL_BRAND_LOGOS[b.slug] || b.logoUrl || "");
     setBrandPopular(b.popular ?? false);
     setBrandOrder(b.order ?? 1);
     setBrandIsActive(b.isActive !== false);
@@ -99,29 +96,7 @@ export default function AdminBrandsPage() {
     return () => clearTimeout(timer);
   }, [brandName, brandSlug, brandModalOpen]);
 
-  const handleBrandFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setBrandUploading(true);
-    try {
-      const postUrl = await generateUploadUrl();
-      const result = await fetch(postUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      const { storageId } = await result.json();
-      const localUrl = URL.createObjectURL(file);
-      setBrandLogoUrl(localUrl);
-    } catch (err) {
-      console.error("Marka logosu yüklenemedi:", err);
-      alert("Logo yüklenirken bir hata oluştu.");
-    } finally {
-      setBrandUploading(false);
-    }
-  };
-
+  
   const handleSaveBrand = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!brandName.trim()) {
@@ -223,7 +198,7 @@ export default function AdminBrandsPage() {
               <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 p-2">
                 {b.logoUrl ? (
                   <img
-                    src={b.logoUrl}
+                    src={LOCAL_BRAND_LOGOS[b.slug] || b.logoUrl}
                     alt={`${b.name} logosu`}
                     className="w-full h-full object-contain"
                     onError={(e) => {
@@ -335,33 +310,7 @@ export default function AdminBrandsPage() {
                   <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
                   <span>Marka Logosu</span>
                 </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={brandFileInputRef}
-                  onChange={handleBrandFileUpload}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={brandUploading}
-                  onClick={() => brandFileInputRef.current?.click()}
-                  className="bg-white border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium gap-1 cursor-pointer h-7"
-                >
-                  {brandUploading ? (
-                    <>
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      <span>Yükleniyor...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-3 h-3 text-slate-500" />
-                      <span>Logo Yükle</span>
-                    </>
-                  )}
-                </Button>
+                <span className="text-[10px] text-slate-400">Statik SVG vektör logo</span>
               </div>
 
               {brandLogoUrl ? (

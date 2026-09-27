@@ -36,7 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         { paginationOpts: { numItems: pageSize, cursor } },
       );
 
-      productEntries.push(...result.page);
+      productEntries.push(...result.page.filter((product) => product.slug.trim().length > 0));
       cursor = result.continueCursor;
       isDone = result.isDone;
     }
