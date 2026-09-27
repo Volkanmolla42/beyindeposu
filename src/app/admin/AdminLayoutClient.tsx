@@ -41,7 +41,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       {
         href: "/admin/products",
-        label: "Ürünler",
+        label: "Parçalar",
         icon: Package,
       },
       {

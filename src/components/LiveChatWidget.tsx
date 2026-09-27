@@ -93,8 +93,8 @@ export default function LiveChatWidget() {
   }, []);
 
   // Product page detection
-  const isProductPage = pathname?.startsWith("/urunler/") && pathname !== "/urunler";
-  const productSlug = isProductPage ? pathname.replace("/urunler/", "") : null;
+  const isProductPage = pathname?.startsWith("/parcalar/") && pathname !== "/parcalar";
+  const productSlug = isProductPage ? pathname.replace("/parcalar/", "") : null;
   const currentProduct = useQuery(
     api.products.getBySlug,
     productSlug ? { slug: productSlug } : "skip"
@@ -268,7 +268,7 @@ export default function LiveChatWidget() {
                   <div className="p-3 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-2">
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
                       <ShoppingBag className="w-4 h-4 text-blue-600" />
-                      <span>Bu ürün</span>
+                      <span>Bu parça</span>
                     </div>
 
                     <div className="flex items-center gap-2.5 bg-slate-50 p-2 rounded-xl border border-slate-100">
@@ -298,7 +298,7 @@ export default function LiveChatWidget() {
                         onChange={(e) => setIncludeProduct(e.target.checked)}
                         className="rounded text-blue-600 w-3.5 h-3.5"
                       />
-                      <span>Ürünü sohbete ekle</span>
+                      <span>Parçayı sohbete ekle</span>
                     </label>
                   </div>
                 )}

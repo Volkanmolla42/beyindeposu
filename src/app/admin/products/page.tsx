@@ -564,7 +564,7 @@ export default function AdminProductsPage() {
     } else if (previewImages[selectedFormImageIndex]) {
       await handleScanActivePreviewImage();
     } else {
-      setAiError("Lütfen bir OEM kodu girin veya etiket içeren bir ürün görseli yükleyin.");
+      setAiError("Lütfen bir OEM kodu girin veya etiket içeren bir parça görseli yükleyin.");
     }
   };
 
@@ -662,7 +662,7 @@ export default function AdminProductsPage() {
       return;
     }
 
-    if (!window.confirm(`${groups.length.toLocaleString("tr-TR")} ürün ve ${totalImages.toLocaleString("tr-TR")} görsel taslak olarak yüklenecek. Devam edilsin mi?`)) {
+    if (!window.confirm(`${groups.length.toLocaleString("tr-TR")} parça ve ${totalImages.toLocaleString("tr-TR")} görsel taslak olarak yüklenecek. Devam edilsin mi?`)) {
       return;
     }
 
@@ -766,7 +766,7 @@ export default function AdminProductsPage() {
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !oemNumber || !brand) {
-      alert("Zorunlu alanları doldurun: ürün başlığı, OEM no ve marka.");
+      alert("Zorunlu alanları doldurun: parça başlığı, OEM no ve marka.");
       return;
     }
 
@@ -824,7 +824,7 @@ export default function AdminProductsPage() {
   };
 
   const handleDeleteProduct = async (p: any) => {
-    if (confirm(`'${p.oemNumber} - ${p.title}' ürünü silinsin mi?`)) {
+    if (confirm(`'${p.oemNumber} - ${p.title}' parçası silinsin mi?`)) {
       await deleteProduct({ id: p._id });
     }
   };
@@ -870,13 +870,13 @@ export default function AdminProductsPage() {
       <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-lg font-bold text-slate-900 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span>Ürünler</span>
+            <span>Parçalar</span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-              {totalItems.toLocaleString("tr-TR")} Ürün
+              {totalItems.toLocaleString("tr-TR")} Parça
             </span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Ürün, stok ve OEM bilgilerini yönetin.
+            Parça, stok ve OEM bilgilerini yönetin.
           </p>
         </div>
 
@@ -897,7 +897,7 @@ export default function AdminProductsPage() {
             className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-700 shadow-xs transition-colors hover:bg-indigo-100 sm:w-auto"
           >
             <Sparkles className="w-4 h-4 text-indigo-600" />
-            <span>Toplu ürün aktarımı</span>
+            <span>Toplu parça aktarımı</span>
           </Link>
           <Button
             type="button"
@@ -914,7 +914,7 @@ export default function AdminProductsPage() {
             className="h-10 sm:h-9 w-full justify-center gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 sm:w-auto"
           >
             <Plus className="w-4 h-4" />
-            <span>Yeni ürün ekle</span>
+            <span>Yeni parça ekle</span>
           </Button>
         </div>
       </div>
@@ -922,11 +922,11 @@ export default function AdminProductsPage() {
       {folderUploadProgress && (
         <div className={`rounded-lg border px-3 py-2 text-xs ${folderUploadProgress.stage === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200 bg-white text-slate-700"}`} aria-live="polite">
           {folderUploadProgress.stage === "error" ? (
-            <span>Yükleme durdu: {folderUploadProgress.error} ({folderUploadProgress.completedProducts}/{folderUploadProgress.totalProducts} ürün)</span>
+            <span>Yükleme durdu: {folderUploadProgress.error} ({folderUploadProgress.completedProducts}/{folderUploadProgress.totalProducts} parça)</span>
           ) : folderUploadProgress.stage === "done" ? (
-            <span>{(folderUploadProgress.totalProducts - folderUploadProgress.skippedProducts).toLocaleString("tr-TR")} taslak eklendi{folderUploadProgress.skippedProducts > 0 ? ` · ${folderUploadProgress.skippedProducts.toLocaleString("tr-TR")} ürün atlandı` : ""}</span>
+            <span>{(folderUploadProgress.totalProducts - folderUploadProgress.skippedProducts).toLocaleString("tr-TR")} taslak eklendi{folderUploadProgress.skippedProducts > 0 ? ` · ${folderUploadProgress.skippedProducts.toLocaleString("tr-TR")} parça atlandı` : ""}</span>
           ) : (
-            <span>{folderUploadProgress.completedProducts.toLocaleString("tr-TR")}/{folderUploadProgress.totalProducts.toLocaleString("tr-TR")} ürün · {folderUploadProgress.uploadedImages.toLocaleString("tr-TR")}/{folderUploadProgress.totalImages.toLocaleString("tr-TR")} görsel</span>
+            <span>{folderUploadProgress.completedProducts.toLocaleString("tr-TR")}/{folderUploadProgress.totalProducts.toLocaleString("tr-TR")} parça · {folderUploadProgress.uploadedImages.toLocaleString("tr-TR")}/{folderUploadProgress.totalImages.toLocaleString("tr-TR")} görsel</span>
           )}
         </div>
       )}
@@ -936,7 +936,7 @@ export default function AdminProductsPage() {
         <div className="relative min-w-0 sm:col-span-2">
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
           <Input
-            placeholder="OEM, ürün adı veya raf kodu ara"
+            placeholder="OEM, parça adı veya raf kodu ara"
             value={searchProduct}
             onChange={(e) => setSearchProduct(e.target.value)}
             className="h-10 min-w-0 rounded-lg border-slate-200 bg-white pl-9 text-xs text-slate-900 sm:h-9"
@@ -985,7 +985,7 @@ export default function AdminProductsPage() {
         {/* View Mode Header */}
         <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-50/80 border-b border-slate-200">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-800 text-xs">Ürün Listesi</span>
+            <span className="font-bold text-slate-800 text-xs">Parça Listesi</span>
             <span className="text-[11px] text-slate-500 font-medium">({totalItems.toLocaleString("tr-TR")})</span>
           </div>
 
@@ -1025,7 +1025,7 @@ export default function AdminProductsPage() {
                 <th className="p-3.5">Görsel</th>
                 <th className="p-3.5">OEM no</th>
                 <th className="p-3.5">Raf kodu</th>
-                <th className="p-3.5">Ürün başlığı</th>
+                <th className="p-3.5">Parça başlığı</th>
                 <th className="p-3.5">Durum</th>
                 <th className="p-3.5">Stok</th>
                 <th className="p-3.5 text-right">İşlem</th>
@@ -1067,7 +1067,7 @@ export default function AdminProductsPage() {
                       )}
                     </td>
                     <td className="p-3.5 max-w-xs">
-                      <div className="font-semibold text-slate-900 truncate">{p.title || "Taslak ürün"}</div>
+                      <div className="font-semibold text-slate-900 truncate">{p.title || "Taslak parça"}</div>
                       <div className="text-[11px] text-slate-500 truncate">
                         {[p.brand, p.model].filter(Boolean).join(" · ") || ""}
                       </div>
@@ -1092,7 +1092,7 @@ export default function AdminProductsPage() {
                       <div className="flex items-center justify-end gap-1">
                         {p.isDraft !== true && (
                           <Link
-                            href={`/urunler/${p.slug}`}
+                            href={`/parcalar/${p.slug}`}
                             target="_blank"
                             className="p-1.5 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100 transition-colors"
                             title="Görüntüle"
@@ -1127,7 +1127,7 @@ export default function AdminProductsPage() {
               ) : (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-400 text-xs">
-                    Kayıtlı ürün bulunamadı.
+                    Kayıtlı parça bulunamadı.
                   </td>
                 </tr>
               )}
@@ -1145,7 +1145,7 @@ export default function AdminProductsPage() {
               >
                 {/* Ana İçerik: Görsel + Bilgi Sütunu */}
                 <div className="flex items-start gap-3">
-                  {/* Ürün Görseli / Önizleme */}
+                  {/* Parça Görseli / Önizleme */}
                   <div className="relative h-15 w-15 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-1 flex items-center justify-center">
                     {p.images?.[0] ? (
                       <button
@@ -1154,12 +1154,12 @@ export default function AdminProductsPage() {
                           e.stopPropagation();
                           openLightbox(p.images!, 0);
                         }}
-                        aria-label={`${p.title || "Ürün"} görselini büyüt`}
+                        aria-label={`${p.title || "Parça"} görselini büyüt`}
                         className="h-full w-full cursor-zoom-in flex items-center justify-center"
                       >
                         <img
                           src={p.images[0]}
-                          alt={p.title || "Ürün"}
+                          alt={p.title || "Parça"}
                           className="h-full w-full object-contain"
                         />
                       </button>
@@ -1173,7 +1173,7 @@ export default function AdminProductsPage() {
                     )}
                   </div>
 
-                  {/* Ürün Bilgileri */}
+                  {/* Parça Bilgileri */}
                   <div className="min-w-0 flex-1 space-y-1">
                     {/* Üst Sıra: OEM Kodu ve En Sağda Sitede Görüntüle (ExternalLink) Butonu */}
                     <div className="flex items-center justify-between gap-1.5">
@@ -1197,10 +1197,10 @@ export default function AdminProductsPage() {
 
                       {p.isDraft !== true && (
                         <Link
-                          href={`/urunler/${p.slug}`}
+                          href={`/parcalar/${p.slug}`}
                           target="_blank"
                           onClick={(e) => e.stopPropagation()}
-                          aria-label={`${p.title || "Ürün"} sayfasını sitede görüntüle`}
+                          aria-label={`${p.title || "Parça"} sayfasını sitede görüntüle`}
                           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 shadow-2xs hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 active:scale-95 transition-all"
                           title="Sitede Görüntüle"
                         >
@@ -1211,7 +1211,7 @@ export default function AdminProductsPage() {
 
                     {/* Başlık */}
                     <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-slate-900 leading-snug break-words pt-0.5">
-                      {p.title || "İsimsiz Ürün"}
+                      {p.title || "İsimsiz parça"}
                     </h3>
                   </div>
                 </div>
@@ -1252,7 +1252,7 @@ export default function AdminProductsPage() {
                         e.stopPropagation();
                         handleDeleteProduct(p);
                       }}
-                      aria-label={`${p.title || "Ürün"} ürününü sil`}
+                      aria-label={p.title ? `${p.title} parçasını sil` : "Parçayı sil"}
                       className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-500 shadow-2xs hover:border-red-400 hover:bg-red-50 hover:text-red-600 active:scale-95 transition-all cursor-pointer"
                       title="Sil"
                     >
@@ -1268,7 +1268,7 @@ export default function AdminProductsPage() {
             </div>
           ) : (
             <div className="col-span-full rounded-xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
-              Kayıtlı ürün bulunamadı.
+              Kayıtlı parça bulunamadı.
             </div>
           )}
         </div>
@@ -1396,7 +1396,7 @@ export default function AdminProductsPage() {
       >
         <DialogContent className="fixed left-0 top-0 z-50 flex h-[100dvh] max-h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-white p-0 shadow-none [&>button]:right-2 [&>button]:top-2 [&>button]:h-11 [&>button]:w-11 [&>button]:opacity-100 md:left-1/2 md:top-1/2 md:h-[90dvh] md:max-h-[900px] md:w-[94vw] md:max-w-6xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-xl md:border md:shadow-2xl">
           <DialogHeader className="shrink-0 border-b border-slate-200 px-4 py-4 pr-14 text-left sm:px-6">
-            <DialogTitle className="text-base sm:text-lg">{editingProduct ? "Ürünü düzenle" : "Yeni ürün"}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">{editingProduct ? "Parçayı düzenle" : "Yeni parça"}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSaveProduct} className="flex min-h-0 flex-1 flex-col text-xs">
@@ -1412,7 +1412,7 @@ export default function AdminProductsPage() {
                     {previewImages[selectedFormImageIndex] ? (
                       <ModernImageZoom
                         src={previewImages[selectedFormImageIndex]}
-                        alt="Seçili ürün görseli"
+                        alt="Seçili parça görseli"
                         className="h-full w-full aspect-[4/3] lg:aspect-square border-0 rounded-none bg-transparent"
                       />
                     ) : (
@@ -1439,7 +1439,7 @@ export default function AdminProductsPage() {
                           className="h-full w-full cursor-pointer"
                           title={`${i + 1}. görseli seç`}
                         >
-                          <img src={img} alt={`${i + 1}. ürün görseli`} className="h-full w-full rounded object-contain" />
+                          <img src={img} alt={`${i + 1}. parça görseli`} className="h-full w-full rounded object-contain" />
                         </button>
 
                         {/* Kapak Görseli Rozeti */}
@@ -1502,7 +1502,7 @@ export default function AdminProductsPage() {
                 <section className="min-w-0 space-y-5">
                   <section aria-labelledby="required-product-fields" className="min-w-0 space-y-4">
                     <div className="flex items-center justify-between gap-3">
-                      <h3 id="required-product-fields" className="text-sm font-bold text-slate-900">Ürün bilgileri</h3>
+                      <h3 id="required-product-fields" className="text-sm font-bold text-slate-900">Parça bilgileri</h3>
                     </div>
 
                     {/* Stok ve Taslak Durumu Switchleri */}
@@ -1574,9 +1574,9 @@ export default function AdminProductsPage() {
                           className="h-8 gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border-indigo-200 hover:bg-indigo-100 hover:text-indigo-800 transition-colors shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           title={
                             oemNumber.trim()
-                              ? "OEM koduna göre ürün bilgilerini doldur"
+                              ? "OEM koduna göre parça bilgilerini doldur"
                               : previewImages[selectedFormImageIndex]
-                                ? "Seçili görseldeki etiketi okuyup ürün bilgilerini doldur"
+                                ? "Seçili görseldeki etiketi okuyup parça bilgilerini doldur"
                                 : "OEM kodu girin veya bir görsel seçin"
                           }
                         >
@@ -1680,7 +1680,7 @@ export default function AdminProductsPage() {
 
                     <div className="space-y-1.5">
                       <label htmlFor="product-title" className="font-semibold text-slate-700">
-                        Ürün başlığı <span className="text-red-600" aria-hidden="true">*</span>
+                        Parça başlığı <span className="text-red-600" aria-hidden="true">*</span>
                       </label>
                       <Input
                         id="product-title"
@@ -1851,7 +1851,7 @@ export default function AdminProductsPage() {
                 type="submit"
                 className="h-11 w-full bg-blue-600 px-5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 sm:w-auto"
               >
-                {editingProduct ? "Kaydet" : "Ürünü kaydet"}
+                {editingProduct ? "Kaydet" : "Parçayı kaydet"}
               </Button>
             </div>
           </form>

@@ -126,7 +126,7 @@ Sistem, Google Fonts üzerinden sağlanan modern ve okunaklı iki font ailesini 
   - `info`: Bilgilendirme rozeti (`border-blue-200 bg-blue-50 text-blue-700`).
   - `tech`: Koyu modül teması (`border-blue-500/30 bg-blue-950/60 text-blue-300`).
 - **Kullanım Kılavuzu:**
-  - Parça kondisyonu ("Sıfır", "Çıkma/İkinci El"), stok durumu ("Stokta", "Tükendi") ve ürün sayaçları için kullanılır.
+  - Parça kondisyonu ("Sıfır", "Çıkma/İkinci El"), stok durumu ("Stokta", "Tükendi") ve parça sayaçları için kullanılır.
 
 ---
 
@@ -142,10 +142,10 @@ Sistem, Google Fonts üzerinden sağlanan modern ve okunaklı iki font ailesini 
 
 ---
 
-### 2.4. Ürün Sergileme ve Kart Ailesi (Catalog: ProductCard & ModernImageZoom)
+### 2.4. Parça Sergileme ve Kart Ailesi (Catalog: ProductCard & ModernImageZoom)
 - **Bileşenler:**
-  - `ProductCard`: [`src/components/ProductCard.tsx`](file:///c:/Users/volkan/Desktop/beyindeposu/src/components/ProductCard.tsx) — Ürün görseli, başlığı, OEM numarası, araç markası, durum rozetleri ve doğrudan WhatsApp fiyat sorma CTA'sını barındıran temel katalog kartı.
-  - `ModernImageZoom`: [`src/components/ModernImageZoom.tsx`](file:///c:/Users/volkan/Desktop/beyindeposu/src/components/ModernImageZoom.tsx) — Çok katmanlı ürün görsel inceleme; çift tık, tekerlek kaydırma, sürükleme (pan), pinch-to-zoom ve sıfırlama butonları barındırır.
+  - `ProductCard`: [`src/components/ProductCard.tsx`](file:///c:/Users/volkan/Desktop/beyindeposu/src/components/ProductCard.tsx) — Parça görseli, başlığı, OEM numarası, araç markası, durum rozetleri ve doğrudan WhatsApp fiyat sorma CTA'sını barındıran temel katalog kartı.
+  - `ModernImageZoom`: [`src/components/ModernImageZoom.tsx`](file:///c:/Users/volkan/Desktop/beyindeposu/src/components/ModernImageZoom.tsx) — Çok katmanlı parça görseli inceleme; çift tık, tekerlek kaydırma, sürükleme (pan), pinch-to-zoom ve sıfırlama butonları barındırır.
 - **Kullanım Kılavuzu:**
   - Görsellerde daima Next.js `<Image />` bileşeni kullanılmalı ve `aspect-4/3` oranı korunmalıdır.
 
@@ -153,7 +153,7 @@ Sistem, Google Fonts üzerinden sağlanan modern ve okunaklı iki font ailesini 
 
 ### 2.5. İletişim ve Canlı Destek Ailesi (Feedback & Overlays)
 - **Bileşenler:**
-  - `LiveChatWidget`: [`src/components/LiveChatWidget.tsx`](file:///c:/Users/volkan/Desktop/beyindeposu/src/components/LiveChatWidget.tsx) — Ziyaretçilerin doğrudan Convex backend'i üzerinden müşteri temsilcisi ile yazışabildiği, aktif ürün kartı ekleyebildiği canlı sohbet widget'ı.
+  - `LiveChatWidget`: [`src/components/LiveChatWidget.tsx`](file:///c:/Users/volkan/Desktop/beyindeposu/src/components/LiveChatWidget.tsx) — Ziyaretçilerin doğrudan Convex backend'i üzerinden müşteri temsilcisi ile yazışabildiği, aktif parça kartı ekleyebildiği canlı sohbet widget'ı.
   - `FloatingWhatsApp`: [`src/components/FloatingWhatsApp.tsx`](file:///c:/Users/volkan/Desktop/beyindeposu/src/components/FloatingWhatsApp.tsx) — Sayfanın sol alt köşesinde sabit duran, tek tıkla mesaj taslağı hazırlayıp WhatsApp Web/App başlatan hızlı iletişim butonu.
   - `Dialog`: [`src/components/ui/dialog.tsx`](file:///c:/Users/volkan/Desktop/beyindeposu/src/components/ui/dialog.tsx) — Radix UI tabanlı modal pencere sistemi.
 
@@ -167,7 +167,7 @@ Uygulama kabuğu, projenin tüm sayfalarını saran temel iskelettir:
   - Klavye kullanıcısı `Tab` tuşuna bastığında en üstte belirir ve doğrudan `#main-content` alanına atlar.
 - **2. Üst Gezinme Çubuğu (`Header`):**
   - Dosya: [`src/components/Header.tsx`](file:///c:/Users/volkan/Desktop/beyindeposu/src/components/Header.tsx)
-  - İçerik: Beyin Deposu logosu, küresel arama çubuğu (`OemSearchBar`), ürün kataloğu bağlantıları, kurumsal sayfalar ve doğrudan arama butonu.
+  - İçerik: Beyin Deposu logosu, küresel arama çubuğu (`OemSearchBar`), parça kataloğu bağlantıları, kurumsal sayfalar ve doğrudan arama butonu.
 - **3. Ana İçerik Bölgesi (`Main Content Region`):**
   - `container` sınıfı ile sınırlandırılmış, 1280px genişlikte responsive flex/grid alanı.
 - **4. Alt Bilgi Çubuğu (`Footer`):**
@@ -186,9 +186,9 @@ Tasarım sisteminin kusursuzlaştırılması ve temizlenmesi için tespit edilen
 | :- | :--- | :--- | :--- | :---: |
 | **D-1** | `ProductDetailClient.tsx` (L-338) | Mavi telefon butonunda `bg-blue-600 hover:bg-blue-700` ad-hoc sınıfı kullanılmıştı. | ✅ **ÇÖZÜLDÜ:** `Button variant="default"` kullanımına geçirildi. | Orta |
 | **D-2** | `FloatingWhatsApp.tsx` (L-94) | Butonda doğrudan `#0d7a46` hex kodu kullanılmıştı. | ✅ **ÇÖZÜLDÜ:** Tasarım belirteci `bg-emerald-700 hover:bg-emerald-800` yapıldı. | Düşük |
-| **D-3** | `urunler/page.tsx` (L-403) | Arama girdi kutusunda standart `Input` yerine ham `<input>` kullanılmıştı. | ✅ **ÇÖZÜLDÜ:** `Input` bileşenine dönüştürüldü. | Orta |
+| **D-3** | `parcalar/page.tsx` (L-403) | Arama girdi kutusunda standart `Input` yerine ham `<input>` kullanılmıştı. | ✅ **ÇÖZÜLDÜ:** `Input` bileşenine dönüştürüldü. | Orta |
 | **D-4** | `ProductCard.tsx` (L-62) | Durum rozetleri ve butonlar ham `<span>` ve `<button>` ile yazılmıştı. | ✅ **ÇÖZÜLDÜ:** `Badge` ve `Button asChild` bileşenlerine geçirildi. | Yüksek |
-| **D-5** | `urunler/page.tsx` (L-611) | Sayfalama kontrolleri ham `<button>` ile yazılmıştı. | ✅ **ÇÖZÜLDÜ:** `Button variant="outline"` ve `Button variant="default"` yapıldı. | Orta |
+| **D-5** | `parcalar/page.tsx` (L-611) | Sayfalama kontrolleri ham `<button>` ile yazılmıştı. | ✅ **ÇÖZÜLDÜ:** `Button variant="outline"` ve `Button variant="default"` yapıldı. | Orta |
 | **D-6** | `globals.css` (@theme) | `text-[10px]` ve `text-[11px]` için tema belirteci eksikti. | ✅ **ÇÖZÜLDÜ:** `--text-2xs: 0.625rem` ve `--text-3xs: 0.6875rem` eklendi. | Orta |
 
 ---

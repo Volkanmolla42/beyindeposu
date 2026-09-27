@@ -4,13 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import RoutartLogo from "./RoutartLogo";
 import { MapPin, Mail, Phone } from "lucide-react";
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
 import { SITE_CONTACT } from "@/config/site";
 
 export default function Footer() {
-  const categories = useQuery(api.categories.list, { onlyActive: true });
-
   const phone = SITE_CONTACT.phone;
   const email = SITE_CONTACT.email;
   const address = SITE_CONTACT.address;
@@ -36,21 +32,15 @@ export default function Footer() {
             <h2 className="mb-3 text-sm font-medium text-slate-900">Kurumsal</h2>
             <ul className="space-y-2 text-sm text-slate-600">
               <li><Link href="/kurumsal" className="hover:text-blue-700">Hakkımızda</Link></li>
-              <li><Link href="/kurumsal#kalite" className="hover:text-blue-700">Ürün kontrolü</Link></li>
+              <li><Link href="/kurumsal#kalite" className="hover:text-blue-700">Parça kontrolü</Link></li>
             </ul>
           </div>
 
           <div>
-            <h2 className="mb-3 text-sm font-medium text-slate-900">Ürünler</h2>
+            <h2 className="mb-3 text-sm font-medium text-slate-900">Parçalar</h2>
             <ul className="space-y-2 text-sm text-slate-600">
-              <li><Link href="/urunler" className="hover:text-blue-700">Tüm ürünler</Link></li>
-              {categories?.slice(0, 4).map((category) => (
-                <li key={category._id}>
-                  <Link href={`/urunler?kategori=${category.slug}`} className="hover:text-blue-700">
-                    {category.name}
-                  </Link>
-                </li>
-              ))}
+              <li><Link href="/parcalar" className="hover:text-blue-700">Tüm parçalar</Link></li>
+              <li><Link href="/kategoriler" className="hover:text-blue-700">Kategoriler</Link></li>
             </ul>
           </div>
 

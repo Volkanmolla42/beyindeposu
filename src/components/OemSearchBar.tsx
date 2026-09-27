@@ -41,7 +41,7 @@ export default function OemSearchBar({
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
-      router.push(`/urunler?q=${encodeURIComponent(searchTerm.trim())}`);
+      router.push(`/parcalar?q=${encodeURIComponent(searchTerm.trim())}`);
       setIsOpen(false);
     }
   };
@@ -130,7 +130,7 @@ export default function OemSearchBar({
               searchResults.map((product) => (
                 <Link
                   key={product._id}
-                  href={`/urunler/${product.slug}`}
+                  href={`/parcalar/${product.slug}`}
                   onClick={() => setIsOpen(false)}
                   className="flex items-center gap-4 p-3.5 hover:bg-blue-50/60 transition-colors group"
                 >
@@ -177,14 +177,14 @@ export default function OemSearchBar({
               <div className="p-8 text-center space-y-2">
                 <Cpu className="w-10 h-10 text-slate-300 mx-auto" />
                 <p className="text-sm font-semibold text-slate-700">
-                  Bu aramayla eşleşen ürün yok.
+                  Bu aramayla eşleşen parça yok.
                 </p>
                 <div className="pt-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      router.push(`/urunler?q=${encodeURIComponent(searchTerm)}`);
+                      router.push(`/parcalar?q=${encodeURIComponent(searchTerm)}`);
                       setIsOpen(false);
                     }}
                   >

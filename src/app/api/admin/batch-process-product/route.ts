@@ -164,7 +164,7 @@ ${brandsStr}`;
   } catch (error: any) {
     console.error("Batch process item error:", error);
     return NextResponse.json(
-      { error: error?.message || "Ürün işlenirken beklenmeyen bir hata oluştu." },
+      { error: error?.message || "Parça işlenirken beklenmeyen bir hata oluştu." },
       { status: 500 }
     );
   }

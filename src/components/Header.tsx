@@ -9,7 +9,8 @@ import { Menu, Search, X } from "lucide-react";
 const navLinks = [
   { href: "/", label: "Ana sayfa" },
   { href: "/kurumsal", label: "Hakkımızda" },
-  { href: "/urunler", label: "Ürünler" },
+  { href: "/parcalar", label: "Parçalar" },
+  { href: "/kategoriler", label: "Kategoriler" },
   { href: "/markalar", label: "Markalar" },
   { href: "/iletisim", label: "İletişim" },
 ];
@@ -23,7 +24,7 @@ export default function Header() {
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (searchInput.trim()) {
-      window.location.href = `/urunler?q=${encodeURIComponent(searchInput.trim())}`;
+      window.location.href = `/parcalar?q=${encodeURIComponent(searchInput.trim())}`;
     }
   };
 
@@ -43,7 +44,7 @@ export default function Header() {
             />
           </Link>
 
-          <nav aria-label="Ana menü" className="hidden items-center gap-1 md:flex">
+          <nav aria-label="Ana menü" className="hidden items-center gap-1 lg:flex">
             {navLinks.map((link) => {
               const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
               return (
@@ -77,7 +78,7 @@ export default function Header() {
               onClick={() => setMobileMenuOpen((open) => !open)}
               aria-label={mobileMenuOpen ? "Menüyü kapat" : "Menüyü aç"}
               aria-expanded={mobileMenuOpen}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 md:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 lg:hidden"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -95,7 +96,7 @@ export default function Header() {
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder="OEM no, parça no veya araç modeli"
-                aria-label="Ürün ara"
+                aria-label="Parça ara"
                 className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-500"
                 autoFocus
               />
@@ -107,7 +108,7 @@ export default function Header() {
         )}
 
         {mobileMenuOpen && (
-          <nav aria-label="Mobil menü" className="space-y-1 border-t border-slate-100 py-3 md:hidden">
+          <nav aria-label="Mobil menü" className="space-y-1 border-t border-slate-100 py-3 lg:hidden">
             {navLinks.map((link) => {
               const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
               return (

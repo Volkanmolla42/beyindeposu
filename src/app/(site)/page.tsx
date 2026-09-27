@@ -51,7 +51,7 @@ export default function HomePage() {
           />
         </div>
 
-        <div className="container relative z-20 flex flex-col justify-start py-8 sm:flex-1 sm:justify-center sm:py-12">
+        <div className="relative z-20 mx-auto flex w-full max-w-[1680px] flex-col justify-start px-4 py-8 sm:flex-1 sm:justify-center sm:px-6 sm:py-12 lg:px-8">
           <div className="max-w-xl">
             <h1 className="max-w-xl text-4xl font-medium leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
               Aracınıza uygun <span className="text-blue-700">elektronik parçayı</span> bulun.
@@ -67,7 +67,7 @@ export default function HomePage() {
       <section className="container pb-12 pt-8 sm:pb-16">
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-slate-200 bg-slate-200 md:grid-cols-4">
           {[
-            ["15.000+", "Stoklu ürün"],
+            ["15.000+", "Stoklu parça"],
             [brands && brands.length > 0 ? `${brands.length}+` : "32+", "Araç markası"],
             ["1.000+", "ECU modeli"],
             ["20+", "Yıllık tecrübe"],
@@ -83,13 +83,13 @@ export default function HomePage() {
       <section className="container py-12 sm:py-16">
         <div className="mb-6 flex items-end justify-between gap-4">
           <h2 className="text-2xl font-medium tracking-tight text-slate-900 sm:text-3xl">
-            Ürün kategorileri
+            Kategoriler
           </h2>
           <Link
-            href="/urunler"
+            href="/parcalar"
             className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
           >
-            Tüm ürünler
+            Tüm parçalar
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
@@ -98,7 +98,7 @@ export default function HomePage() {
           {categories?.map((category) => (
             <Link
               key={category._id || category.slug}
-              href={`/urunler?kategori=${category.slug}`}
+              href={`/parcalar?kategori=${category.slug}`}
               className="group flex min-h-24 items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 transition-colors hover:border-blue-200 hover:bg-blue-50/50 sm:gap-4 sm:p-4"
             >
               <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 sm:h-16 sm:w-16">
@@ -159,7 +159,7 @@ export default function HomePage() {
                           {repeatedBrands.map((brand, itemIndex) => (
                             <Link
                               key={`${isDuplicate ? "dup" : "orig"}-${rowIndex}-${itemIndex}-${brand._id}`}
-                              href={`/urunler?marka=${encodeURIComponent(brand.name)}`}
+                              href={`/parcalar?marka=${encodeURIComponent(brand.name)}`}
                               tabIndex={isDuplicate ? -1 : undefined}
                               className="group inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
                             >

@@ -73,7 +73,7 @@ export function getWhatsAppUrl(
         : `Merhaba, ${title} hakkında fiyat bilgisi alabilir miyim?`;
     } else {
       message = oemNumber
-        ? `Merhaba Beyin Deposu, web sitenizden ${title} (OEM No: ${oemNumber}) ürünü hakkında bilgi ve fiyat almak istiyorum. Stok durumu nedir?`
+        ? `Merhaba Beyin Deposu, web sitenizden ${title} (OEM No: ${oemNumber}) parçası hakkında bilgi ve fiyat almak istiyorum. Stok durumu nedir?`
         : `Merhaba Beyin Deposu, web sitenizden ${title} hakkında bilgi almak istiyorum.`;
     }
   } else {

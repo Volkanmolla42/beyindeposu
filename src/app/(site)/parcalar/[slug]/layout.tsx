@@ -39,9 +39,9 @@ export async function generateMetadata({ params }: ProductRouteParams): Promise<
   const title = product.metaTitle?.trim() || `${titleText} | ${SITE_NAME}`;
   const descriptionText = plainText(product.metaDescription?.trim() || product.description);
   const description = metadataDescription(
-    descriptionText || `${oemNumber} kodlu ${productTitle}. Ürün uyumluluğu ve stok bilgisi için iletişime geçin.`,
+    descriptionText || `${oemNumber} kodlu ${productTitle}. Parça uyumluluğu ve stok bilgisi için iletişime geçin.`,
   );
-  const path = `/urunler/${product.slug}`;
+  const path = `/parcalar/${product.slug}`;
   const productImages = getProductImages(product.images);
   const socialImages = productImages.length > 0 ? productImages : [absoluteUrl(SEO_IMAGE)];
 
@@ -73,10 +73,10 @@ export default async function ProductSeoLayout({ children, params }: ProductRout
 
   if (!product) notFound();
 
-  const url = absoluteUrl(`/urunler/${product.slug}`);
+  const url = absoluteUrl(`/parcalar/${product.slug}`);
   const images = getProductImages(product.images);
   const categoryUrl = absoluteUrl(
-    `/urunler?kategori=${encodeURIComponent(product.categorySlug)}`,
+    product.category ? `/kategoriler/${product.category.slug}` : "/parcalar",
   );
 
   const structuredData = {
@@ -95,7 +95,7 @@ export default async function ProductSeoLayout({ children, params }: ProductRout
         "@type": "BreadcrumbList",
         itemListElement: [
           { "@type": "ListItem", position: 1, name: SITE_NAME, item: absoluteUrl("/") },
-          { "@type": "ListItem", position: 2, name: "Ürünler", item: absoluteUrl("/urunler") },
+          { "@type": "ListItem", position: 2, name: "Parçalar", item: absoluteUrl("/parcalar") },
           { "@type": "ListItem", position: 3, name: product.categoryName, item: categoryUrl },
           { "@type": "ListItem", position: 4, name: product.title, item: url },
         ],

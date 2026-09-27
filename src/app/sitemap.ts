@@ -2,10 +2,14 @@ import type { MetadataRoute } from "next";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convex/_generated/api";
 import { absoluteUrl } from "@/lib/seo";
+import {
+  listPublicBrandsWithProducts,
+  listPublicCategoriesWithProducts,
+} from "@/lib/seo-data";
 
 export const revalidate = 3600;
 
-const STATIC_PATHS = ["/", "/urunler", "/markalar", "/kurumsal", "/iletisim"];
+const STATIC_PATHS = ["/", "/parcalar", "/kategoriler", "/markalar", "/kurumsal", "/iletisim"];
 const SITEMAP_URL_LIMIT = 50_000;
 
 type SitemapProductPage = {
@@ -23,8 +27,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!convexUrl) return staticEntries;
 
   const client = new ConvexHttpClient(convexUrl);
+  const categoryEntries: { slug: string; lastModified: number }[] = [];
+  const brandEntries: { slug: string }[] = [];
   const productEntries: { slug: string; lastModified: number }[] = [];
-  const productLimit = SITEMAP_URL_LIMIT - staticEntries.length;
+  let productLimit = SITEMAP_URL_LIMIT - staticEntries.length;
+
+  try {
+    const categories = await listPublicCategoriesWithProducts(client);
+    categoryEntries.push(
+      ...categories.map((category) => ({
+        slug: category.slug,
+        lastModified: category.updatedAt ?? category.createdAt ?? category._creationTime,
+      })),
+    );
+    productLimit -= categoryEntries.length;
+  } catch (error) {
+    console.error("Could not load category URLs for the sitemap.", error);
+  }
+
+  try {
+    const brands = await listPublicBrandsWithProducts(client);
+    brandEntries.push(...brands.map((brand) => ({ slug: brand.slug })));
+    productLimit -= brandEntries.length;
+  } catch (error) {
+    console.error("Could not load brand URLs for the sitemap.", error);
+  }
+
   let cursor: string | null = null;
   let isDone = false;
 
@@ -46,8 +74,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticEntries,
+    ...categoryEntries.map((category) => ({
+      url: absoluteUrl(`/kategoriler/${category.slug}`),
+      lastModified: new Date(category.lastModified),
+    })),
+    ...brandEntries.map((brand) => ({
+      url: absoluteUrl(`/markalar/${brand.slug}`),
+    })),
     ...productEntries.map((product) => ({
-      url: absoluteUrl(`/urunler/${product.slug}`),
+      url: absoluteUrl(`/parcalar/${product.slug}`),
       lastModified: new Date(product.lastModified),
     })),
   ];

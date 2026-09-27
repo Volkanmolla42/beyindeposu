@@ -488,10 +488,10 @@ export default function BatchImportPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                Toplu ürün yükleme
+                Toplu parça yükleme
               </h1>
               <p className="text-xs text-slate-500">
-                Görsellerden OEM bilgilerini okuyup ürün taslakları oluşturun.
+                Görsellerden OEM bilgilerini okuyup parça taslakları oluşturun.
               </p>
             </div>
           </div>
@@ -502,7 +502,7 @@ export default function BatchImportPage() {
             href="/admin/products"
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
           >
-            <span>Ürün listesine dön</span>
+            <span>Parça listesine dön</span>
             <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -527,10 +527,10 @@ export default function BatchImportPage() {
           </div>
 
           <h3 className="mt-4 text-base font-bold text-slate-900">
-            Ürün klasörlerini seçin
+            Parça klasörlerini seçin
           </h3>
           <p className="mx-auto mt-1.5 max-w-md text-xs text-slate-500 leading-relaxed">
-            Ürün alt klasörlerini içeren klasörü seçin. Her alt klasör bir ürün olur.
+            Parça alt klasörlerini içeren klasörü seçin. Her alt klasör bir parçayı temsil eder.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -560,7 +560,7 @@ export default function BatchImportPage() {
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm font-bold text-slate-900">{selectedFolderName}</span>
                     <span className="rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
-                      {totalCount} ürün
+                      {totalCount} parça
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
@@ -626,7 +626,7 @@ export default function BatchImportPage() {
                   {isRunning && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 animate-pulse">
                       <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>Ürün {currentIndex + 1} işleniyor...</span>
+                      <span>Parça {currentIndex + 1} işleniyor...</span>
                     </span>
                   )}
                   {isPaused && (
@@ -655,7 +655,7 @@ export default function BatchImportPage() {
                     disabled={isRunning}
                     className="h-4 w-4 rounded border-slate-300 text-blue-600 accent-blue-600"
                   />
-                  <span>Kayıtlı ürünleri atla</span>
+                  <span>Kayıtlı parçaları atla</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700">
@@ -693,7 +693,7 @@ export default function BatchImportPage() {
             </div>
           </div>
 
-          {/* 4. Canlı Ürün Listesi ve Arama */}
+          {/* 4. Canlı Parça Listesi ve Arama */}
           <div className="space-y-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
@@ -781,7 +781,7 @@ export default function BatchImportPage() {
                         )}
                       </div>
 
-                      {/* Ürün & OEM Detayları */}
+                      {/* Parça & OEM Detayları */}
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-xs font-bold text-slate-900">
@@ -830,7 +830,7 @@ export default function BatchImportPage() {
 
                       {item.result?.slug ? (
                         <Link
-                          href={`/urunler/${item.result.slug}`}
+                          href={`/parcalar/${item.result.slug}`}
                           target="_blank"
                           className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
                         >
@@ -848,7 +848,7 @@ export default function BatchImportPage() {
                           className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
                         >
                           <Play className="h-3 w-3 fill-current" />
-                          <span>Bu ürünü işle</span>
+                          <span>Bu parçayı işle</span>
                         </button>
                       ) : null}
                     </div>

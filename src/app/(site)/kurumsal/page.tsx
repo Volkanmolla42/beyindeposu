@@ -47,7 +47,7 @@ export default function KurumsalPage() {
               {experienceYears} yıldır oto elektronik parça tedarik ediyoruz.
             </p>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Kataloğumuzda {productsCount} ürün bulunuyor.
+              Kataloğumuzda {productsCount} parça bulunuyor.
             </p>
           </div>
 
@@ -68,9 +68,9 @@ export default function KurumsalPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <h3 className="text-sm font-medium text-slate-900">Ürün kontrolü</h3>
+              <h3 className="text-sm font-medium text-slate-900">Parça kontrolü</h3>
               <p className="text-slate-600">
-                OEM kodunu ve ürün etiketini kontrol ederiz.
+                OEM kodunu ve parça etiketini kontrol ederiz.
               </p>
             </div>
             <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-slate-50 p-4">

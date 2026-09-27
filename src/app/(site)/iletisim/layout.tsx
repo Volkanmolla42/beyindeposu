@@ -3,7 +3,7 @@ import { createPageMetadata } from "@/lib/seo";
 export const metadata = createPageMetadata({
   title: "İletişim",
   description:
-    "Ürün uyumluluğu, stok ve sipariş bilgisi için Beyin Deposu iletişim kanallarına ulaşın.",
+    "Parça uyumluluğu, stok ve sipariş bilgisi için Beyin Deposu iletişim kanallarına ulaşın.",
   path: "/iletisim",
 });
 

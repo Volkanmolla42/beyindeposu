@@ -17,8 +17,8 @@ export const SEO_DESCRIPTION_MARKDOWN_TEMPLATE = `AŞAĞIDAKİ 100/100 SEO UYUML
 
 [Parçanın ne olduğu, araçtaki temel işlevi, motor havuzundaki veya araç içindeki konumu ve teknik mimarisi hakkında hem bitişik hem boşluklu OEM kodunu içeren 2-3 cümlelik SEO odaklı akıcı giriş paragrafı]
 
-## Ürün Bilgileri
-- **Ürün:** [Ürün tam adı ve mimari/seri bilgisi (Örn: ABS Fren Beyni Kontrol Ünitesi veya Motor Beyni ECU veya Konfor Modülü)]
+## Parça Bilgileri
+- **Parça:** [Parçanın tam adı ve mimari/seri bilgisi (Örn: ABS Fren Beyni Kontrol Ünitesi veya Motor Beyni ECU veya Konfor Modülü)]
 - **Marka:** [Araç Markası]
 - **Model:** [Uyumlu Ana Model ve Kasa Kodu (Örn: Golf IV (1J1) / Bora (1J2) veya Megane II (BM0/1_))]
 - **Parça Kodu:** [Parça Kodunun Hem Bitişik Hem Boşluklu Formatı (Örn: 7M3962258L / 7M3 962 258 L)]
@@ -47,7 +47,7 @@ Belirtilen kasa ve motor tiplerinde ilgili sistem donanımına sahip araçlarla 
 [Bu parçada zamanla ısı, titreşim, lehim çatlakları veya elektriksel dalgalanmalar nedeniyle oluşabilecek tipik arıza belirtileri (ikaz lambaları, OBD diyagnostik cihazı ile iletişim kopukluğu, hata kodları vb.).]
 
 ## Montaj, Kodlama ve Test Prosedürü
-Satışa sunulan bu ürün orijinal çıkma parça olup soket tırnakları, pin bağlantıları ve gövdesi kontrol edilmiştir. Montaj işlemi sonrası gerekli adaptasyon, tanıtma/kodlama ve diyagnostik cihazı ile sistem arıza hafızasının silinmesi uzman servislerce yapılmalıdır.
+Satışa sunulan bu parça orijinal çıkma olup soket tırnakları, pin bağlantıları ve gövdesi kontrol edilmiştir. Montaj işlemi sonrası gerekli adaptasyon, tanıtma/kodlama ve diyagnostik cihazı ile sistem arıza hafızasının silinmesi uzman servislerce yapılmalıdır.
 
 ## Uyumluluk ve Sipariş Uyarısı
 Oto elektronik kontrol ünitelerinde yazılım versiyonu, pin dizilimi ve donanım varyasyonları kritik öneme sahiptir. Lütfen sipariş vermeden önce aracınızdan sökülen arızalı parçanın üzerindeki etiket numaralarını, soket yapısını ve mümkünse araç şase (VIN) numarasını mutlaka karşılaştırınız.`;
@@ -62,7 +62,7 @@ export const COMMON_JSON_OUTPUT_SCHEMA = `{
   "model": "Uyumlu model ve kasa bilgisi (Örn: Sharan / Galaxy / Alhambra (1996-2002))",
   "condition": "Orijinal Çıkma",
   "isDraft": false,
-  "title": "SEO ve pazar yeri uyumlu ürün başlığı (Örn: VW Sharan Ford Galaxy Merkezi Kilit Konfor Beyni 7M3962258L)",
+  "title": "SEO ve pazar yeri uyumlu parça başlığı (Örn: VW Sharan Ford Galaxy Merkezi Kilit Konfor Beyni 7M3962258L)",
   "detectedCodes": ["Görselde veya parça üzerinde okunan tüm alt kodlar"],
   "description": "${SEO_DESCRIPTION_MARKDOWN_TEMPLATE.replace(/\n/g, "\\n")}",
   "tags": ["marka", "model", "parça-tipi", "oem-no", "kasa-kodu"],

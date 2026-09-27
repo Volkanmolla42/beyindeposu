@@ -1,13 +1,12 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, Home, ArrowRight, Cpu } from "lucide-react";
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
+import { getPublicBrands } from "@/lib/seo-data";
 
-export default function MarkalarPage() {
-  const brands = useQuery(api.brands.list);
+export const revalidate = 3600;
+
+export default async function MarkalarPage() {
+  const brands = await getPublicBrands();
 
   return (
     <>
@@ -38,7 +37,7 @@ export default function MarkalarPage() {
           {brands?.map((brand) => (
             <Link
               key={brand._id}
-              href={`/urunler?marka=${encodeURIComponent(brand.name)}`}
+              href={`/markalar/${encodeURIComponent(brand.slug)}`}
               className="group relative flex flex-col items-center justify-center overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 text-center transition-colors hover:border-blue-200 hover:bg-blue-50/30"
             >
               <div className="mb-3 flex h-18 w-18 items-center justify-center rounded-2xl bg-slate-50 p-3 transition-colors group-hover:bg-blue-50">

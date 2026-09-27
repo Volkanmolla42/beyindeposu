@@ -127,7 +127,7 @@ export default function AdminCategoriesPage() {
       try {
         await deleteCategory({ id: cat._id });
       } catch (err: any) {
-        alert(err?.message || "Kategori silinemedi. Bağlı ürünler olabilir.");
+        alert(err?.message || "Kategori silinemedi. Bağlı parçalar olabilir.");
       }
     }
   };
@@ -370,7 +370,7 @@ export default function AdminCategoriesPage() {
               <div>
                 <label className="text-[11px] text-slate-600 block mb-1">Meta açıklaması</label>
                 <Input
-                  placeholder="Kategori ve ürün bilgisi"
+                  placeholder="Kategori ve parça bilgisi"
                   value={catMetaDescription}
                   onChange={(e) => setCatMetaDescription(e.target.value)}
                   className="bg-white border-slate-200 text-xs"

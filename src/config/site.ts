@@ -10,6 +10,6 @@ export const SITE_CONFIG = {
   name: "Beyin Deposu",
   title: "Beyin Deposu | Oto Elektronik Parça Merkezi",
   description:
-    "ECU, ABS, airbag ve diğer oto elektronik parçaları. Ürün uyumluluğu, stok ve sipariş bilgisi için Beyin Deposu ile iletişime geçin.",
+    "ECU, ABS, airbag ve diğer oto elektronik parçaları. Parça uyumluluğu, stok ve sipariş bilgisi için Beyin Deposu ile iletişime geçin.",
   contact: SITE_CONTACT,
 } as const;

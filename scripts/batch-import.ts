@@ -1,14 +1,14 @@
 /**
- * Toplu Ürün İçe Aktarma & Görselden OEM Çıkarma Scripti
+ * Toplu Parça İçe Aktarma & Görselden OEM Çıkarma Scripti
  * 
  * Kullanım:
  *   npx tsx scripts/batch-import.ts [klasör_yolu] [seçenekler]
  * 
  * Seçenekler:
- *   --limit=1         Sadece belirtilen sayıda ürünü işler (varsayılan: 1 - test amaçlı)
- *   --limit=all       Tüm ürünleri işler
+ *   --limit=1         Sadece belirtilen sayıda parçayı işler (varsayılan: 1 - test amaçlı)
+ *   --limit=all       Tüm parçaları işler
  *   --dry-run         AI analizi yapar fakat veritabanına ve dosya sistemine yazmaz
- *   --draft           Ürünleri taslak (isDraft: true) olarak kaydeder
+ *   --draft           Parçaları taslak (isDraft: true) olarak kaydeder
  * 
  * Örnek:
  *   npx tsx scripts/batch-import.ts "C:\\Users\\volkan\\Desktop\\data.test-10" --limit=1
@@ -65,7 +65,7 @@ if (!CONVEX_URL) {
 // 2. Argümanları Ayrıştır
 const args = process.argv.slice(2);
 let targetDir = "C:\\Users\\volkan\\Desktop\\data.test-10";
-let limit: number | null = 1; // Güvenlik için varsayılan 1 ürün
+let limit: number | null = 1; // Güvenlik için varsayılan 1 parça
 let isDryRun = false;
 let isDraft = false;
 
@@ -90,7 +90,7 @@ interface ProductFolder {
   imageFiles: string[];
 }
 
-// 3. Klasör Ağacını Tara ve Ürünleri Grupla
+// 3. Klasör Ağacını Tara ve Parçaları Grupla
 function scanProductFolders(rootDir: string): ProductFolder[] {
   const products: ProductFolder[] = [];
 
@@ -111,7 +111,7 @@ function scanProductFolders(rootDir: string): ProductFolder[] {
         return a.localeCompare(b, undefined, { numeric: true });
       });
 
-    // Eğer klasör içinde görsel dosyaları varsa, bu bir ürün klasörüdür
+    // Eğer klasör içinde görsel dosyaları varsa, bu bir parça klasörüdür
     if (imageFiles.length > 0) {
       const relPath = path.relative(rootDir, currentDir);
       const segments = relPath.split(path.sep);
@@ -205,11 +205,11 @@ function slugify(text: string): string {
 // 5. Ana Yürütme Fonksiyonu
 async function main() {
   console.log("==========================================================");
-  console.log("🚀 BEYİN DEPOSU - TOPLU ÜRÜN İÇE AKTARMA & AI OEM OKUYUCU");
+  console.log("🚀 BEYİN DEPOSU - TOPLU PARÇA İÇE AKTARMA & AI OEM OKUYUCU");
   console.log("==========================================================");
   console.log(`📁 Hedef Klasör: ${targetDir}`);
   console.log(`⚙️  Mod: ${isDryRun ? "🧪 DRY RUN (Test - Kaydetmez)" : "💾 CANLI KAYIT"}`);
-  console.log(`🎯 Limit: ${limit === null ? "Tüm Ürünler" : `${limit} Adet Ürün`}`);
+  console.log(`🎯 Limit: ${limit === null ? "Tüm Parçalar" : `${limit} Adet Parça`}`);
   console.log(`📝 Durum: ${isDraft ? "Taslak Olarak" : "Doğrudan Yayında"}`);
   console.log("----------------------------------------------------------\n");
 
@@ -227,14 +227,14 @@ async function main() {
 
   // Klasörleri Tara
   const allProducts = scanProductFolders(targetDir);
-  console.log(`📦 Toplam ${allProducts.length} adet ürün klasörü tespit edildi.\n`);
+  console.log(`📦 Toplam ${allProducts.length} adet parça klasörü tespit edildi.\n`);
 
   if (allProducts.length === 0) {
-    console.warn("⚠️  İşlenecek ürün klasörü veya görsel bulunamadı.");
+    console.warn("⚠️  İşlenecek parça klasörü veya görsel bulunamadı.");
     return;
   }
 
-  // Mevcut ürünleri çek ve zaten kayıtlı raf kodlarını belirle
+  // Mevcut parçaları çek ve zaten kayıtlı raf kodlarını belirle
   const existingProductsRes = await convex.query(api.products.getProductsPage, {
     draftStatus: "all",
     pageSize: 500,
@@ -246,10 +246,10 @@ async function main() {
     }
   }
 
-  console.log(`📋 Sistemde halihazırda ${existingProductsByShelf.size} adet ürün/raf kodu kaydı var.`);
+  console.log(`📋 Sistemde halihazırda ${existingProductsByShelf.size} adet parça/raf kodu kaydı var.`);
 
   const toProcess = limit !== null ? allProducts.slice(0, limit) : allProducts;
-  console.log(`▶️  Şimdi ${toProcess.length} adet ürün inceleniyor...\n`);
+  console.log(`▶️  Şimdi ${toProcess.length} adet parça inceleniyor...\n`);
 
   const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY! });
   const uploadDir = path.join(process.cwd(), "public", "uploads", "products");
@@ -292,7 +292,7 @@ async function main() {
     }
 
     try {
-      // 1. Ürünün tüm görsellerini base64 olarak hazırla (etiket hangi fotoğraftaysa AI görsün)
+      // 1. Parçanın tüm görsellerini base64 olarak hazırla (etiket hangi fotoğraftaysa AI görsün)
       const imagesToSend = item.imageFiles.slice(0, 4);
       const imageParts = imagesToSend.map((filePath) => {
         const bytes = fs.readFileSync(filePath);
@@ -411,7 +411,7 @@ ${brandsStr}`;
       const finalMetaKeywords = isReview ? "" : (parsedData.metaKeywords || "");
       const finalTags = isReview ? ["inceleme-gerekli"] : (parsedData.tags || [detectedOem, item.shelfCode]);
 
-      // 6. Convex'e Ürünü Kaydet / Güncelle
+      // 6. Convex'e Parçayı Kaydet / Güncelle
       if (!isDryRun) {
         const payload = {
           title: detectedTitle,
@@ -436,7 +436,7 @@ ${brandsStr}`;
           ? (await convex.mutation(api.products.update, { id: existingProduct._id, ...payload }), existingProduct._id)
           : await convex.mutation(api.products.create, payload);
 
-        console.log(`       ✅ Ürün Kaydedildi! (ID: ${finalProductId})`);
+        console.log(`       ✅ Parça Kaydedildi! (ID: ${finalProductId})`);
 
         results.push({
           status: "SUCCESS",

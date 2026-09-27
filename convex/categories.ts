@@ -117,7 +117,7 @@ export const deleteCategory = mutation({
       .take(1);
 
     if (productsInCategory.length > 0) {
-      throw new Error("Bu kategoriye bağlı ürünler bulunmaktadır. Önce ürünlerin kategorisini değiştiriniz veya ürünleri siliniz.");
+      throw new Error("Bu kategoriye bağlı parçalar bulunmaktadır. Önce parçaların kategorisini değiştiriniz veya parçaları siliniz.");
     }
 
     await ctx.db.delete(args.id);

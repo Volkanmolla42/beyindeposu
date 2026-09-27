@@ -113,9 +113,9 @@ function ProductCatalogContent() {
   ];
 
   const activeCategoryTitle = useMemo(() => {
-    if (!selectedCategory) return "TÜM ÜRÜNLER";
+    if (!selectedCategory) return "TÜM PARÇALAR";
     const found = categories?.find((c) => c.slug === selectedCategory);
-    return found ? found.name.toUpperCase() : "ÜRÜNLER";
+    return found ? found.name.toUpperCase() : "PARÇALAR";
   }, [selectedCategory, categories]);
 
   const categoryFirstImage = useMemo(() => {
@@ -193,7 +193,7 @@ function ProductCatalogContent() {
         <div className="container flex items-center gap-2 text-xs text-slate-500">
           <Link href="/" className="hover:text-blue-600 transition-colors">Ana sayfa</Link>
           <ChevronRight className="w-3 h-3 text-slate-400" />
-          <Link href="/urunler" onClick={handleResetFilters} className="hover:text-blue-600 transition-colors">Ürünler</Link>
+          <Link href="/parcalar" onClick={handleResetFilters} className="hover:text-blue-600 transition-colors">Parçalar</Link>
           {selectedCategory && (
             <>
               <ChevronRight className="w-3 h-3 text-slate-400" />
@@ -212,7 +212,7 @@ function ProductCatalogContent() {
                 {activeCategoryTitle}
               </h1>
               <Badge variant="secondary" className="font-mono text-xs">
-                {totalItems.toLocaleString("tr-TR")} Ürün
+                {totalItems.toLocaleString("tr-TR")} Parça
               </Badge>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">
@@ -402,7 +402,7 @@ function ProductCatalogContent() {
                 <form onSubmit={handleFilterSubmit} className="flex-1 max-w-lg flex items-center gap-2">
                   <div className="relative flex-1">
                     <Input
-                      id="urunler-search-input"
+                      id="parcalar-search-input"
                       name="q"
                       type="text"
                       placeholder="OEM veya parça no ara"
@@ -443,14 +443,14 @@ function ProductCatalogContent() {
                     <select
                       id="products-page-size"
                       name="pageSize"
-                      aria-label="Sayfa başına gösterilecek ürün adedi"
+                      aria-label="Sayfa başına gösterilecek parça adedi"
                       value={pageSize}
                       onChange={(e) => setPageSize(Number(e.target.value))}
                       className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-xs"
                     >
-                      <option value={24}>24 ürün</option>
-                      <option value={48}>48 ürün</option>
-                      <option value={96}>96 ürün</option>
+                      <option value={24}>24 parça</option>
+                      <option value={48}>48 parça</option>
+                      <option value={96}>96 parça</option>
                     </select>
                   </div>
 
@@ -459,15 +459,15 @@ function ProductCatalogContent() {
                     <select
                       id="products-sort-by"
                       name="sortBy"
-                      aria-label="Ürünleri sırala"
+                      aria-label="Parçaları sırala"
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
                       className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-xs"
                     >
                       <option value="date-desc">En yeni</option>
                       <option value="oem-asc">OEM / parça no, A-Z</option>
-                      <option value="title-asc">Ürün adı, A-Z</option>
-                      <option value="title-desc">Ürün adı, Z-A</option>
+                      <option value="title-asc">Parça adı, A-Z</option>
+                      <option value="title-desc">Parça adı, Z-A</option>
                     </select>
                   </div>
                 </div>
@@ -529,7 +529,7 @@ function ProductCatalogContent() {
                 <div className="text-xs font-semibold text-slate-600">
                   Sayfa <span className="font-extrabold text-blue-600">{currentPage}</span> / {totalPages}{" "}
                   <span className="text-slate-400 font-normal hidden sm:inline">
-                    (Toplam {totalItems.toLocaleString("tr-TR")} Ürün)
+                    (Toplam {totalItems.toLocaleString("tr-TR")} parça)
                   </span>
                 </div>
 
@@ -575,7 +575,7 @@ function ProductCatalogContent() {
               <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-4 shadow-xs">
                 <Cpu className="w-12 h-12 text-slate-300 mx-auto" />
                 <div className="space-y-1">
-                  <h4 className="font-bold text-sm text-slate-900">Ürün bulunamadı</h4>
+                  <h4 className="font-bold text-sm text-slate-900">Parça bulunamadı</h4>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto">
                     Aramanızı veya filtreleri değiştirin.
                   </p>
@@ -598,7 +598,7 @@ function ProductCatalogContent() {
               <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
                 {/* Result count text */}
                 <div className="text-xs text-slate-500 font-medium text-center sm:text-left">
-                  Toplam <span className="font-bold text-slate-900">{totalItems.toLocaleString("tr-TR")}</span> üründen{" "}
+                  Toplam <span className="font-bold text-slate-900">{totalItems.toLocaleString("tr-TR")}</span> parçadan{" "}
                   <span className="font-bold text-blue-600">
                     {Math.min((currentPage - 1) * pageSize + 1, totalItems)}-{Math.min(currentPage * pageSize, totalItems)}
                   </span>{" "}
@@ -640,9 +640,8 @@ function ProductCatalogContent() {
                           variant={currentPage === p ? "default" : "outline"}
                           size="sm"
                           onClick={() => handlePageChange(p)}
-                          className={`min-w-8 h-8 px-2 rounded-lg text-xs font-bold ${
-                            currentPage === p ? "font-black shadow-xs" : ""
-                          }`}
+                          className={`min-w-8 h-8 px-2 rounded-lg text-xs font-bold ${currentPage === p ? "font-black shadow-xs" : ""
+                            }`}
                         >
                           {p}
                         </Button>

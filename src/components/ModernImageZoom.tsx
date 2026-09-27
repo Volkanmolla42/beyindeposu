@@ -18,7 +18,7 @@ interface ModernImageZoomProps {
 
 export function ModernImageZoom({
   src,
-  alt = "Ürün görseli",
+  alt = "Parça görseli",
   className = "",
   overlayTopLeft,
   overlayTopRight,

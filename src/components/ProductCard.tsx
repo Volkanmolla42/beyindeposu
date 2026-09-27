@@ -24,7 +24,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
     <div className="product-card-clean flex flex-col justify-between p-4 group sm:p-5">
       <div>
         {/* Hardware Photo on Clean Background */}
-        <Link href={`/urunler/${product.slug}`} className="block">
+        <Link href={`/parcalar/${product.slug}`} className="block">
           <div className="relative mb-4 flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-2xl bg-slate-50 p-3">
             {product.images?.[0] ? (
               <Image
@@ -44,7 +44,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
         {/* Product Information */}
         <div className="space-y-1">
           {/* Large Bold OEM Code */}
-          <Link href={`/urunler/${product.slug}`} className="block">
+        <Link href={`/parcalar/${product.slug}`} className="block">
             <span className="font-mono text-sm font-medium tracking-wide text-slate-900 transition-colors group-hover:text-blue-700 sm:text-base">
               {product.oemNumber}
             </span>
@@ -81,9 +81,9 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
       {/* Action Buttons: DETAY button + WhatsApp quick button */}
       <div className="mt-5 flex items-center gap-2">
         <Button asChild variant="outline" size="sm" className="flex-1 rounded-full">
-          <Link href={`/urunler/${product.slug}`}>
+          <Link href={`/parcalar/${product.slug}`}>
             <Eye className="w-3.5 h-3.5" />
-            <span>Ürünü gör</span>
+            <span>Parçayı incele</span>
           </Link>
         </Button>
 

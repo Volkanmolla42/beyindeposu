@@ -37,9 +37,9 @@ export default defineSchema({
     .index("by_popular", ["popular"])
     .index("by_order", ["order"]),
 
-  // 3. Ürünler Tablosu (Tam Kapsamlı ve Temiz Oto Elektronik Şeması)
+  // 3. Parçalar Tablosu (Tam Kapsamlı ve Temiz Oto Elektronik Şeması)
   products: defineTable({
-    title: v.string(), // Ürün Başlığı (Örn: Renault Motor Beyni ECU S113717205D Orijinal Çıkma)
+    title: v.string(), // Parça Başlığı (Örn: Renault Motor Beyni ECU S113717205D Orijinal Çıkma)
     slug: v.string(), // SEO Bağlantısı / URL slug (Örn: renault-motor-beyni-ecu-s113717205d)
     oemNumber: v.string(), // Parça No / OEM Kodu (Örn: S113717205D)
     shelfCode: v.optional(v.string()), // Depo Raf Kodu (Örn: RAF-B08)
@@ -48,14 +48,14 @@ export default defineSchema({
     model: v.optional(v.string()), // Model / Yıl (Örn: Megane 2, Clio 3 veya Genel Uyumlu)
     condition: v.string(), // Durum ("Orijinal Çıkma", "Sıfır - Orijinal", "Revizyonlu")
     inStock: v.boolean(), // Stok Durumu: true / false
-    description: v.string(), // Detaylı Ürün Açıklaması & Kullanım Alanları
-    images: v.array(v.string()), // Ürün Görselleri (Çözümlenmiş URL'ler) // Eski kayıtlarla uyumluluk; görüntüleme/yüklemede kullanılmaz
+    description: v.string(), // Detaylı Parça Açıklaması & Kullanım Alanları
+    images: v.array(v.string()), // Parça Görselleri (Çözümlenmiş URL'ler) // Eski kayıtlarla uyumluluk; görüntüleme/yüklemede kullanılmaz
 
     // SEO & Meta Alanları
     metaTitle: v.optional(v.string()), // Meta Başlığı
     metaDescription: v.optional(v.string()), // Meta Açıklaması
     metaKeywords: v.optional(v.string()), // Meta Kelimeleri (virgülle ayrılmış)
-    tags: v.optional(v.array(v.string())), // Ürün Etiketleri (Tags)
+    tags: v.optional(v.array(v.string())), // Parça Etiketleri (Tags)
 
     isDraft: v.optional(v.boolean()),
 

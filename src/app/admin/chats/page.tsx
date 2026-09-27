@@ -338,11 +338,11 @@ export default function AdminChatsPage() {
                     </span>
                   </div>
                   <Link
-                    href={`/urunler/${selectedConversation.productCard.slug}`}
+                    href={`/parcalar/${selectedConversation.productCard.slug}`}
                     target="_blank"
                     className="p-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-md text-xs font-medium shrink-0 flex items-center gap-1 border border-slate-200"
                   >
-                    <span>Ürünü gör</span>
+                    <span>Parçayı gör</span>
                     <ExternalLink className="w-3 h-3 text-slate-400" />
                   </Link>
                 </div>
