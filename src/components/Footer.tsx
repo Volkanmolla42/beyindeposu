@@ -16,7 +16,7 @@ export default function Footer() {
   const address = SITE_CONTACT.address;
 
   return (
-    <footer className="mt-auto w-full border-t border-slate-200 bg-white text-slate-700">
+    <footer className="mt-auto py-8 w-full border-t border-slate-200 bg-white text-slate-700">
       <div className="container py-10 lg:py-12">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
           <div className="space-y-3">

@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ChevronRight,
-  ChevronLeft,
   Phone,
   Check,
   Copy,
@@ -126,143 +125,118 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
     .slice(0, 3);
 
   return (
-    <>
+    <div className="w-full">
       {/* 1. Breadcrumbs */}
       <div className="bg-white border-b border-slate-200 py-3">
-        <div className="container flex items-center gap-2 text-xs text-slate-500 overflow-x-auto whitespace-nowrap">
-          <Link href="/" className="hover:text-blue-600 transition-colors">Ana sayfa</Link>
+        <div className="container flex items-center gap-2 text-xs text-slate-500 overflow-x-auto whitespace-nowrap scrollbar-none">
+          <Link href="/" className="hover:text-blue-600 transition-colors shrink-0">Ana sayfa</Link>
           <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
-          <Link href="/urunler" className="hover:text-blue-600 transition-colors">Ürünler</Link>
+          <Link href="/urunler" className="hover:text-blue-600 transition-colors shrink-0">Ürünler</Link>
           <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
-          <Link href={`/urunler?kategori=${product.categorySlug}`} className="hover:text-blue-600 transition-colors">
+          <Link href={`/urunler?kategori=${product.categorySlug}`} className="hover:text-blue-600 transition-colors shrink-0">
             {product.categoryName}
           </Link>
           <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
-          <span className="text-slate-900 font-mono font-bold truncate">{product.oemNumber}</span>
+          <span className="text-slate-900 font-mono font-bold truncate max-w-[180px] sm:max-w-none">{product.oemNumber}</span>
         </div>
       </div>
 
-      {/* 2. Main Product Showcase & Related Products */}
-      <div className="container py-8">
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-xs">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+      {/* 2. Main Product Showcase */}
+      <section className="bg-white border-b border-slate-200 py-6 sm:py-10">
+        <div className="container">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start">
 
-            {/* Product images are shown only when they exist in the product record. */}
+            {/* Product Gallery (No unnecessary wrappers, no arrow buttons) */}
             {galleryImages.length > 0 && (
-              <div className="lg:col-span-6 space-y-4">
-                <div className="relative aspect-4/3 w-full rounded-2xl bg-slate-50/80 border border-slate-200 overflow-hidden flex items-center justify-center p-2 group shadow-xs">
+              <div className="lg:col-span-6 min-w-0 space-y-3">
+                <div className="w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 aspect-4/3 flex items-center justify-center">
                   <ModernImageZoom
                     src={galleryImages[activeImageIndex] || galleryImages[0]}
                     alt={product.title}
                     priority={true}
-                    className="w-full h-full aspect-4/3 border-0 bg-transparent rounded-xl"
+                    className="w-full h-full border-0 bg-transparent rounded-2xl"
                   />
-
-                  {galleryImages.length > 1 && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1));
-                        }}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 shadow-md border border-slate-200 text-slate-700 flex items-center justify-center opacity-80 hover:opacity-100 hover:bg-white transition-all cursor-pointer"
-                        title="Önceki görsel"
-                        aria-label="Önceki görsel"
-                      >
-                        <ChevronLeft className="w-5 h-5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveImageIndex((prev) => (prev + 1) % galleryImages.length);
-                        }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 shadow-md border border-slate-200 text-slate-700 flex items-center justify-center opacity-80 hover:opacity-100 hover:bg-white transition-all cursor-pointer"
-                        title="Sonraki görsel"
-                        aria-label="Sonraki görsel"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </button>
-                    </>
-                  )}
                 </div>
 
-                <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
-                  {galleryImages.map((img, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => setActiveImageIndex(idx)}
-                      aria-label={`Ürün görseli ${idx + 1}`}
-                      className={`relative w-20 h-16 rounded-xl overflow-hidden border-2 bg-slate-50 transition-all cursor-pointer shrink-0 ${activeImageIndex === idx ? "border-blue-600 ring-2 ring-blue-100" : "border-slate-200 opacity-70 hover:opacity-100"}`}
-                    >
-                      <Image
-                        src={img}
-                        alt=""
-                        fill
-                        sizes="80px"
-                        className="object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
+                {galleryImages.length > 1 && (
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none">
+                    {galleryImages.map((img, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setActiveImageIndex(idx)}
+                        aria-label={`Ürün görseli ${idx + 1}`}
+                        className={`relative w-16 h-14 sm:w-20 sm:h-16 rounded-xl overflow-hidden border-2 bg-slate-50 transition-all cursor-pointer shrink-0 ${activeImageIndex === idx ? "border-blue-600 ring-2 ring-blue-100" : "border-slate-200 opacity-70 hover:opacity-100"}`}
+                      >
+                        <Image
+                          src={img}
+                          alt=""
+                          fill
+                          sizes="80px"
+                          className="object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             {/* Right Column: Specs, Badges & Working Action CTAs */}
-            <div className={`${galleryImages.length > 0 ? "lg:col-span-6" : "lg:col-span-12"} space-y-5`}>
+            <div className={`${galleryImages.length > 0 ? "lg:col-span-6" : "lg:col-span-12"} min-w-0 space-y-4`}>
               <div>
-                {/* OEM Number + Copy Button */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="font-mono text-2xl sm:text-3xl font-black text-slate-950 tracking-tight">
+                {/* OEM Number + Copy & Share Button */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="font-mono text-2xl sm:text-3xl font-black text-slate-950 tracking-tight break-all">
                     {product.oemNumber}
                   </h1>
-                  <button
-                    type="button"
-                    onClick={handleCopyOem}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-all cursor-pointer"
-                    title="OEM kodunu kopyala"
-                    aria-label="OEM kodunu kopyala"
-                  >
-                    {copiedOem ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-emerald-700 font-bold">Kopyalandı</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Kopyala</span>
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleCopyOem}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-all cursor-pointer"
+                      title="OEM kodunu kopyala"
+                      aria-label="OEM kodunu kopyala"
+                    >
+                      {copiedOem ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-700 font-bold">Kopyalandı</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Kopyala</span>
+                        </>
+                      )}
+                    </button>
 
-                  {/* Share Link Button */}
-                  <button
-                    type="button"
-                    onClick={handleShareLink}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-all cursor-pointer"
-                    title="Bağlantıyı kopyala"
-                    aria-label="Ürün bağlantısını kopyala"
-                  >
-                    {copiedLink ? (
-                      <>
-                        <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-emerald-700 font-bold">Kopyalandı</span>
-                      </>
-                    ) : (
-                      <>
-                        <Share2 className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Paylaş</span>
-                      </>
-                    )}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={handleShareLink}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-all cursor-pointer"
+                      title="Bağlantıyı kopyala"
+                      aria-label="Ürün bağlantısını kopyala"
+                    >
+                      {copiedLink ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-emerald-700 font-bold">Kopyalandı</span>
+                        </>
+                      ) : (
+                        <>
+                          <Share2 className="w-3.5 h-3.5 text-slate-500" />
+                          <span>Paylaş</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
-                <h2 className="text-base font-bold text-slate-800 mt-1">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 mt-2 break-words">
                   {product.title}
                 </h2>
+
                 {/* Status Badges */}
                 <div className="flex items-center gap-2 pt-3">
                   <Badge variant={product.condition === "Sıfır" ? "success" : "secondary"} className="text-xs font-bold">
@@ -275,14 +249,14 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
               </div>
 
               {/* Technical Information Summary Table */}
-              <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs divide-y divide-slate-100 shadow-2xs">
+              <div className="border border-slate-200 rounded-xl overflow-hidden text-xs divide-y divide-slate-100 bg-white">
                 <div className="grid grid-cols-2 p-3 items-center">
                   <span className="text-slate-500 font-medium flex items-center gap-1.5">
-                    <Car className="w-3.5 h-3.5 text-slate-400" /> Araç Markası
+                    <Car className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Araç Markası
                   </span>
                   <Link
                     href={`/urunler?marka=${encodeURIComponent(product.brand)}`}
-                    className="inline-flex items-center gap-2 group w-fit"
+                    className="inline-flex items-center gap-2 group w-fit font-medium text-slate-900 hover:text-blue-600"
                     title={`${product.brand} parçalarını gör`}
                   >
                     {brandLogoUrl && (
@@ -300,14 +274,14 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                 {product.model && (
                   <div className="grid grid-cols-2 p-3 bg-slate-50/60">
                     <span className="text-slate-500 font-medium flex items-center gap-1.5">
-                      <Wrench className="w-3.5 h-3.5 text-slate-400" /> Uyumlu Model
+                      <Wrench className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Uyumlu Model
                     </span>
                     <span className="font-bold text-slate-900">{product.model}</span>
                   </div>
                 )}
                 <div className="grid grid-cols-2 p-3">
                   <span className="text-slate-500 font-medium flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-slate-400" /> Modül Kategorisi
+                    <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Modül Kategorisi
                   </span>
                   <span className="font-semibold text-slate-900">{product.categoryName}</span>
                 </div>
@@ -348,7 +322,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                     rel="noopener noreferrer"
                     aria-label={`Fiyat ve stok sor: ${product.oemNumber} için WhatsApp`}
                   >
-                    <WhatsAppIcon className="w-5 h-5 fill-white text-white mr-1.5" />
+                    <WhatsAppIcon className="w-5 h-5 fill-white text-white mr-1.5 shrink-0" />
                     <span>Fiyat ve stok sor</span>
                   </a>
                 </Button>
@@ -363,7 +337,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                     href={`tel:${displayPhone.replace(/\s+/g, "")}`}
                     aria-label={`Telefonla ara: ${displayPhone}`}
                   >
-                    <Phone className="w-4 h-4 mr-1.5" />
+                    <Phone className="w-4 h-4 mr-1.5 shrink-0" />
                     <span>Ara</span>
                   </a>
                 </Button>
@@ -372,16 +346,19 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
             </div>
           </div>
 
+          {/* Description */}
           {productDescription && (
-            <section className="mt-10 pt-8 border-t border-slate-200 text-sm text-slate-700 leading-relaxed">
+            <section className="mt-8 pt-8 border-t border-slate-200 text-sm text-slate-700 leading-relaxed max-w-4xl">
               <MarkdownRenderer content={productDescription} />
             </section>
           )}
         </div>
+      </section>
 
-        {/* 4. Benzer / Aynı Kategorideki Diğer Ürünler */}
-        {filteredRelated && filteredRelated.length > 0 && (
-          <div className="mt-12 space-y-5">
+      {/* 3. Related Products */}
+      {filteredRelated && filteredRelated.length > 0 && (
+        <section className="py-8 sm:py-12 bg-slate-50">
+          <div className="container space-y-5">
             <div className="flex items-center justify-between">
               <h3 className="font-black text-lg text-slate-900 tracking-tight">
                 {product.categoryName} kategorisindeki ürünler
@@ -401,8 +378,8 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
               ))}
             </div>
           </div>
-        )}
-      </div>
-    </>
+        </section>
+      )}
+    </div>
   );
 }
