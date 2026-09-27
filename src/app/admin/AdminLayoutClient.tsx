@@ -295,9 +295,20 @@ export default function AdminLayout({
           </div>
 
           {/* Developer credit */}
-          <div className="flex items-center justify-between px-4 py-2.5">
-            <span className="text-[10px] font-medium text-slate-500">Geliştirici:</span>
-            <RoutartLogo variant="light" size="sm" showTagline={false} />
+          <div className="flex items-center justify-between px-4 py-2.5 text-[10px] font-medium text-slate-500">
+            <span>Geliştirici:</span>
+            <div className="flex items-center gap-1.5">
+              <a
+                href="https://www.volkanmolla.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-slate-700 hover:text-blue-600 transition-colors"
+              >
+                Volkan Molla
+              </a>
+              <span className="text-slate-300">&</span>
+              <RoutartLogo variant="light" size="sm" showTagline={false} />
+            </div>
           </div>
         </div>
       </aside>
