@@ -7,7 +7,6 @@
     "dev:next": "next dev",
     "dev:convex": "convex dev",
     "build": "next build",
-    "assets:brand": "node scripts/build-brand-assets.mjs",
     "start": "next start",
     "lint": "eslint",
     "deploy": "git pull && npm i && npm run build && pm2 restart beyindeposu"
