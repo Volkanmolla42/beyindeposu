@@ -15,7 +15,6 @@ import {
   LogOut,
   User,
   Loader2,
-  ExternalLink,
   Sparkles,
 } from "lucide-react";
 import { useQuery, useConvexAuth } from "convex/react";
@@ -119,6 +118,7 @@ export default function AdminLayout({
     allItems.find((item) =>
       item.exact ? pathname === item.href : pathname.startsWith(item.href)
     ) || allItems[0];
+  const isChatsPage = pathname.startsWith("/admin/chats");
 
   // Auth Loading Screen
   if (authLoading || (!isAuthenticated && typeof window !== "undefined")) {
@@ -148,19 +148,6 @@ export default function AdminLayout({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {pathname.startsWith("/admin/chats") && (
-            <Link
-              href="/admin/chats"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100"
-              title="Sohbetleri yeni sekmede aç"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-slate-300" />
-              <span>Yeni sekmede aç</span>
-            </Link>
-          )}
-
           {unreadChatsCount > 0 && (
             <Link
               href="/admin/chats"
@@ -314,7 +301,10 @@ export default function AdminLayout({
       </aside>
 
       {/* Main Content Area (Independent Scroll) */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto overflow-x-hidden">
+      <div
+        className={`flex-1 flex flex-col min-w-0 h-full ${isChatsPage ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"
+          }`}
+      >
         {/* Desktop Breadcrumb Header */}
         <header className="sticky top-0 z-20 hidden h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-8 md:flex">
           <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -323,27 +313,12 @@ export default function AdminLayout({
             </Link>
             <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
             <span className="text-slate-900 font-bold">{currentItem.label}</span>
-
           </div>
 
           <div className="flex items-center gap-3">
-            {pathname.startsWith("/admin/chats") && (
-              <Link
-                href="/admin/chats"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs"
-                title="Sohbetleri yeni sekmede aç"
-              >
-                <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
-                <span>Yeni sekmede aç</span>
-              </Link>
-            )}
             {unreadChatsCount > 0 && (
               <Link
                 href="/admin/chats"
-                target="_blank"
-                rel="noopener noreferrer"
                 className="px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-xs font-semibold flex items-center gap-2 hover:bg-blue-100 transition-colors"
               >
                 <span className="w-2 h-2 rounded-full bg-blue-600" />
@@ -354,7 +329,13 @@ export default function AdminLayout({
         </header>
 
         {/* Canvas Body */}
-        <main className="flex-1 p-3.5 sm:p-5 lg:px-8 lg:py-6 max-w-[1800px] w-full min-w-0 mx-auto pb-20 overflow-x-hidden">
+        <main
+          className={`flex-1 w-full min-w-0 mx-auto max-w-8xl flex flex-col ${
+            isChatsPage
+              ? "p-4 sm:p-6 lg:p-8 overflow-hidden min-h-0"
+              : "p-4 sm:p-6 lg:p-8 pb-20 overflow-x-hidden"
+          }`}
+        >
           {children}
         </main>
       </div>

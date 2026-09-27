@@ -557,6 +557,17 @@ export default function AdminProductsPage() {
     }
   };
 
+  const handleSmartAutoFill = async () => {
+    const trimmed = oemNumber.trim();
+    if (trimmed) {
+      await handleGenerateFromOem();
+    } else if (previewImages[selectedFormImageIndex]) {
+      await handleScanActivePreviewImage();
+    } else {
+      setAiError("Lütfen bir OEM kodu girin veya etiket içeren bir ürün görseli yükleyin.");
+    }
+  };
+
   const handleSetCoverImage = (indexToCover: number) => {
     if (indexToCover <= 0 || indexToCover >= previewImages.length) return;
     setPreviewImages((prev) => {
@@ -1403,46 +1414,6 @@ export default function AdminProductsPage() {
                         src={previewImages[selectedFormImageIndex]}
                         alt="Seçili ürün görseli"
                         className="h-full w-full aspect-[4/3] lg:aspect-square border-0 rounded-none bg-transparent"
-                        overlayTopLeft={
-                          selectedFormImageIndex === 0 ? (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/95 px-2 py-1 text-[10px] font-bold text-white shadow-xs backdrop-blur-xs">
-                              <Star className="w-3 h-3 fill-current" />
-                              <span>Ana kapak</span>
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleSetCoverImage(selectedFormImageIndex)}
-                              className="inline-flex items-center gap-1.5 rounded-md bg-slate-900/85 hover:bg-amber-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-xs backdrop-blur-xs transition-colors cursor-pointer"
-                            title="Kapak görseli yap"
-                            >
-                              <Star className="w-3 h-3 fill-current" />
-                              <span><span className="hidden sm:inline">Bu görseli </span>Kapak yap</span>
-                            </button>
-                          )
-                        }
-                        overlayTopRight={
-                          <button
-                            type="button"
-                            onClick={handleScanActivePreviewImage}
-                            disabled={scanImageLoading || aiLoading}
-                            className="inline-flex items-center gap-1.5 rounded-md bg-sky-600/95 hover:bg-sky-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-xs backdrop-blur-xs transition-colors disabled:opacity-50 cursor-pointer"
-                            title="Etiketten ürün bilgilerini oku"
-                          >
-                            {scanImageLoading ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <Scan className="w-3 h-3" />
-                            )}
-                            <span>
-                              {scanImageLoading ? "Okunuyor..." : (
-                                <>
-                                  Etiketten OEM oku
-                                </>
-                              )}
-                            </span>
-                          </button>
-                        }
                       />
                     ) : (
                       <div className="flex flex-col items-center gap-2 text-slate-400 p-8">
@@ -1488,10 +1459,10 @@ export default function AdminProductsPage() {
                             setSelectedFormImageIndex((current) => Math.max(0, Math.min(current, previewImages.length - 2)));
                             resetFormImageZoom();
                           }}
-                          className="absolute right-0.5 top-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-white opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100"
+                          className="absolute right-0.5 top-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-red-600 text-white shadow-xs hover:bg-red-700 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer"
                           aria-label="Görseli kaldır"
                         >
-                          <X className="h-2.5 w-2.5" />
+                          <X className="h-2.5 w-2.5 stroke-[2.5]" />
                         </button>
                       </div>
                     ))}
@@ -1514,21 +1485,79 @@ export default function AdminProductsPage() {
                     />
                   </div>
 
+                  {/* Kapak Yap Butonu (Yalnızca 1. sıradan farklı bir görsel seçildiğinde görünür) */}
+                  {previewImages.length > 1 && selectedFormImageIndex !== 0 && (
+                    <button
+                      type="button"
+                      onClick={() => handleSetCoverImage(selectedFormImageIndex)}
+                      className="mt-2.5 flex h-8.5 w-full items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 text-xs font-semibold text-amber-800 shadow-2xs hover:bg-amber-100 hover:border-amber-400 active:scale-98 transition-all cursor-pointer"
+                    >
+                      <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
+                      <span>Kapak görseli yap</span>
+                    </button>
+                  )}
+
                 </section>
 
                 <section className="min-w-0 space-y-5">
                   <section aria-labelledby="required-product-fields" className="min-w-0 space-y-4">
                     <div className="flex items-center justify-between gap-3">
                       <h3 id="required-product-fields" className="text-sm font-bold text-slate-900">Ürün bilgileri</h3>
-                      <label className="flex min-h-11 shrink-0 cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
-                        <input
-                          type="checkbox"
-                          checked={isDraft}
-                          onChange={(event) => setIsDraft(event.target.checked)}
-                          className="h-4 w-4 accent-blue-600"
-                        />
-                        Taslak
-                      </label>
+                    </div>
+
+                    {/* Stok ve Taslak Durumu Switchleri */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-50/80 rounded-xl border border-slate-200/90">
+                      {/* Stok Durumu */}
+                      <div className="flex items-center justify-between bg-white rounded-lg border border-slate-200 px-3 py-2 shadow-2xs">
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-medium text-slate-500">Stok Durumu</span>
+                          <span className={`text-xs font-bold ${inStock ? "text-emerald-700" : "text-amber-700"}`}>
+                            {inStock ? "Stokta" : "Tükendi"}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={inStock}
+                          onClick={() => setInStock(!inStock)}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            inStock ? "bg-emerald-600" : "bg-slate-300"
+                          }`}
+                          title={inStock ? "Stokta (Tıklayarak Tükendi yap)" : "Tükendi (Tıklayarak Stokta yap)"}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                              inStock ? "translate-x-5" : "translate-x-0"
+                            }`}
+                          />
+                        </button>
+                      </div>
+
+                      {/* Taslak Durumu Switch */}
+                      <div className="flex items-center justify-between bg-white rounded-lg border border-slate-200 px-3 py-2 shadow-2xs">
+                        <div className="flex flex-col">
+                          <span className="text-[11px] font-medium text-slate-500">Taslak Modu</span>
+                          <span className={`text-xs font-bold ${isDraft ? "text-amber-700" : "text-emerald-700"}`}>
+                            {isDraft ? "Taslak" : "Yayında"}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={isDraft}
+                          onClick={() => setIsDraft(!isDraft)}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            isDraft ? "bg-amber-500" : "bg-emerald-600"
+                          }`}
+                          title={isDraft ? "Taslak (Tıklayarak Yayına al)" : "Yayında (Tıklayarak Taslağa al)"}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+                              isDraft ? "translate-x-5" : "translate-x-0"
+                            }`}
+                          />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -1540,19 +1569,41 @@ export default function AdminProductsPage() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={handleGenerateFromOem}
-                          disabled={aiLoading || scanImageLoading || !oemNumber.trim()}
-                          className="h-8 gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border-indigo-200 hover:bg-indigo-100 hover:text-indigo-800 transition-colors shadow-2xs cursor-pointer"
+                          onClick={handleSmartAutoFill}
+                          disabled={aiLoading || scanImageLoading || (!oemNumber.trim() && !previewImages[selectedFormImageIndex])}
+                          className="h-8 gap-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 border-indigo-200 hover:bg-indigo-100 hover:text-indigo-800 transition-colors shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                          title={
+                            oemNumber.trim()
+                              ? "OEM koduna göre ürün bilgilerini doldur"
+                              : previewImages[selectedFormImageIndex]
+                                ? "Seçili görseldeki etiketi okuyup ürün bilgilerini doldur"
+                                : "OEM kodu girin veya bir görsel seçin"
+                          }
                         >
                           {aiLoading ? (
                             <>
                               <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" />
-                              <span>Bilgiler hazırlanıyor...</span>
+                              <span>OEM araştırılıyor...</span>
                             </>
-                          ) : (
+                          ) : scanImageLoading ? (
+                            <>
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" />
+                              <span>Görsel okunuyor...</span>
+                            </>
+                          ) : oemNumber.trim() ? (
                             <>
                               <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
                               <span>OEM ile doldur</span>
+                            </>
+                          ) : previewImages[selectedFormImageIndex] ? (
+                            <>
+                              <Scan className="h-3.5 w-3.5 text-indigo-600" />
+                              <span>Görselden oku ve doldur</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="h-3.5 w-3.5 text-slate-400" />
+                              <span>Otomatik doldur</span>
                             </>
                           )}
                         </Button>
@@ -1704,32 +1755,18 @@ export default function AdminProductsPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div className="space-y-1">
-                          <label className="font-bold text-slate-700">Parça durumu</label>
-                          <select
-                            value={condition}
-                            onChange={(e) => setCondition(e.target.value)}
-                            className="h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                          >
-                            <option value="Orijinal Çıkma">Orijinal Çıkma</option>
-                            <option value="Sıfır - Orijinal">Sıfır - Orijinal</option>
-                            <option value="Revizyonlu">Revizyonlu</option>
-                            <option value="Sıfırlanmış - Virgin">Sıfırlanmış - Virgin</option>
-                          </select>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="font-bold text-slate-700">Stok durumu</label>
-                          <select
-                            value={inStock ? "true" : "false"}
-                            onChange={(e) => setInStock(e.target.value === "true")}
-                            className="h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                          >
-                            <option value="true">Stokta</option>
-                            <option value="false">Tükendi</option>
-                          </select>
-                        </div>
+                      <div className="space-y-1">
+                        <label className="font-bold text-slate-700">Parça durumu</label>
+                        <select
+                          value={condition}
+                          onChange={(e) => setCondition(e.target.value)}
+                          className="h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                        >
+                          <option value="Orijinal Çıkma">Orijinal Çıkma</option>
+                          <option value="Sıfır - Orijinal">Sıfır - Orijinal</option>
+                          <option value="Revizyonlu">Revizyonlu</option>
+                          <option value="Sıfırlanmış - Virgin">Sıfırlanmış - Virgin</option>
+                        </select>
                       </div>
 
                       <div className="space-y-1.5">

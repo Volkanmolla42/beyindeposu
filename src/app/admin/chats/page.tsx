@@ -129,11 +129,11 @@ export default function AdminChatsPage() {
 
 
   return (
-    <div className="space-y-4">
+    <div className="flex-1 flex flex-col min-h-0 h-full">
       {/* Main Split Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-[calc(100vh-14rem)] min-h-[560px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 h-full min-h-[560px] lg:min-h-0">
         {/* Left List of Conversations */}
-        <div className="lg:col-span-4 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden shadow-xs">
+        <div className="lg:col-span-4 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden shadow-xs h-full min-h-0">
           {/* Tabs & Search */}
           <div className="p-3 border-b border-slate-200 space-y-2 bg-slate-50/50">
             <div className="flex items-center gap-1 p-0.5 bg-slate-200/70 rounded-lg text-xs">
@@ -247,7 +247,7 @@ export default function AdminChatsPage() {
         </div>
 
         {/* Right Active Chat Box */}
-        <div className="lg:col-span-8 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden shadow-xs">
+        <div className="lg:col-span-8 bg-white rounded-xl border border-slate-200 flex flex-col overflow-hidden shadow-xs h-full min-h-0">
           {selectedConversation ? (
             <>
               {/* Header */}
@@ -287,18 +287,6 @@ export default function AdminChatsPage() {
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <Link
-                    href={`/admin/chats?conversationId=${encodeURIComponent(selectedConversation._id)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-11 items-center justify-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-700 hover:bg-slate-100 md:h-7"
-                    title="Bu sohbeti yeni sekmede aç"
-                    aria-label="Bu sohbeti yeni sekmede aç"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
-                    <span className="hidden sm:inline">Yeni sekmede aç</span>
-                  </Link>
-
                   {selectedConversation.status === "active" && (
                     <Button
                       size="sm"
