@@ -23,6 +23,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   Scan,
+  Table,
+  LayoutList,
 } from "lucide-react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -176,6 +178,7 @@ export default function AdminProductsPage() {
   const [draftStatus, setDraftStatus] = useState<"all" | "draft" | "published">("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(25);
+  const [viewMode, setViewMode] = useState<"table" | "list">("table");
 
   // Reset page when filters change
   useEffect(() => {
@@ -851,7 +854,7 @@ export default function AdminProductsPage() {
   }, [currentPage, totalPages]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full min-w-0">
       {/* Page Header */}
       <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
@@ -866,7 +869,7 @@ export default function AdminProductsPage() {
           </p>
         </div>
 
-        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
           <input
             ref={(element) => {
               folderInputRef.current = element;
@@ -880,7 +883,7 @@ export default function AdminProductsPage() {
           />
           <Link
             href="/admin/batch-import"
-            className="col-span-2 inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-700 shadow-xs transition-colors hover:bg-indigo-100 sm:col-span-1 sm:h-9 sm:w-auto"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-700 shadow-xs transition-colors hover:bg-indigo-100 sm:w-auto"
           >
             <Sparkles className="w-4 h-4 text-indigo-600" />
             <span>Toplu ürün aktarımı</span>
@@ -890,14 +893,14 @@ export default function AdminProductsPage() {
             onClick={() => folderInputRef.current?.click()}
             disabled={folderUploading}
             variant="outline"
-            className="h-10 w-full justify-center rounded-lg text-xs font-semibold sm:h-9 sm:w-auto"
+            className="h-9 w-full justify-center rounded-lg text-xs font-semibold sm:w-auto"
           >
             {folderUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             <span>{folderUploading ? "Yükleniyor" : "Klasör yükle"}</span>
           </Button>
           <Button
             onClick={handleOpenAddProduct}
-            className="h-10 w-full justify-center gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 sm:h-9 sm:w-auto"
+            className="h-10 sm:h-9 w-full justify-center gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             <span>Yeni ürün ekle</span>
@@ -967,9 +970,45 @@ export default function AdminProductsPage() {
       </div>
 
       {/* Products Table Card */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-        <div className="hidden overflow-x-auto xl:block">
-          <table className="w-full min-w-[920px] text-left text-xs text-slate-700">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs w-full min-w-0">
+        {/* View Mode Header */}
+        <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-50/80 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-800 text-xs">Ürün Listesi</span>
+            <span className="text-[11px] text-slate-500 font-medium">({totalItems.toLocaleString("tr-TR")})</span>
+          </div>
+
+          <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                viewMode === "table"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <Table className="w-3.5 h-3.5" />
+              <span>Tablo</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                viewMode === "list"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <LayoutList className="w-3.5 h-3.5" />
+              <span>Liste</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Tablo Görünümü (Mobilde ve Masaüstünde Gerçek Veri Tablosu) */}
+        <div className={`overflow-x-auto ${viewMode === "table" ? "block" : "hidden"}`}>
+          <table className="w-full min-w-[760px] text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-500 font-semibold text-[11px] tracking-wider border-b border-slate-200">
               <tr>
                 <th className="p-3.5">Görsel</th>
@@ -1085,112 +1124,146 @@ export default function AdminProductsPage() {
           </table>
         </div>
 
-        <div className="space-y-2 p-3 xl:hidden">
+        <div className={`p-3 sm:p-4 bg-slate-50/50 ${viewMode === "list" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-3.5" : "hidden"}`}>
           {products && products.length > 0 ? (
             products.map((p) => (
-              <article key={p._id} className="rounded-lg border border-slate-200 bg-white p-3 shadow-2xs">
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-50 p-1">
+              <article
+                key={p._id}
+                onClick={() => handleOpenEditProduct(p)}
+                className="group relative flex flex-col justify-between rounded-xl border border-slate-200/90 bg-white p-3 sm:p-3.5 shadow-2xs hover:border-blue-300 hover:shadow-xs transition-all duration-150 cursor-pointer"
+              >
+                {/* Ana İçerik: Görsel + Bilgi Sütunu */}
+                <div className="flex items-start gap-3">
+                  {/* Ürün Görseli / Önizleme */}
+                  <div className="relative h-15 w-15 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-1 flex items-center justify-center">
                     {p.images?.[0] ? (
                       <button
                         type="button"
-                        onClick={() => openLightbox(p.images!, 0)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openLightbox(p.images!, 0);
+                        }}
                         aria-label={`${p.title || "Ürün"} görselini büyüt`}
-                        className="h-full w-full cursor-zoom-in"
+                        className="h-full w-full cursor-zoom-in flex items-center justify-center"
                       >
-                        <img src={p.images[0]} alt={p.title} className="h-full w-full object-contain" />
+                        <img
+                          src={p.images[0]}
+                          alt={p.title || "Ürün"}
+                          className="h-full w-full object-contain"
+                        />
                       </button>
                     ) : (
-                      <Cpu className="h-5 w-5 text-slate-400" />
+                      <Cpu className="h-6 w-6 text-slate-300" />
+                    )}
+                    {p.images && p.images.length > 1 && (
+                      <span className="absolute bottom-1 right-1 rounded bg-slate-900/70 px-1 py-0.5 text-[9px] font-bold text-white leading-none">
+                        +{p.images.length - 1}
+                      </span>
                     )}
                   </div>
 
-                  <div className="min-w-0 flex-1">
-                    <h2 className="line-clamp-2 break-words text-sm font-semibold leading-5 text-slate-900">
-                      {p.title || "Taslak ürün"}
-                    </h2>
-                    {(p.brand || p.model) && (
-                      <p className="mt-0.5 truncate text-xs text-slate-500">
-                        {[p.brand, p.model].filter(Boolean).join(" · ")}
-                      </p>
-                    )}
+                  {/* Ürün Bilgileri */}
+                  <div className="min-w-0 flex-1 space-y-1">
+                    {/* Üst Sıra: OEM Kodu ve En Sağda Sitede Görüntüle (ExternalLink) Butonu */}
+                    <div className="flex items-center justify-between gap-1.5">
+                      <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                        {p.oemNumber ? (
+                          <span className="font-mono text-[11px] font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            {p.oemNumber}
+                          </span>
+                        ) : (
+                          <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                            OEM Yok
+                          </span>
+                        )}
+
+                        {p.shelfCode && (
+                          <span className="font-mono text-[10px] font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                            Raf: {p.shelfCode}
+                          </span>
+                        )}
+                      </div>
+
+                      {p.isDraft !== true && (
+                        <Link
+                          href={`/urunler/${p.slug}`}
+                          target="_blank"
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`${p.title || "Ürün"} sayfasını sitede görüntüle`}
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 shadow-2xs hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 active:scale-95 transition-all"
+                          title="Sitede Görüntüle"
+                        >
+                          <ExternalLink className="h-4.5 w-4.5" />
+                        </Link>
+                      )}
+                    </div>
+
+                    {/* Başlık */}
+                    <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-slate-900 leading-snug break-words pt-0.5">
+                      {p.title || "İsimsiz Ürün"}
+                    </h3>
                   </div>
                 </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-slate-100 pt-3 text-xs">
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-semibold tracking-wide text-slate-400">OEM no</div>
-                    <div className="mt-0.5 break-all font-mono font-semibold text-slate-800">{p.oemNumber || "—"}</div>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-semibold tracking-wide text-slate-400">Raf kodu</div>
-                    <div className="mt-0.5 break-all font-mono font-semibold text-slate-800">{p.shelfCode || "—"}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-semibold tracking-wide text-slate-400">Durum</div>
-                    <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${p.isDraft === true ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+                {/* Alt Çubuk: Durum Rozeti (Yayında/Taslak & Stokta/Tükendi) & Silme Düğmesi */}
+                <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
+                        p.isDraft === true
+                          ? "bg-amber-50 text-amber-700 border-amber-200/80"
+                          : "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                      }`}
+                    >
                       {p.isDraft === true ? "Taslak" : "Yayında"}
                     </span>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-semibold tracking-wide text-slate-400">Stok</div>
+
                     <button
                       type="button"
-                      onClick={() => toggleStock({ id: p._id, inStock: !p.inStock })}
-                      aria-label={`${p.title || "Ürün"}: ${p.inStock ? "stokta, tükendi olarak işaretle" : "tükendi, stokta olarak işaretle"}`}
-                      className={`mt-1 rounded-full border px-2.5 py-0.5 text-[10px] font-bold transition-colors ${p.inStock
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                        : "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                        }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleStock({ id: p._id, inStock: !p.inStock });
+                      }}
+                      className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-semibold border cursor-pointer ${
+                        p.inStock
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
+                          : "bg-amber-50 text-amber-700 border-amber-200/80"
+                      }`}
                     >
                       {p.inStock ? "Stokta" : "Tükendi"}
                     </button>
                   </div>
-                </div>
 
-                <div className="mt-3 flex items-center justify-end gap-2 border-t border-slate-100 pt-2">
-                  {p.isDraft !== true && (
-                    <Link
-                      href={`/urunler/${p.slug}`}
-                      target="_blank"
-                      aria-label={`${p.title || "Ürün"} sayfasını görüntüle`}
-                      className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteProduct(p);
+                      }}
+                      aria-label={`${p.title || "Ürün"} ürününü sil`}
+                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-500 shadow-2xs hover:border-red-400 hover:bg-red-50 hover:text-red-600 active:scale-95 transition-all cursor-pointer"
+                      title="Sil"
                     >
-                      <Eye className="h-4 w-4" />
-                    </Link>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditProduct(p)}
-                    aria-label={`${p.title || "Ürün"} ürününü düzenle`}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-blue-50 hover:text-blue-600"
-                  >
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteProduct(p)}
-                    aria-label={`${p.title || "Ürün"} ürününü sil`}
-                    className="flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                      <Trash2 className="h-4.5 w-4.5" />
+                    </button>
+                  </div>
                 </div>
               </article>
             ))
           ) : pageData === undefined ? (
-            <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
+            <div className="col-span-full rounded-xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
               Yükleniyor...
             </div>
           ) : (
-            <div className="rounded-lg border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
+            <div className="col-span-full rounded-xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
               Kayıtlı ürün bulunamadı.
             </div>
           )}
         </div>
 
         {/* Admin Pagination Controls */}
-        <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 p-4 text-center text-xs sm:flex-row sm:gap-4 sm:text-left">
+        <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/80 p-3 sm:p-4 text-center text-xs sm:flex-row sm:gap-4 sm:text-left">
           <div className="max-w-full text-slate-500 font-medium leading-5">
             Toplam <span className="font-bold text-slate-900">{totalItems.toLocaleString("tr-TR")}</span> kayıttan{" "}
             <span className="font-bold text-blue-600">
@@ -1215,7 +1288,30 @@ export default function AdminProductsPage() {
             </div>
 
             {totalPages > 1 && (
-              <div className="flex items-center gap-1">
+              <>
+                {/* Mobile compact pagination */}
+                <div className="flex items-center gap-1 sm:hidden">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  >
+                    Önceki
+                  </button>
+                  <span className="px-2 font-mono font-bold text-slate-800 text-xs">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                  >
+                    Sonraki
+                  </button>
+                </div>
+
+                {/* Desktop full pagination */}
+                <div className="hidden sm:flex items-center gap-1">
                 {/* First Page */}
                 <button
                   onClick={() => handlePageChange(1)}
@@ -1276,6 +1372,7 @@ export default function AdminProductsPage() {
                   <ChevronsRight className="w-3.5 h-3.5" />
                 </button>
               </div>
+              </>
             )}
           </div>
         </div>

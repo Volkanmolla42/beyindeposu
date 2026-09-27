@@ -312,6 +312,7 @@ export function ModernImageZoom({
           src={src}
           alt={alt}
           fill
+          unoptimized
           priority={priority}
           sizes="(max-width: 1024px) 100vw, 50vw"
           draggable={false}

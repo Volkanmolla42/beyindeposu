@@ -88,7 +88,6 @@ export default function AdminLayout({
 
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
   const { signOut } = useAuthActions();
-  const viewer = useQuery(api.users.viewer);
 
   // Client-side authentication guard
   useEffect(() => {
@@ -132,7 +131,7 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="h-screen w-full bg-slate-50/70 text-slate-900 flex flex-col md:flex-row antialiased font-sans overflow-hidden">
+    <div className="h-[100dvh] w-full bg-slate-50/70 text-slate-900 flex flex-col md:flex-row antialiased font-sans overflow-hidden">
       {/* Mobile Header Bar */}
       <header className="md:hidden flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 text-slate-900 z-40">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -143,7 +142,7 @@ export default function AdminLayout({
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
-          <span className="min-w-0 truncate text-sm font-semibold text-white">
+          <span className="min-w-0 truncate text-sm font-semibold">
             {currentItem.label}
           </span>
         </div>
@@ -179,7 +178,7 @@ export default function AdminLayout({
       {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div
-              className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-xs md:hidden"
+          className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-xs md:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -230,8 +229,8 @@ export default function AdminLayout({
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center justify-between rounded-full px-3 py-2.5 text-sm transition-colors ${isActive
-                            ? "bg-blue-50 text-blue-800 font-medium"
-                            : "text-slate-700 hover:bg-slate-100 font-normal"
+                          ? "bg-blue-50 text-blue-800 font-medium"
+                          : "text-slate-700 hover:bg-slate-100 font-normal"
                           }`}
                       >
                         <div className="flex items-center gap-2.5">
@@ -245,8 +244,8 @@ export default function AdminLayout({
                         {hasBadge && (
                           <span
                             className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${isActive
-                                ? "bg-white text-blue-700"
-                                : "bg-amber-100 text-amber-900"
+                              ? "bg-white text-blue-700"
+                              : "bg-amber-100 text-amber-900"
                               }`}
                           >
                             {unreadChatsCount}
@@ -266,16 +265,16 @@ export default function AdminLayout({
           {/* User & Logout section */}
           <div className="flex items-center justify-between gap-2 border-b border-slate-200 p-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-blue-100 bg-blue-50 text-blue-700">
-                <User className="w-3.5 h-3.5" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-blue-700 shadow-2xs">
+                <User className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-xs font-medium text-slate-900">
-                  {viewer?.email || "admin@beyindeposu.com"}
+                <div className="text-xs font-bold text-slate-900 tracking-tight">
+                  Yönetici
                 </div>
-                <div className="flex items-center gap-1 text-[11px] text-slate-600">
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  <span>Yönetici</span>
+                  <span>Çevrimiçi</span>
                 </div>
               </div>
             </div>
@@ -283,7 +282,7 @@ export default function AdminLayout({
             <button
               onClick={handleLogout}
               disabled={loggingOut}
-              className="shrink-0 rounded-full p-2 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-700"
+              className="shrink-0 rounded-lg p-2 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
               title="Çıkış yap"
               aria-label="Çıkış yap"
             >
@@ -304,7 +303,7 @@ export default function AdminLayout({
       </aside>
 
       {/* Main Content Area (Independent Scroll) */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto overflow-x-hidden">
         {/* Desktop Breadcrumb Header */}
         <header className="sticky top-0 z-20 hidden h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-8 md:flex">
           <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -340,25 +339,11 @@ export default function AdminLayout({
                 <span>{unreadChatsCount} okunmamış mesaj</span>
               </Link>
             )}
-
-            <button
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 text-slate-600 text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
-              title="Çıkış yap"
-            >
-              {loggingOut ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <LogOut className="w-3.5 h-3.5" />
-              )}
-              <span>Çıkış yap</span>
-            </button>
           </div>
         </header>
 
         {/* Canvas Body */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto pb-20">
+        <main className="flex-1 p-3.5 sm:p-5 lg:px-8 lg:py-6 max-w-[1800px] w-full min-w-0 mx-auto pb-20 overflow-x-hidden">
           {children}
         </main>
       </div>
