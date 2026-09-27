@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
 interface ModernImageZoomProps {
@@ -12,6 +13,7 @@ interface ModernImageZoomProps {
   minZoom?: number;
   maxZoom?: number;
   defaultZoom?: number;
+  priority?: boolean;
 }
 
 export function ModernImageZoom({
@@ -23,6 +25,7 @@ export function ModernImageZoom({
   minZoom = 1,
   maxZoom = 4.5,
   defaultZoom = 2.2,
+  priority = false,
 }: ModernImageZoomProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -41,6 +44,7 @@ export function ModernImageZoom({
   // Drag tracking to prevent unwanted click events when panning
   const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
   const hasDraggedRef = useRef<boolean>(false);
+  const dragTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Reset function
   const handleReset = useCallback(() => {
@@ -51,11 +55,28 @@ export function ModernImageZoom({
     setIsLockedMode(false);
     hasDraggedRef.current = false;
     mouseDownPosRef.current = null;
+    if (dragTimerRef.current) {
+      clearTimeout(dragTimerRef.current);
+      dragTimerRef.current = null;
+    }
+  }, []);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (dragTimerRef.current) {
+        clearTimeout(dragTimerRef.current);
+      }
+    };
   }, []);
 
   // Reset when source image changes
+  const prevSrcRef = useRef(src);
   useEffect(() => {
-    handleReset();
+    if (prevSrcRef.current !== src) {
+      prevSrcRef.current = src;
+      handleReset();
+    }
   }, [src, handleReset]);
 
   // Global window listeners during active dragging to handle fast mouse moves & release outside
@@ -81,9 +102,11 @@ export function ModernImageZoom({
       setIsDragging(false);
       // Sürükleme sonrası tarayıcının tetikleyeceği onClick olayını engellemek için
       // hasDraggedRef'i 80ms sonra sıfırla
-      setTimeout(() => {
+      if (dragTimerRef.current) clearTimeout(dragTimerRef.current);
+      dragTimerRef.current = setTimeout(() => {
         hasDraggedRef.current = false;
         mouseDownPosRef.current = null;
+        dragTimerRef.current = null;
       }, 80);
     };
 
@@ -234,8 +257,10 @@ export function ModernImageZoom({
   const handleTouchEnd = () => {
     touchDistanceRef.current = null;
     setIsDragging(false);
-    setTimeout(() => {
+    if (dragTimerRef.current) clearTimeout(dragTimerRef.current);
+    dragTimerRef.current = setTimeout(() => {
       hasDraggedRef.current = false;
+      dragTimerRef.current = null;
     }, 80);
   };
 
@@ -283,11 +308,14 @@ export function ModernImageZoom({
           willChange: "transform",
         }}
       >
-        <img
+        <Image
           src={src}
           alt={alt}
+          fill
+          priority={priority}
+          sizes="(max-width: 1024px) 100vw, 50vw"
           draggable={false}
-          className="h-full w-full object-contain pointer-events-none select-none transition-opacity duration-200"
+          className="object-contain pointer-events-none select-none transition-opacity duration-200"
         />
       </div>
 
@@ -340,6 +368,7 @@ export function ModernImageZoom({
             disabled={zoom <= minZoom}
             className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-white/20 transition-colors disabled:opacity-30 cursor-pointer"
             title="Uzaklaştır (-)"
+            aria-label="Görseli uzaklaştır"
           >
             <ZoomOut className="h-3.5 w-3.5" />
           </button>
@@ -359,6 +388,7 @@ export function ModernImageZoom({
             disabled={zoom >= maxZoom}
             className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-white/20 transition-colors disabled:opacity-30 cursor-pointer"
             title="Yakınlaştır (+)"
+            aria-label="Görseli yakınlaştır"
           >
             <ZoomIn className="h-3.5 w-3.5" />
           </button>
@@ -370,10 +400,11 @@ export function ModernImageZoom({
             type="button"
             onClick={handleReset}
             className="flex items-center gap-1 px-2 py-1 rounded-full hover:bg-white/20 transition-colors cursor-pointer text-slate-300 hover:text-white text-xs font-medium"
-            title="Normal Boyuta Dön (1:1)"
+            title="Özgün boyuta dön"
+            aria-label="Görseli sıfırla"
           >
             <RotateCcw className="h-3 w-3" />
-            <span>Sıfırla</span>
+            <span>Görseli sıfırla</span>
           </button>
         </div>
       )}

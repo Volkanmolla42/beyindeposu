@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { ConvexHttpClient } from "convex/browser";
-import { api } from "../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { absoluteUrl } from "@/lib/seo";
 
 export const revalidate = 3600;

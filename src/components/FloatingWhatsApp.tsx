@@ -4,22 +4,17 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { X, Send } from "lucide-react";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
-import { generateWhatsAppLink } from "@/lib/utils";
-import { SITE_CONTACT } from "@/config/site";
+import { getWhatsAppUrl } from "@/lib/whatsapp";
 
 export default function FloatingWhatsApp() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
-  const whatsappNumber = SITE_CONTACT.whatsappNumber;
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    const url = generateWhatsAppLink(
-      whatsappNumber,
-      undefined,
-      undefined,
-      message || "Merhaba Beyindeposuu, parça danışmak istiyorum."
+    const url = getWhatsAppUrl(
+      message.trim() ? { message: message.trim() } : undefined
     );
     window.open(url, "_blank");
     setOpen(false);
@@ -43,11 +38,7 @@ export default function FloatingWhatsApp() {
                 <WhatsAppIcon className="w-6 h-6 fill-white text-white" />
               </div>
               <div>
-                <h4 className="font-bold text-sm">Beyindeposuu WhatsApp</h4>
-                <p className="text-[11px] text-emerald-100 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-300 animate-ping inline-block" />
-                  Hızlı WhatsApp İletişim Hattı
-                </p>
+                <h4 className="font-bold text-sm">Beyin Deposu WhatsApp</h4>
               </div>
             </div>
             <button
@@ -62,11 +53,8 @@ export default function FloatingWhatsApp() {
           {/* Chat Body */}
           <div className="p-4 bg-slate-50 space-y-3">
             <div className="bg-white p-3 rounded-xl rounded-tl-none border border-slate-200/80 shadow-xs max-w-[85%] text-xs text-slate-700 space-y-1">
-              <p className="font-semibold text-slate-900">
-                👋 Merhaba! Beyindeposuu&apos;na hoş geldiniz.
-              </p>
               <p>
-                Aradığınız parçanın OEM kodunu veya fotoğrafını iletin, stok ve fiyat durumunu anında bildirelim.
+                OEM kodunu veya parça fotoğrafını gönderin.
               </p>
             </div>
           </div>
@@ -74,17 +62,20 @@ export default function FloatingWhatsApp() {
           {/* Input Footer */}
           <form onSubmit={handleSend} className="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
             <input
+              id="whatsapp-chat-message"
+              name="whatsapp-message"
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Mesajınızı yazın..."
+              placeholder="Mesaj yazın"
+              aria-label="WhatsApp mesajı"
               className="flex-1 text-xs border border-slate-300 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               autoFocus
             />
             <button
               type="submit"
-              className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl p-2 transition-colors cursor-pointer"
-              aria-label="Gönder"
+              className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl p-2 transition-colors cursor-pointer"
+              aria-label="Mesajı WhatsApp ile gönder"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -95,12 +86,12 @@ export default function FloatingWhatsApp() {
       {/* Floating Left Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="group relative flex items-center gap-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold px-4 py-3.5 rounded-full shadow-2xl hover:shadow-emerald-500/40 transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer"
-        aria-label="WhatsApp Destek"
+        className="group relative flex items-center gap-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-4 py-3.5 rounded-full shadow-2xl hover:shadow-emerald-700/40 transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer"
+        aria-label="WhatsApp desteği"
+        aria-expanded={open}
       >
         <WhatsAppIcon className="w-5 h-5 fill-white text-white shrink-0" />
         <span className="text-sm tracking-tight font-extrabold hidden sm:inline">WhatsApp</span>
-        <span className="w-2.5 h-2.5 rounded-full bg-white border-2 border-emerald-500 animate-pulse" />
       </button>
     </div>
   );

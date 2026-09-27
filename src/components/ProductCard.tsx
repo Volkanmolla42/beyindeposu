@@ -1,18 +1,24 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { Eye, Cpu } from "lucide-react";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
-import { generateWhatsAppLink } from "@/lib/utils";
+import { getWhatsAppUrl } from "@/lib/whatsapp";
 import { ProductWithCategory } from "@/types";
-import { SITE_CONTACT } from "@/config/site";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export interface ProductCardProps {
   product: ProductWithCategory;
+  priority?: boolean;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
-  const whatsappNumber = SITE_CONTACT.whatsappNumber;
+export default function ProductCard({ product, priority = false }: ProductCardProps) {
+  const subtitle = [product.categoryName, product.brand].filter(Boolean).join(" • ");
+  const stockBadgeVariant = product.inStock ? "success" : "warning";
+  const stockBadgeText = product.inStock ? "Stokta" : "Stokta yok";
+
 
   return (
     <div className="product-card-clean flex flex-col justify-between p-4 group sm:p-5">
@@ -21,11 +27,13 @@ export default function ProductCard({ product }: ProductCardProps) {
         <Link href={`/urunler/${product.slug}`} className="block">
           <div className="relative mb-4 flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-2xl bg-slate-50 p-3">
             {product.images?.[0] ? (
-              <img
+              <Image
                 src={product.images[0]}
                 alt={product.title}
-                className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
-                loading="lazy"
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                priority={priority}
               />
             ) : (
               <Cpu className="w-16 h-16 text-slate-300" />
@@ -44,7 +52,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* Product Category & Brand */}
           <p className="text-sm font-medium text-slate-700">
-            {[product.categoryName, product.brand].filter(Boolean).join(" • ")}
+            {subtitle}
           </p>
 
           {/* Model / Compatibility */}
@@ -56,48 +64,46 @@ export default function ProductCard({ product }: ProductCardProps) {
 
           {/* Pill Badges: Condition & Stock */}
           <div className="flex items-center gap-1.5 pt-1.5 flex-wrap">
-            <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs text-slate-700">
+            <Badge variant="secondary" className="font-medium text-xs">
               {product.condition}
-            </span>
+            </Badge>
 
-            <span
-              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                product.inStock
-                ? "border border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border border-amber-200 bg-amber-50 text-amber-800"
-              }`}
+            <Badge
+              variant={stockBadgeVariant}
+              className="text-2xs font-bold"
             >
-              {product.inStock ? "Stokta" : "Stokta değil"}
-            </span>
+              {stockBadgeText}
+            </Badge>
           </div>
         </div>
       </div>
 
       {/* Action Buttons: DETAY button + WhatsApp quick button */}
       <div className="mt-5 flex items-center gap-2">
-        <Link href={`/urunler/${product.slug}`} className="flex-1">
-          <span className="flex min-h-10 w-full items-center justify-center gap-1.5 rounded-full border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-800">
+        <Button asChild variant="outline" size="sm" className="flex-1 rounded-full">
+          <Link href={`/urunler/${product.slug}`}>
             <Eye className="w-3.5 h-3.5" />
-            <span>Detay</span>
-          </span>
-        </Link>
+            <span>Ürünü gör</span>
+          </Link>
+        </Button>
 
-        <a
-          href={generateWhatsAppLink(
-            whatsappNumber,
-            product.title,
-            product.oemNumber,
-            `Merhaba, ${product.oemNumber} kodlu (${product.title}) parça hakkında bilgi almak istiyorum.`
-          )}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="shrink-0"
-        >
-          <span className="flex min-h-10 items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-700">
+        <Button asChild variant="whatsapp" size="sm" className="shrink-0 rounded-full">
+          <a
+            href={getWhatsAppUrl({
+              product: {
+                title: product.title,
+                oemNumber: product.oemNumber,
+                action: "price",
+              },
+            })}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Fiyat sor: ${product.title} için WhatsApp`}
+          >
             <WhatsAppIcon className="w-3.5 h-3.5 fill-white text-white" />
-            <span className="hidden sm:inline">Sor</span>
-          </span>
-        </a>
+            <span className="hidden sm:inline">Fiyat sor</span>
+          </a>
+        </Button>
       </div>
     </div>
   );

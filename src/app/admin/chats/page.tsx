@@ -16,8 +16,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
-import { Id } from "../../../../convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+import { Id } from "@convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { playAdminNotificationSound } from "../admin-utils";
@@ -112,13 +112,13 @@ export default function AdminChatsPage() {
   };
 
   const handleCloseChat = async (id: Id<"conversations">) => {
-    if (confirm("Bu canlı destek sohbetini sonlandırmak istediğinizden emin misiniz?")) {
+    if (confirm("Canlı destek sohbeti kapatılsın mı?")) {
       await closeChatMutation({ conversationId: id });
     }
   };
 
   const handleDeleteChat = async (id: Id<"conversations">) => {
-    if (confirm("Bu sohbet kaydını kalıcı olarak silmek istediğinizden emin misiniz?")) {
+    if (confirm("Sohbet kaydı kalıcı olarak silinsin mi?")) {
       await deleteChatMutation({ conversationId: id });
       if (selectedChatId === id) {
         setSelectedChatId(null);
@@ -173,7 +173,7 @@ export default function AdminChatsPage() {
               <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
               <Input
                 aria-label="Ziyaretçi adı veya telefon ara"
-                placeholder="Ziyaretçi adı veya telefon ara..."
+                placeholder="Ziyaretçi adı veya telefon ara"
                 value={chatSearch}
                 onChange={(e) => setChatSearch(e.target.value)}
                 className="pl-8 bg-white border-slate-200 text-slate-900 text-xs h-11 md:h-8 rounded-md"
@@ -296,7 +296,7 @@ export default function AdminChatsPage() {
                     aria-label="Bu sohbeti yeni sekmede aç"
                   >
                     <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
-                    <span className="hidden sm:inline">Yeni Sekmede Aç</span>
+                    <span className="hidden sm:inline">Yeni sekmede aç</span>
                   </Link>
 
                   {selectedConversation.status === "active" && (
@@ -339,7 +339,7 @@ export default function AdminChatsPage() {
                     )}
                   </div>
                   <div className="min-w-0 flex-1 text-xs">
-                    <span className="text-[10px] text-slate-500 font-semibold uppercase block">
+                    <span className="text-[10px] text-slate-500 font-semibold block">
                       Danışılan Parça:
                     </span>
                     <div className="font-semibold text-slate-900 truncate">
@@ -354,7 +354,7 @@ export default function AdminChatsPage() {
                     target="_blank"
                     className="p-1.5 bg-white hover:bg-slate-100 text-slate-700 rounded-md text-xs font-medium shrink-0 flex items-center gap-1 border border-slate-200"
                   >
-                    <span>Ürünü Gör</span>
+                    <span>Ürünü gör</span>
                     <ExternalLink className="w-3 h-3 text-slate-400" />
                   </Link>
                 </div>
@@ -407,7 +407,7 @@ export default function AdminChatsPage() {
               >
                 <Input
                   aria-label="Müşteriye yanıt yazın"
-                  placeholder="Müşteriye yanıt yazın..."
+                  placeholder="Yanıt yazın"
                   value={adminMessageInput}
                   onChange={(e) => setAdminMessageInput(e.target.value)}
                   className="bg-white border-slate-200 text-slate-900 text-xs h-11 md:h-9 rounded-lg"
@@ -425,9 +425,9 @@ export default function AdminChatsPage() {
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-2 text-slate-400">
               <Headphones className="w-10 h-10 text-slate-300" />
-              <h4 className="font-semibold text-slate-700 text-sm">Görüşme Seçilmedi</h4>
+              <h4 className="font-semibold text-slate-700 text-sm">Sohbet seçilmedi</h4>
               <p className="text-xs max-w-sm">
-                Sol panelden bir sohbet seçerek müşterinin mesajlarını görüntüleyin.
+                Soldan sohbet seçin.
               </p>
             </div>
           )}

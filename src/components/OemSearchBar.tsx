@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { Search, ArrowRight, CheckCircle2, Cpu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import Link from "next/link";
+import Image from "next/image";
 
 interface OemSearchBarProps {
   className?: string;
@@ -19,16 +20,23 @@ export default function OemSearchBar({
 }: OemSearchBarProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedTerm, setDebouncedTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const searchResults = useQuery(api.products.search, {
-    query: searchTerm,
-    limit: 6,
-  });
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedTerm(searchTerm.trim());
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-  const featuredProducts = useQuery(api.products.getFeatured, { limit: 7 });
-  const popularOems = (featuredProducts || []).map((p) => p.oemNumber).filter(Boolean);
+  const searchResults = useQuery(
+    api.products.search,
+    debouncedTerm.length >= 2
+      ? { query: debouncedTerm, limit: 6 }
+      : "skip"
+  );
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,12 +44,6 @@ export default function OemSearchBar({
       router.push(`/urunler?q=${encodeURIComponent(searchTerm.trim())}`);
       setIsOpen(false);
     }
-  };
-
-  const handleQuickTagClick = (tag: string) => {
-    setSearchTerm(tag);
-    router.push(`/urunler?q=${encodeURIComponent(tag)}`);
-    setIsOpen(false);
   };
 
   // Close dropdown on outside click
@@ -72,6 +74,8 @@ export default function OemSearchBar({
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-500" aria-hidden="true" />
             <input
+              id={`oem-search-${variant}`}
+              name="oem-search"
               type="text"
               value={searchTerm}
               onChange={(e) => {
@@ -109,26 +113,6 @@ export default function OemSearchBar({
           </Button>
         </form>
 
-        {/* Popular searches tag bar */}
-        {variant === "hero" && popularOems.length > 0 && (
-          <div className="mt-2.5 flex items-center gap-2 overflow-x-auto border-t border-slate-100 px-2 pt-2.5 no-scrollbar text-xs">
-            <span className="whitespace-nowrap font-medium text-slate-500">
-              Popüler OEM:
-            </span>
-            <div className="flex items-center gap-1.5 flex-nowrap">
-              {popularOems.map((oem) => (
-                <button
-                  key={oem}
-                  type="button"
-                  onClick={() => handleQuickTagClick(oem)}
-                  className="whitespace-nowrap rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 font-mono text-[11px] font-medium text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
-                >
-                  {oem}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Live Instant Search Dropdown */}
@@ -137,12 +121,12 @@ export default function OemSearchBar({
           <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-xs text-slate-500 font-medium">
             <span>&quot;{searchTerm}&quot; için arama sonuçları</span>
             <span className="text-blue-600">
-              {searchResults ? `${searchResults.length} ürün bulundu` : "Aranıyor..."}
+              {searchResults ? `${searchResults.length} sonuç` : "Aranıyor..."}
             </span>
           </div>
 
           <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-            {searchResults && searchResults.length > 0 ? (
+            {searchResults === undefined ? null : searchResults.length > 0 ? (
               searchResults.map((product) => (
                 <Link
                   key={product._id}
@@ -152,10 +136,12 @@ export default function OemSearchBar({
                 >
                   <div className="w-14 h-14 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative flex items-center justify-center">
                     {product.images?.[0] ? (
-                      <img
+                      <Image
                         src={product.images[0]}
                         alt={product.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        fill
+                        sizes="56px"
+                        className="object-cover group-hover:scale-105 transition-transform"
                       />
                     ) : (
                       <Cpu className="w-6 h-6 text-slate-400" />
@@ -171,16 +157,16 @@ export default function OemSearchBar({
                         {product.brand} {product.model}
                       </span>
                     </div>
-                    <h5 className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                    <div className="text-sm font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">
                       {product.title}
-                    </h5>
+                    </div>
                     <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
                       <span className="flex items-center gap-1 text-emerald-600 font-medium">
                         <CheckCircle2 className="w-3 h-3" />
                         {product.condition}
                       </span>
                       <span>•</span>
-                      <span>{product.inStock ? "Stokta Var" : "Temin Edilir"}</span>
+                      <span>{product.inStock ? "Stokta" : "Stokta yok"}</span>
                     </div>
                   </div>
 
@@ -191,21 +177,18 @@ export default function OemSearchBar({
               <div className="p-8 text-center space-y-2">
                 <Cpu className="w-10 h-10 text-slate-300 mx-auto" />
                 <p className="text-sm font-semibold text-slate-700">
-                  Bu OEM veya parça koduna ait ürün bulunamadı.
-                </p>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                  Stoklarımızda 15.000+ ürün bulunmaktadır. WhatsApp üzerinden hemen sorarak depomuzdan teyit alabilirsiniz.
+                  Bu aramayla eşleşen ürün yok.
                 </p>
                 <div className="pt-2">
                   <Button
-                    variant="whatsapp"
+                    variant="outline"
                     size="sm"
                     onClick={() => {
                       router.push(`/urunler?q=${encodeURIComponent(searchTerm)}`);
                       setIsOpen(false);
                     }}
                   >
-                    Tüm Katalogda Ara
+                    Katalogda ara
                   </Button>
                 </div>
               </div>
@@ -219,7 +202,7 @@ export default function OemSearchBar({
                 onClick={handleSearchSubmit}
                 className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
-                <span>Tüm sonuçları gör ({searchResults.length}+)</span>
+                <span>Tüm sonuçları gör</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>

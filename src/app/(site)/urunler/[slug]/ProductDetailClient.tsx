@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   ChevronRight,
@@ -9,7 +10,6 @@ import {
   Check,
   Copy,
   Cpu,
-  Zap,
   Share2,
   Package,
   Car,
@@ -21,7 +21,7 @@ import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@convex/_generated/api";
 import { SITE_CONTACT } from "@/config/site";
-import { generateWhatsAppLink } from "@/lib/utils";
+import { getWhatsAppUrl } from "@/lib/whatsapp";
 import { Button } from "@/components/ui/button";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Badge } from "@/components/ui/badge";
@@ -71,18 +71,36 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
   const productDescription = product?.description?.trim() ?? "";
 
 
+  const copyOemTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copyLinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyOemTimerRef.current) clearTimeout(copyOemTimerRef.current);
+      if (copyLinkTimerRef.current) clearTimeout(copyLinkTimerRef.current);
+    };
+  }, []);
+
   const handleCopyOem = () => {
     if (!product?.oemNumber) return;
     navigator.clipboard.writeText(product.oemNumber);
     setCopiedOem(true);
-    setTimeout(() => setCopiedOem(false), 2000);
+    if (copyOemTimerRef.current) clearTimeout(copyOemTimerRef.current);
+    copyOemTimerRef.current = setTimeout(() => {
+      setCopiedOem(false);
+      copyOemTimerRef.current = null;
+    }, 2000);
   };
 
   const handleShareLink = () => {
     if (typeof window !== "undefined") {
       navigator.clipboard.writeText(window.location.href);
       setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
+      if (copyLinkTimerRef.current) clearTimeout(copyLinkTimerRef.current);
+      copyLinkTimerRef.current = setTimeout(() => {
+        setCopiedLink(false);
+        copyLinkTimerRef.current = null;
+      }, 2000);
     }
   };
 
@@ -91,10 +109,10 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
       <div className="flex-1 flex items-center justify-center p-6 text-center py-24">
         <div className="space-y-4 max-w-md bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
           <Cpu className="w-12 h-12 text-slate-400 mx-auto" />
-          <h2 className="text-xl font-bold text-slate-900">Aradığınız Ürün Bulunamadı</h2>
+          <h2 className="text-xl font-bold text-slate-900">Ürün bulunamadı</h2>
           <Link href="/urunler">
             <Button variant="default" size="default" className="w-full">
-              Tüm Ürün Kataloğuna Dön
+              Tüm ürünlere dön
             </Button>
           </Link>
         </div>
@@ -112,7 +130,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
       {/* 1. Breadcrumbs */}
       <div className="bg-white border-b border-slate-200 py-3">
         <div className="container flex items-center gap-2 text-xs text-slate-500 overflow-x-auto whitespace-nowrap">
-          <Link href="/" className="hover:text-blue-600 transition-colors">Ana Sayfa</Link>
+          <Link href="/" className="hover:text-blue-600 transition-colors">Ana sayfa</Link>
           <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
           <Link href="/urunler" className="hover:text-blue-600 transition-colors">Ürünler</Link>
           <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
@@ -136,6 +154,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                   <ModernImageZoom
                     src={galleryImages[activeImageIndex] || galleryImages[0]}
                     alt={product.title}
+                    priority={true}
                     className="w-full h-full aspect-4/3 border-0 bg-transparent rounded-xl"
                   />
 
@@ -148,7 +167,8 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                           setActiveImageIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1));
                         }}
                         className="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 shadow-md border border-slate-200 text-slate-700 flex items-center justify-center opacity-80 hover:opacity-100 hover:bg-white transition-all cursor-pointer"
-                        title="Önceki Görsel"
+                        title="Önceki görsel"
+                        aria-label="Önceki görsel"
                       >
                         <ChevronLeft className="w-5 h-5" />
                       </button>
@@ -159,7 +179,8 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                           setActiveImageIndex((prev) => (prev + 1) % galleryImages.length);
                         }}
                         className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white/90 shadow-md border border-slate-200 text-slate-700 flex items-center justify-center opacity-80 hover:opacity-100 hover:bg-white transition-all cursor-pointer"
-                        title="Sonraki Görsel"
+                        title="Sonraki görsel"
+                        aria-label="Sonraki görsel"
                       >
                         <ChevronRight className="w-5 h-5" />
                       </button>
@@ -173,9 +194,16 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                       key={idx}
                       type="button"
                       onClick={() => setActiveImageIndex(idx)}
+                      aria-label={`Ürün görseli ${idx + 1}`}
                       className={`relative w-20 h-16 rounded-xl overflow-hidden border-2 bg-slate-50 transition-all cursor-pointer shrink-0 ${activeImageIndex === idx ? "border-blue-600 ring-2 ring-blue-100" : "border-slate-200 opacity-70 hover:opacity-100"}`}
                     >
-                      <img src={img} alt={`Görsel ${idx + 1}`} className="w-full h-full object-cover" />
+                      <Image
+                        src={img}
+                        alt=""
+                        fill
+                        sizes="80px"
+                        className="object-cover"
+                      />
                     </button>
                   ))}
                 </div>
@@ -194,12 +222,13 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                     type="button"
                     onClick={handleCopyOem}
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-all cursor-pointer"
-                    title="OEM Kodunu Kopyala"
+                    title="OEM kodunu kopyala"
+                    aria-label="OEM kodunu kopyala"
                   >
                     {copiedOem ? (
                       <>
                         <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-emerald-700 font-bold">Kopyalandı!</span>
+                        <span className="text-emerald-700 font-bold">Kopyalandı</span>
                       </>
                     ) : (
                       <>
@@ -214,12 +243,13 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                     type="button"
                     onClick={handleShareLink}
                     className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-all cursor-pointer"
-                    title="Bağlantıyı Kopyala"
+                    title="Bağlantıyı kopyala"
+                    aria-label="Ürün bağlantısını kopyala"
                   >
                     {copiedLink ? (
                       <>
                         <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-emerald-700 font-bold">Link Alındı!</span>
+                        <span className="text-emerald-700 font-bold">Kopyalandı</span>
                       </>
                     ) : (
                       <>
@@ -233,29 +263,19 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                 <h2 className="text-base font-bold text-slate-800 mt-1">
                   {product.title}
                 </h2>
-                <p className="text-xs text-slate-500 font-medium mt-0.5">
-                  {[product.brand, product.model, product.categoryName].filter(Boolean).join(" • ")}
-                </p>
-
                 {/* Status Badges */}
                 <div className="flex items-center gap-2 pt-3">
                   <Badge variant={product.condition === "Sıfır" ? "success" : "secondary"} className="text-xs font-bold">
                     {product.condition}
                   </Badge>
                   <Badge variant={product.inStock ? "info" : "warning"} className="text-xs font-bold">
-                    {product.inStock ? "Stokta" : "Stokta değil"}
+                    {product.inStock ? "Stokta" : "Stokta yok"}
                   </Badge>
                 </div>
               </div>
 
               {/* Technical Information Summary Table */}
               <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs divide-y divide-slate-100 shadow-2xs">
-                <div className="grid grid-cols-2 p-3 bg-slate-50/60">
-                  <span className="text-slate-500 font-medium flex items-center gap-1.5">
-                    <Cpu className="w-3.5 h-3.5 text-slate-400" /> OEM / Parça No
-                  </span>
-                  <span className="font-mono font-bold text-slate-900">{product.oemNumber}</span>
-                </div>
                 <div className="grid grid-cols-2 p-3 items-center">
                   <span className="text-slate-500 font-medium flex items-center gap-1.5">
                     <Car className="w-3.5 h-3.5 text-slate-400" /> Araç Markası
@@ -266,13 +286,12 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                     title={`${product.brand} parçalarını gör`}
                   >
                     {brandLogoUrl && (
-                      <img
+                      <Image
                         src={brandLogoUrl}
                         alt=""
+                        width={20}
+                        height={20}
                         className="h-5 w-5 object-contain shrink-0"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLElement).style.display = "none";
-                        }}
                       />
                     )}
                     {product.brand}
@@ -292,12 +311,6 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                   </span>
                   <span className="font-semibold text-slate-900">{product.categoryName}</span>
                 </div>
-                <div className="grid grid-cols-2 p-3 bg-slate-50/60">
-                  <span className="text-slate-500 font-medium flex items-center gap-1.5">
-                    Parça Durumu
-                  </span>
-                  <span className="font-bold text-slate-900">{product.condition}</span>
-                </div>
               </div>
 
               {/* Clickable Tags */}
@@ -315,72 +328,45 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                 </div>
               )}
 
-              {/* 100% Real Working Action Buttons: WHATSAPP & TELEFON */}
+              {/* Contact actions */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                <a
-                  href={generateWhatsAppLink(
-                    whatsappNumber,
-                    product.title,
-                    product.oemNumber,
-                    `Merhaba Beyin Deposu, ${product.oemNumber} kodlu (${product.title}) parça hakkında fiyat ve stok bilgisi almak istiyorum.`
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="sm:col-span-2"
+                <Button
+                  asChild
+                  variant="whatsapp"
+                  size="lg"
+                  className="sm:col-span-2 w-full text-xs font-black tracking-wider py-6 rounded-xl shadow-md shadow-emerald-600/20"
                 >
-                  <Button
-                    variant="whatsapp"
-                    size="lg"
-                    className="w-full text-xs font-black tracking-wider py-6 rounded-xl shadow-md shadow-emerald-600/20"
+                  <a
+                    href={getWhatsAppUrl({
+                      product: {
+                        title: product.title,
+                        oemNumber: product.oemNumber,
+                        action: "price_and_stock",
+                      },
+                    })}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Fiyat ve stok sor: ${product.oemNumber} için WhatsApp`}
                   >
                     <WhatsAppIcon className="w-5 h-5 fill-white text-white mr-1.5" />
-                    <span>WHATSAPP İLE FİYAT &amp; STOK SOR</span>
-                  </Button>
-                </a>
+                    <span>Fiyat ve stok sor</span>
+                  </a>
+                </Button>
 
-                <a
-                  href={`tel:${displayPhone.replace(/\s+/g, "")}`}
-                  className="w-full"
+                <Button
+                  asChild
+                  variant="default"
+                  size="lg"
+                  className="w-full font-medium text-xs py-6 rounded-xl shadow-sm"
                 >
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs py-6 rounded-xl shadow-sm"
+                  <a
+                    href={`tel:${displayPhone.replace(/\s+/g, "")}`}
+                    aria-label={`Telefonla ara: ${displayPhone}`}
                   >
                     <Phone className="w-4 h-4 mr-1.5" />
-                    <span>HEMEN ARA</span>
-                  </Button>
-                </a>
-              </div>
-
-              {/* Guarantees Box */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50/80 via-slate-50 to-emerald-50/50 border border-blue-100/80 space-y-3 text-xs">
-                <div className="flex items-center gap-2 text-blue-950 font-extrabold">
-                  <Zap className="w-4 h-4 text-blue-600 fill-blue-600" />
-                  <span>Kargo, Garanti ve İade Güvencesi</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-[11px] text-slate-700">
-                  <div className="flex items-start gap-2">
-                    <span className="font-bold text-emerald-600 shrink-0">✓</span>
-                    <span><strong>16:00&apos;ya Kadar Aynı Gün:</strong> Stoktaki ürünler aynı gün kargoya teslim edilir.</span>
-                  </div>
-
-                  <div className="flex items-start gap-2">
-                    <span className="font-bold text-blue-600 shrink-0">✓</span>
-                    <span><strong>Birebir Değişim &amp; İade:</strong> Uyumsuzluk durumunda koşulsuz iade güvencesi.</span>
-                  </div>
-
-                  <div className="flex items-start gap-2">
-                    <span className="font-bold text-emerald-600 shrink-0">✓</span>
-                    <span><strong>Test Edilmiş Orijinal:</strong> Tüm elektronik kontrol üniteleri test edilmiş garantilidir.</span>
-                  </div>
-
-                  <div className="flex items-start gap-2">
-                    <span className="font-bold text-blue-600 shrink-0">✓</span>
-                    <span><strong>Antistatik Korumalı Paket:</strong> Hassas modüller darbelere dayanıklı özel kutuda gönderilir.</span>
-                  </div>
-                </div>
+                    <span>Ara</span>
+                  </a>
+                </Button>
               </div>
 
             </div>
@@ -398,13 +384,13 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
           <div className="mt-12 space-y-5">
             <div className="flex items-center justify-between">
               <h3 className="font-black text-lg text-slate-900 tracking-tight">
-                {product.categoryName} Kategorisindeki Benzer Parçalar
+                {product.categoryName} kategorisindeki ürünler
               </h3>
               <Link
                 href={`/urunler?kategori=${product.categorySlug}`}
                 className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
               >
-                <span>Tümünü Gör</span>
+                <span>Tümünü gör</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>

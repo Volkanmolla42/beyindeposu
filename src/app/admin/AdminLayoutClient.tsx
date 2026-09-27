@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useQuery, useConvexAuth } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import RoutartLogo from "@/components/RoutartLogo";
 
 interface NavItem {
@@ -38,7 +38,7 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    title: "KATALOG & STOK",
+    title: "Katalog ve stok",
     items: [
       {
         href: "/admin/products",
@@ -47,7 +47,7 @@ const NAV_GROUPS: NavGroup[] = [
       },
       {
         href: "/admin/batch-import",
-        label: "Toplu İçe Aktar (AI)",
+        label: "Toplu aktarım",
         icon: Sparkles,
       },
       {
@@ -57,17 +57,17 @@ const NAV_GROUPS: NavGroup[] = [
       },
       {
         href: "/admin/brands",
-        label: "Araç Markaları",
+        label: "Markalar",
         icon: Car,
       },
     ],
   },
   {
-    title: "MÜŞTERİ & SİSTEM",
+    title: "Müşteri desteği",
     items: [
       {
         href: "/admin/chats",
-        label: "Canlı Destek",
+        label: "Sohbetler",
         icon: MessageSquare,
         badgeKey: "unreadChats",
       },
@@ -158,7 +158,7 @@ export default function AdminLayout({
               title="Sohbetleri yeni sekmede aç"
             >
               <ExternalLink className="w-3.5 h-3.5 text-slate-300" />
-              <span>Yeni Sekmede Aç</span>
+              <span>Yeni sekmede aç</span>
             </Link>
           )}
 
@@ -202,8 +202,8 @@ export default function AdminLayout({
                 alt="Beyin Deposu"
                 className="h-8 w-auto object-contain"
               />
-              <span className="rounded-full border border-blue-100 bg-blue-50 px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-blue-800">
-                ADMIN
+              <span className="rounded-full border border-blue-100 bg-blue-50 px-2 py-1 text-[10px] font-medium tracking-wide text-blue-800">
+                Yönetim
               </span>
             </Link>
           </div>
@@ -212,7 +212,7 @@ export default function AdminLayout({
           <nav className="p-3 space-y-5 flex-1 overflow-y-auto">
             {NAV_GROUPS.map((group, gIdx) => (
               <div key={gIdx} className="space-y-1">
-                <div className="px-3 text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                <div className="px-3 text-[11px] font-medium tracking-wide text-slate-500">
                   {group.title}
                 </div>
 
@@ -284,8 +284,8 @@ export default function AdminLayout({
               onClick={handleLogout}
               disabled={loggingOut}
               className="shrink-0 rounded-full p-2 text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-700"
-              title="Güvenli Çıkış Yap"
-              aria-label="Çıkış Yap"
+              title="Çıkış yap"
+              aria-label="Çıkış yap"
             >
               {loggingOut ? (
                 <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
@@ -326,7 +326,7 @@ export default function AdminLayout({
                 title="Sohbetleri yeni sekmede aç"
               >
                 <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
-                <span>Yeni Sekmede Aç</span>
+                <span>Yeni sekmede aç</span>
               </Link>
             )}
             {unreadChatsCount > 0 && (
@@ -337,7 +337,7 @@ export default function AdminLayout({
                 className="px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-xs font-semibold flex items-center gap-2 hover:bg-blue-100 transition-colors"
               >
                 <span className="w-2 h-2 rounded-full bg-blue-600" />
-                <span>{unreadChatsCount} Okunmamış Canlı Mesaj</span>
+                <span>{unreadChatsCount} okunmamış mesaj</span>
               </Link>
             )}
 
@@ -345,14 +345,14 @@ export default function AdminLayout({
               onClick={handleLogout}
               disabled={loggingOut}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 text-slate-600 text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
-              title="Oturumu Kapat"
+              title="Çıkış yap"
             >
               {loggingOut ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : (
                 <LogOut className="w-3.5 h-3.5" />
               )}
-              <span>Çıkış Yap</span>
+              <span>Çıkış yap</span>
             </button>
           </div>
         </header>

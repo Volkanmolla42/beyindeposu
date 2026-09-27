@@ -11,7 +11,7 @@ const buttonVariants = cva(
         default:
           "bg-blue-600 text-white shadow-sm hover:bg-blue-700",
         whatsapp:
-          "bg-[#25D366] text-white shadow-sm hover:bg-[#20bd5a] font-semibold",
+          "bg-emerald-700 text-white shadow-sm hover:bg-emerald-800 font-semibold",
         destructive:
           "bg-red-600 text-white shadow-sm hover:bg-red-700",
         outline:

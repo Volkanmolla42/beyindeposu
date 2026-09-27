@@ -1,4 +1,4 @@
-import { Doc, Id } from "../../convex/_generated/dataModel";
+import { Doc, Id } from "@convex/_generated/dataModel";
 import { SITE_CONTACT } from "@/config/site";
 
 export type Product = Doc<"products">;

@@ -14,7 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,7 +22,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { slugify, LOCAL_BRAND_LOGOS } from "../admin-utils";
 
@@ -135,7 +134,7 @@ export default function AdminBrandsPage() {
   };
 
   const handleDeleteBrand = async (b: any) => {
-    if (confirm(`'${b.name}' markasını silmek istediğinizden emin misiniz?`)) {
+    if (confirm(`'${b.name}' markası silinsin mi?`)) {
       try {
         await deleteBrand({ id: b._id });
       } catch (err: any) {
@@ -157,13 +156,13 @@ export default function AdminBrandsPage() {
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <span>Araç Markaları</span>
+              <span>Araç markaları</span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
               {brands ? brands.length : 0} marka
             </span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Desteklenen araç markalarını ve resmi vektör logolarını yönetin.
+            Marka adlarını, logolarını ve sırasını yönetin.
           </p>
         </div>
 
@@ -172,7 +171,7 @@ export default function AdminBrandsPage() {
           className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold h-9 rounded-lg gap-1.5 cursor-pointer shadow-xs"
         >
           <Plus className="w-4 h-4" />
-          <span>Yeni Marka Ekle</span>
+          <span>Yeni marka ekle</span>
         </Button>
       </div>
 
@@ -180,7 +179,7 @@ export default function AdminBrandsPage() {
       <div className="relative max-w-sm">
         <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
         <Input
-          placeholder="Marka adına göre filtrele..."
+          placeholder="Marka adına göre ara"
           value={brandSearch}
           onChange={(e) => setBrandSearch(e.target.value)}
           className="pl-9 bg-white border-slate-200 text-slate-900 text-xs h-9 rounded-lg"
@@ -255,11 +254,8 @@ export default function AdminBrandsPage() {
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto bg-white text-slate-900 border-slate-200 p-6">
           <DialogHeader>
             <DialogTitle className="text-base font-bold text-slate-900">
-              {editingBrand ? "Markayı Düzenle" : "Yeni Marka Ekle"}
+              {editingBrand ? "Markayı düzenle" : "Yeni marka"}
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Marka adını, slug ve resmi logosunu belirleyin.
-            </DialogDescription>
           </DialogHeader>
 
           {brandError && (
@@ -270,7 +266,7 @@ export default function AdminBrandsPage() {
 
           <form onSubmit={handleSaveBrand} className="space-y-3.5 pt-1 text-xs">
             <div>
-              <label className="font-semibold text-slate-700 block mb-1">Marka Adı *</label>
+              <label className="font-semibold text-slate-700 block mb-1">Marka adı *</label>
               <Input
                 required
                 placeholder="Örn: Volkswagen, Renault, BMW"
@@ -288,7 +284,7 @@ export default function AdminBrandsPage() {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="font-semibold text-slate-700 block">URL Slug *</label>
+                <label className="font-semibold text-slate-700 block">URL slug *</label>
                 <span className="text-[10px] text-slate-400">Otomatik üretilir</span>
               </div>
               <Input
@@ -308,7 +304,7 @@ export default function AdminBrandsPage() {
               <div className="flex items-center justify-between">
                 <label className="font-semibold text-slate-800 flex items-center gap-1.5">
                   <ImageIcon className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Marka Logosu</span>
+                  <span>Marka logosu</span>
                 </label>
                 <span className="text-[10px] text-slate-400">Statik SVG vektör logo</span>
               </div>
@@ -333,7 +329,7 @@ export default function AdminBrandsPage() {
                     </button>
                   </div>
                   <div className="text-[11px] space-y-0.5">
-                    <span className="text-emerald-700 font-semibold block">Logo Seçildi</span>
+                    <span className="text-emerald-700 font-semibold block">Logo seçildi</span>
                     <span className="text-slate-400 font-mono text-[10px] truncate max-w-[200px] block">{brandLogoUrl}</span>
                   </div>
                 </div>
@@ -363,7 +359,7 @@ export default function AdminBrandsPage() {
                     onChange={(e) => setBrandIsActive(e.target.checked)}
                     className="w-4 h-4 rounded text-blue-600 border-slate-300"
                   />
-                  <span>Yayında (Aktif)</span>
+                  <span>Yayında</span>
                 </label>
               </div>
             </div>

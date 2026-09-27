@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import {
   FolderUp,
   Play,
@@ -87,7 +87,7 @@ export default function BatchImportPage() {
       const target = (e.target as HTMLElement).closest("a");
       if (target && target.href && !target.href.startsWith("javascript:")) {
         const confirmLeave = window.confirm(
-          "Toplu ürün yükleme işlemi devam ediyor. Sayfadan ayrılırsanız işlem duracaktır. Çıkmak istediğinize emin misiniz?"
+          "Toplu yükleme sürüyor. Ayrılırsanız işlem durur. Çıkılsın mı?"
         );
         if (!confirmLeave) {
           e.preventDefault();
@@ -310,7 +310,7 @@ export default function BatchImportPage() {
 
       const data = await res.json();
       if (!data.success) {
-        throw new Error(data.error || "Yapay zeka analizi başarısız oldu.");
+        throw new Error(data.error || "OEM analizi başarısız oldu.");
       }
 
       // 3. Match Category
@@ -488,10 +488,10 @@ export default function BatchImportPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                Toplu Ürün Aktarımı & AI OEM Analizi
+                Toplu ürün yükleme
               </h1>
               <p className="text-xs text-slate-500">
-                Görsellerden yapay zeka ile otomatik OEM okuma, 100/100 SEO açıklaması üretme ve kontrollü içe aktarma
+                Görsellerden OEM bilgilerini okuyup ürün taslakları oluşturun.
               </p>
             </div>
           </div>
@@ -502,7 +502,7 @@ export default function BatchImportPage() {
             href="/admin/products"
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
           >
-            <span>Ürün Listesine Dön</span>
+            <span>Ürün listesine dön</span>
             <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -527,10 +527,10 @@ export default function BatchImportPage() {
           </div>
 
           <h3 className="mt-4 text-base font-bold text-slate-900">
-            Bilgisayarınızdan Ürün Klasörünü Seçin
+            Ürün klasörlerini seçin
           </h3>
           <p className="mx-auto mt-1.5 max-w-md text-xs text-slate-500 leading-relaxed">
-            İçinde ürün alt klasörleri ve .webp / .jpg fotoğrafları bulunan ana klasörü seçin (Örn: <code>data.test-10</code> veya <code>data</code>).
+            Ürün alt klasörlerini içeren klasörü seçin. Her alt klasör bir ürün olur.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -540,24 +540,10 @@ export default function BatchImportPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/25 hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
             >
               <FolderUp className="h-4 w-4" />
-              <span>Klasör Seç ve Tara</span>
+              <span>Klasör seç</span>
             </button>
           </div>
 
-          <div className="mt-8 flex items-center justify-center gap-6 border-t border-slate-100 pt-6 text-[11px] text-slate-400">
-            <div className="flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-emerald-500" />
-              <span>Çoklu Görsel Desteği (Ön & Arka Etiket)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-emerald-500" />
-              <span>Durdurma & Devam Etme Kontrolü</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Check className="h-3.5 w-3.5 text-emerald-500" />
-              <span>100/100 SEO & Uyumlu Araç Tablosu</span>
-            </div>
-          </div>
         </div>
       ) : (
         /* 3. Aktif Klasör & Kontrol Paneli */
@@ -574,11 +560,11 @@ export default function BatchImportPage() {
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm font-bold text-slate-900">{selectedFolderName}</span>
                     <span className="rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
-                      {totalCount} Ürün Klasörü
+                      {totalCount} ürün
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Toplam {productGroups.reduce((acc, g) => acc + g.files.length, 0)} görsel yüklendi
+                    {productGroups.reduce((acc, g) => acc + g.files.length, 0)} görsel
                   </p>
                 </div>
               </div>
@@ -592,7 +578,7 @@ export default function BatchImportPage() {
                     className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/25 hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
                   >
                     <Play className="h-4 w-4 fill-current" />
-                    <span>{isPaused ? "Kaldığı Yerden Devam Et" : "İşlemi Başlat"}</span>
+                    <span>{isPaused ? "Devam et" : "Başlat"}</span>
                   </button>
                 ) : (
                   <button
@@ -601,7 +587,7 @@ export default function BatchImportPage() {
                     className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-amber-500/25 hover:bg-amber-600 active:scale-95 transition-all cursor-pointer"
                   >
                     <Pause className="h-4 w-4 fill-current" />
-                    <span>Durdur / Duraklat</span>
+                    <span>Duraklat</span>
                   </button>
                 )}
 
@@ -610,7 +596,7 @@ export default function BatchImportPage() {
                   onClick={handleReset}
                   disabled={isRunning}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
-                  title="Durumu Sıfırla"
+                  title="Durumu sıfırla"
                 >
                   <RotateCcw className="h-4 w-4" />
                   <span>Sıfırla</span>
@@ -627,7 +613,7 @@ export default function BatchImportPage() {
                   className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   <FolderUp className="h-4 w-4" />
-                  <span>Farklı Klasör</span>
+                  <span>Klasör değiştir</span>
                 </button>
               </div>
             </div>
@@ -636,7 +622,7 @@ export default function BatchImportPage() {
             <div className="mt-6 border-t border-slate-100 pt-5">
               <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-2">
                 <span className="flex items-center gap-2">
-                  <span>İlerleme Durumu</span>
+                  <span>İlerleme</span>
                   {isRunning && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 animate-pulse">
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -669,7 +655,7 @@ export default function BatchImportPage() {
                     disabled={isRunning}
                     className="h-4 w-4 rounded border-slate-300 text-blue-600 accent-blue-600"
                   />
-                  <span>Zaten Kayıtlı Olanları Atla</span>
+                  <span>Kayıtlı ürünleri atla</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700">
@@ -680,7 +666,7 @@ export default function BatchImportPage() {
                     disabled={isRunning}
                     className="h-4 w-4 rounded border-slate-300 text-blue-600 accent-blue-600"
                   />
-                  <span>Taslak Olarak Kaydet</span>
+                  <span>Taslak olarak kaydet</span>
                 </label>
               </div>
 
@@ -711,8 +697,8 @@ export default function BatchImportPage() {
           <div className="space-y-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-900">İşlem Listesi</h3>
-                <span className="text-xs text-slate-500 font-mono">({filteredGroups.length} gösteriliyor)</span>
+                <h3 className="text-sm font-bold text-slate-900">İşlem listesi</h3>
+                <span className="text-xs text-slate-500 font-mono">({filteredGroups.length} kayıt)</span>
               </div>
 
               <div className="flex items-center gap-2">
@@ -723,7 +709,7 @@ export default function BatchImportPage() {
                     type="text"
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
-                    placeholder="OEM, Raf Kodu veya Model ara..."
+                    placeholder="OEM, raf kodu veya model ara"
                     className="h-8 w-56 rounded-lg border border-slate-300 pl-8 pr-3 text-xs placeholder:text-slate-400 focus:border-blue-500 focus:outline-none"
                   />
                 </div>
@@ -820,8 +806,8 @@ export default function BatchImportPage() {
                           ) : (
                             <span className="text-slate-400 italic">
                               {item.status === "processing"
-                                ? "Gemini Vision ile görsel analiz ediliyor..."
-                                : "İşlem sırası bekliyor..."}
+                                ? "Görsel analiz ediliyor..."
+                                : "Sırada..."}
                             </span>
                           )}
                         </p>
@@ -862,7 +848,7 @@ export default function BatchImportPage() {
                           className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
                         >
                           <Play className="h-3 w-3 fill-current" />
-                          <span>Tekli İşle</span>
+                          <span>Bu ürünü işle</span>
                         </button>
                       ) : null}
                     </div>

@@ -25,8 +25,8 @@ import {
   Scan,
 } from "lucide-react";
 import { useQuery, useMutation, useAction } from "convex/react";
-import { api } from "../../../../convex/_generated/api";
-import { Id } from "../../../../convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+import { Id } from "@convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -380,7 +380,7 @@ export default function AdminProductsPage() {
   const handleGenerateFromOem = async () => {
     const trimmed = oemNumber.trim();
     if (!trimmed) {
-      setAiError("Lütfen önce bir OEM kodu giriniz.");
+      setAiError("OEM kodunu girin.");
       return;
     }
 
@@ -434,11 +434,9 @@ export default function AdminProductsPage() {
 
       populateProductForm(data);
 
-      setAiSuccessMessage(
-        `OEM kodu doğrulandı: ${data.brand || ""} ${data.model || ""}. Form otomatik dolduruldu.`
-      );
+      setAiSuccessMessage("OEM bilgileri bulundu. Alanları kontrol edin.");
     } catch (err: any) {
-      setAiError(err.message || "OEM analizi sırasında bir hata meydana geldi.");
+      setAiError(err.message || "OEM analizi başarısız oldu.");
     } finally {
       setAiLoading(false);
     }
@@ -462,19 +460,12 @@ export default function AdminProductsPage() {
 
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.error || "Görsel üzerindeki etiket veya OEM numarası okunamadı.");
+      throw new Error(data.error || "Görselde okunabilir etiket veya OEM numarası bulunamadı.");
     }
 
     populateProductForm(data);
 
-    const codesInfo =
-      Array.isArray(data.detectedCodes) && data.detectedCodes.length > 0
-        ? ` (Okunan Kodlar: ${data.detectedCodes.join(", ")})`
-        : "";
-
-    setAiSuccessMessage(
-      `📸 Parça etiketi başarıyla okundu: ${data.detectedOem || ""} - ${data.brand || ""} ${data.model || ""}${codesInfo}. Form 100/100 SEO formatında dolduruldu.`
-    );
+    setAiSuccessMessage("Etiket bilgileri forma aktarıldı. Kaydetmeden önce kontrol edin.");
   };
 
   const handleScanPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -527,7 +518,7 @@ export default function AdminProductsPage() {
   const handleScanActivePreviewImage = async () => {
     const currentImgUrl = previewImages[selectedFormImageIndex];
     if (!currentImgUrl) {
-      setAiError("Lütfen önce taranacak bir görsel seçiniz.");
+      setAiError("Önce bir görsel seçin.");
       return;
     }
 
@@ -646,7 +637,7 @@ export default function AdminProductsPage() {
     const selectedFiles = Array.from(event.target.files || []);
     event.target.value = "";
     if (!brands || !categories) {
-      alert("Marka ve kategori listesi yükleniyor. Tekrar deneyin.");
+      alert("Marka ve kategori listesi yükleniyor. Yeniden deneyin.");
       return;
     }
     const groups = groupFolderImages(selectedFiles, brands, categories);
@@ -761,7 +752,7 @@ export default function AdminProductsPage() {
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !oemNumber || !brand) {
-      alert("Lütfen zorunlu alanları (Başlık, OEM No, Marka) doldurunuz.");
+      alert("Zorunlu alanları doldurun: ürün başlığı, OEM no ve marka.");
       return;
     }
 
@@ -771,7 +762,7 @@ export default function AdminProductsPage() {
     }
 
     if (!targetCatId) {
-      alert("Lütfen en az bir kategori seçiniz.");
+      alert("Bir kategori seçin.");
       return;
     }
 
@@ -819,7 +810,7 @@ export default function AdminProductsPage() {
   };
 
   const handleDeleteProduct = async (p: any) => {
-    if (confirm(`'${p.oemNumber} - ${p.title}' ürününü silmek istediğinize emin misiniz?`)) {
+    if (confirm(`'${p.oemNumber} - ${p.title}' ürünü silinsin mi?`)) {
       await deleteProduct({ id: p._id });
     }
   };
@@ -865,13 +856,13 @@ export default function AdminProductsPage() {
       <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-lg font-bold text-slate-900 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span>Ürün Kataloğu Yönetimi</span>
+            <span>Ürünler</span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
               {totalItems.toLocaleString("tr-TR")} Ürün
             </span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Depo stok durumlarını, OEM kodlarını ve parça detaylarını yönetin.
+            Ürün, stok ve OEM bilgilerini yönetin.
           </p>
         </div>
 
@@ -892,7 +883,7 @@ export default function AdminProductsPage() {
             className="col-span-2 inline-flex h-10 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-700 shadow-xs transition-colors hover:bg-indigo-100 sm:col-span-1 sm:h-9 sm:w-auto"
           >
             <Sparkles className="w-4 h-4 text-indigo-600" />
-            <span>Toplu İçe Aktar (AI)</span>
+            <span>Toplu ürün aktarımı</span>
           </Link>
           <Button
             type="button"
@@ -902,14 +893,14 @@ export default function AdminProductsPage() {
             className="h-10 w-full justify-center rounded-lg text-xs font-semibold sm:h-9 sm:w-auto"
           >
             {folderUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            <span>{folderUploading ? "Yükleniyor" : "Klasör Yükle"}</span>
+            <span>{folderUploading ? "Yükleniyor" : "Klasör yükle"}</span>
           </Button>
           <Button
             onClick={handleOpenAddProduct}
             className="h-10 w-full justify-center gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 sm:h-9 sm:w-auto"
           >
             <Plus className="w-4 h-4" />
-            <span>Yeni Ürün Ekle</span>
+            <span>Yeni ürün ekle</span>
           </Button>
         </div>
       </div>
@@ -931,7 +922,7 @@ export default function AdminProductsPage() {
         <div className="relative min-w-0 sm:col-span-2">
           <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
           <Input
-            placeholder="OEM No, parça adı veya raf kodu ara..."
+            placeholder="OEM, ürün adı veya raf kodu ara"
             value={searchProduct}
             onChange={(e) => setSearchProduct(e.target.value)}
             className="h-10 min-w-0 rounded-lg border-slate-200 bg-white pl-9 text-xs text-slate-900 sm:h-9"
@@ -953,7 +944,7 @@ export default function AdminProductsPage() {
           onChange={(e) => setSelectedBrandFilter(e.target.value)}
           className="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none sm:h-9"
         >
-          <option value="">Tüm Markalar</option>
+          <option value="">Tüm markalar</option>
           {brands?.map((b) => (
             <option key={b._id} value={b.name}>
               {b.name}
@@ -966,7 +957,7 @@ export default function AdminProductsPage() {
           onChange={(e) => setSelectedCategoryFilter(e.target.value)}
           className="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none sm:h-9"
         >
-          <option value="">Tüm Kategoriler</option>
+          <option value="">Tüm kategoriler</option>
           {categories?.map((c) => (
             <option key={c._id} value={c.slug}>
               {c.name}
@@ -979,12 +970,12 @@ export default function AdminProductsPage() {
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
         <div className="hidden overflow-x-auto xl:block">
           <table className="w-full min-w-[920px] text-left text-xs text-slate-700">
-            <thead className="bg-slate-50 text-slate-500 font-semibold uppercase text-[11px] tracking-wider border-b border-slate-200">
+            <thead className="bg-slate-50 text-slate-500 font-semibold text-[11px] tracking-wider border-b border-slate-200">
               <tr>
                 <th className="p-3.5">Görsel</th>
-                <th className="p-3.5">OEM No</th>
-                <th className="p-3.5">Raf Kodu</th>
-                <th className="p-3.5">Parça Başlığı</th>
+                <th className="p-3.5">OEM no</th>
+                <th className="p-3.5">Raf kodu</th>
+                <th className="p-3.5">Ürün başlığı</th>
                 <th className="p-3.5">Durum</th>
                 <th className="p-3.5">Stok</th>
                 <th className="p-3.5 text-right">İşlem</th>
@@ -1128,21 +1119,21 @@ export default function AdminProductsPage() {
 
                 <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-slate-100 pt-3 text-xs">
                   <div className="min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">OEM No</div>
+                    <div className="text-[10px] font-semibold tracking-wide text-slate-400">OEM no</div>
                     <div className="mt-0.5 break-all font-mono font-semibold text-slate-800">{p.oemNumber || "—"}</div>
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Raf Kodu</div>
+                    <div className="text-[10px] font-semibold tracking-wide text-slate-400">Raf kodu</div>
                     <div className="mt-0.5 break-all font-mono font-semibold text-slate-800">{p.shelfCode || "—"}</div>
                   </div>
                   <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Durum</div>
+                    <div className="text-[10px] font-semibold tracking-wide text-slate-400">Durum</div>
                     <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${p.isDraft === true ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
                       {p.isDraft === true ? "Taslak" : "Yayında"}
                     </span>
                   </div>
                   <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Stok</div>
+                    <div className="text-[10px] font-semibold tracking-wide text-slate-400">Stok</div>
                     <button
                       type="button"
                       onClick={() => toggleStock({ id: p._id, inStock: !p.inStock })}
@@ -1210,7 +1201,7 @@ export default function AdminProductsPage() {
 
           <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-1.5">
-              <span className="text-slate-500 text-[11px]">Sayfa Başına:</span>
+              <span className="text-slate-500 text-[11px]">Sayfa başına:</span>
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}
@@ -1230,7 +1221,7 @@ export default function AdminProductsPage() {
                   onClick={() => handlePageChange(1)}
                   disabled={currentPage === 1}
                   className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                  title="İlk Sayfa"
+                  title="İlk sayfa"
                 >
                   <ChevronsLeft className="w-3.5 h-3.5" />
                 </button>
@@ -1280,7 +1271,7 @@ export default function AdminProductsPage() {
                   onClick={() => handlePageChange(totalPages)}
                   disabled={currentPage === totalPages}
                   className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                  title="Son Sayfa"
+                  title="Son sayfa"
                 >
                   <ChevronsRight className="w-3.5 h-3.5" />
                 </button>
@@ -1297,7 +1288,7 @@ export default function AdminProductsPage() {
       >
         <DialogContent className="fixed left-0 top-0 z-50 flex h-[100dvh] max-h-[100dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 bg-white p-0 shadow-none [&>button]:right-2 [&>button]:top-2 [&>button]:h-11 [&>button]:w-11 [&>button]:opacity-100 md:left-1/2 md:top-1/2 md:h-[90dvh] md:max-h-[900px] md:w-[94vw] md:max-w-6xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-xl md:border md:shadow-2xl">
           <DialogHeader className="shrink-0 border-b border-slate-200 px-4 py-4 pr-14 text-left sm:px-6">
-            <DialogTitle className="text-base sm:text-lg">{editingProduct ? "Ürünü Düzenle" : "Yeni Ürün"}</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">{editingProduct ? "Ürünü düzenle" : "Yeni ürün"}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSaveProduct} className="flex min-h-0 flex-1 flex-col text-xs">
@@ -1319,17 +1310,17 @@ export default function AdminProductsPage() {
                           selectedFormImageIndex === 0 ? (
                             <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/95 px-2 py-1 text-[10px] font-bold text-white shadow-xs backdrop-blur-xs">
                               <Star className="w-3 h-3 fill-current" />
-                              <span>Ana Kapak</span>
+                              <span>Ana kapak</span>
                             </span>
                           ) : (
                             <button
                               type="button"
                               onClick={() => handleSetCoverImage(selectedFormImageIndex)}
                               className="inline-flex items-center gap-1.5 rounded-md bg-slate-900/85 hover:bg-amber-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-xs backdrop-blur-xs transition-colors cursor-pointer"
-                              title="Bu görseli ana kapak görseli yap"
+                            title="Kapak görseli yap"
                             >
                               <Star className="w-3 h-3 fill-current" />
-                              <span><span className="hidden sm:inline">Bu Görseli </span>Kapak Yap</span>
+                              <span><span className="hidden sm:inline">Bu görseli </span>Kapak yap</span>
                             </button>
                           )
                         }
@@ -1339,7 +1330,7 @@ export default function AdminProductsPage() {
                             onClick={handleScanActivePreviewImage}
                             disabled={scanImageLoading || aiLoading}
                             className="inline-flex items-center gap-1.5 rounded-md bg-sky-600/95 hover:bg-sky-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-xs backdrop-blur-xs transition-colors disabled:opacity-50 cursor-pointer"
-                            title="Bu fotoğraftaki etiketi tarayıp OEM kodunu ve ürün detaylarını çıkar"
+                            title="Etiketten ürün bilgilerini oku"
                           >
                             {scanImageLoading ? (
                               <Loader2 className="w-3 h-3 animate-spin" />
@@ -1349,7 +1340,7 @@ export default function AdminProductsPage() {
                             <span>
                               {scanImageLoading ? "Okunuyor..." : (
                                 <>
-                                  <span className="hidden sm:inline">Bu Fotoğraftan </span>OEM Oku
+                                  Etiketten OEM oku
                                 </>
                               )}
                             </span>
@@ -1387,7 +1378,7 @@ export default function AdminProductsPage() {
                         {i === 0 && (
                           <span
                             className="absolute left-1 bottom-1 px-1 py-0.5 rounded text-[8px] font-black bg-amber-500 text-white shadow-xs leading-none"
-                            title="Ana Kapak Görseli"
+                            title="Ana kapak görseli"
                           >
                             KAPAK
                           </span>
@@ -1459,12 +1450,12 @@ export default function AdminProductsPage() {
                           {aiLoading ? (
                             <>
                               <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-600" />
-                              <span>AI Doğruluyor...</span>
+                              <span>Bilgiler hazırlanıyor...</span>
                             </>
                           ) : (
                             <>
                               <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-                              <span>OEM ile AI Üret</span>
+                              <span>OEM ile doldur</span>
                             </>
                           )}
                         </Button>
@@ -1481,7 +1472,7 @@ export default function AdminProductsPage() {
                         required
                       />
                       <p className="text-[11px] text-slate-400">
-                        OEM kodunu yazıp <strong>&quot;OEM ile AI Üret&quot;</strong> butonuna basabilir veya etiket fotoğrafını yükleyip sol görseldeki <strong>&quot;Bu Fotoğraftan OEM Oku&quot;</strong> butonuyla alanları otomatik doldurabilirsiniz.
+                        OEM kodunu girip bilgileri doldurun veya etiket fotoğrafından okuyun. Kaydetmeden önce alanları kontrol edin.
                       </p>
 
                       {/* AI Error Feedback */}
@@ -1489,7 +1480,7 @@ export default function AdminProductsPage() {
                         <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2.5 text-xs text-red-700 animate-in fade-in">
                           <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                           <div className="flex-1">
-                            <span className="font-semibold block">Otomotiv Doğrulama Uyarısı:</span>
+                            <span className="font-semibold block">OEM doğrulama uyarısı:</span>
                             {aiError}
                           </div>
                           <button
@@ -1520,7 +1511,7 @@ export default function AdminProductsPage() {
                           </div>
                           {aiSources.length > 0 && (
                             <div className="pt-1.5 border-t border-emerald-200/60 text-[11px] flex flex-wrap gap-2 items-center text-emerald-700">
-                              <span className="font-medium text-slate-600">Doğrulanan Web Kaynakları:</span>
+                              <span className="font-medium text-slate-600">Kaynaklar:</span>
                               {aiSources.slice(0, 3).map((source, i) => (
                                 <a
                                   key={i}
@@ -1596,7 +1587,7 @@ export default function AdminProductsPage() {
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
-                          <label className="font-bold text-slate-700">Raf / Depo Kodu</label>
+                          <label className="font-bold text-slate-700">Raf / depo kodu</label>
                           <Input
                             placeholder="Örn: 201.07.0069, A12-04"
                             value={shelfCode}
@@ -1606,7 +1597,7 @@ export default function AdminProductsPage() {
                         </div>
 
                         <div className="space-y-1">
-                          <label className="font-bold text-slate-700">Uyumlu Model / Seri</label>
+                          <label className="font-bold text-slate-700">Uyumlu model / seri</label>
                           <Input
                             placeholder="Örn: Megane 2, Clio 3"
                             value={model}
@@ -1618,7 +1609,7 @@ export default function AdminProductsPage() {
 
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
-                          <label className="font-bold text-slate-700">Parça Durumu</label>
+                          <label className="font-bold text-slate-700">Parça durumu</label>
                           <select
                             value={condition}
                             onChange={(e) => setCondition(e.target.value)}
@@ -1632,23 +1623,22 @@ export default function AdminProductsPage() {
                         </div>
 
                         <div className="space-y-1">
-                          <label className="font-bold text-slate-700">Stok Durumu</label>
+                          <label className="font-bold text-slate-700">Stok durumu</label>
                           <select
                             value={inStock ? "true" : "false"}
                             onChange={(e) => setInStock(e.target.value === "true")}
                             className="h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                           >
-                            <option value="true">Stokta Var (Satışa Hazır)</option>
-                            <option value="false">Tükendi / Stokta Yok</option>
+                            <option value="true">Stokta</option>
+                            <option value="false">Tükendi</option>
                           </select>
                         </div>
                       </div>
 
                       <div className="space-y-1.5">
                         <label className="font-semibold text-slate-700">Açıklama</label>
-                        <Textarea
+                          <Textarea
                           rows={4}
-                          placeholder="Ürün açıklaması"
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
                           className="min-h-32 resize-y text-sm"
@@ -1727,7 +1717,7 @@ export default function AdminProductsPage() {
                 type="submit"
                 className="h-11 w-full bg-blue-600 px-5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 sm:w-auto"
               >
-                {editingProduct ? "Kaydet" : "Ürünü Kaydet"}
+                {editingProduct ? "Kaydet" : "Ürünü kaydet"}
               </Button>
             </div>
           </form>

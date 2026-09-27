@@ -39,7 +39,9 @@ export default function RoutartLogo({
           ROUT
         </span>
         <span
-          className={`text-[#ff5a1f] group-hover:text-[#ff7543] transition-colors font-black ${sizeClasses[size]}`}
+          className={`transition-colors font-black ${
+            isDarkBg ? "text-[#ff5a1f] group-hover:text-[#ff7543]" : "text-[#c2410c] group-hover:text-[#9a3412]"
+          } ${sizeClasses[size]}`}
         >
           ART
         </span>
@@ -51,7 +53,7 @@ export default function RoutartLogo({
             taglineSizes[size]
           } ${isDarkBg ? "text-slate-300" : "text-slate-600"}`}
         >
-          Digital Strategy Studio
+          Dijital strateji stüdyosu
         </span>
       )}
     </div>
@@ -62,7 +64,8 @@ export default function RoutartLogo({
       href="https://routart.com/"
       target="_blank"
       rel="noopener noreferrer"
-      title="ROUTART - Digital Strategy Studio"
+      aria-label="Routart web sitesi"
+      title="Routart"
       className={
         isPill
           ? `inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-700/60 bg-slate-800/80 hover:bg-slate-800 hover:border-slate-600 transition-all ${className}`

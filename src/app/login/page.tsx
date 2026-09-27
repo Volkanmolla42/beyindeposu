@@ -49,15 +49,12 @@ export default function LoginPage() {
           <img
             src="/images/logo.webp"
             alt="Beyin Deposu"
-            className="h-10 w-auto mx-auto object-contain"
+            className="h-20 w-auto mx-auto object-contain"
           />
         </Link>
         <h2 className="mt-6 text-xl font-bold tracking-tight text-slate-900">
-          Yönetici Girişi
+          Yönetici girişi
         </h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Yönetim paneline erişmek için oturum açın
-        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -127,7 +124,7 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full rounded-full bg-blue-600 py-2.5 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 transition-colors cursor-pointer"
             >
-              {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
+              {loading ? "Giriş yapılıyor..." : "Giriş yap"}
             </button>
           </form>
 
@@ -136,7 +133,7 @@ export default function LoginPage() {
               href="/"
               className="text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
             >
-              ← Mağazaya Dön
+              ← Mağazaya dön
             </Link>
           </div>
         </div>

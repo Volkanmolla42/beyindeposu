@@ -28,8 +28,8 @@ export function SearchableCombobox({
   options,
   value,
   onChange,
-  placeholder = "Seçiniz...",
-  searchPlaceholder = "Ara...",
+  placeholder = "Seçiniz",
+  searchPlaceholder = "Ara",
   emptyText = "Sonuç bulunamadı.",
   className,
   allOptionLabel = "Tümü",
@@ -64,6 +64,7 @@ export function SearchableCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-label={placeholder}
           className={cn(
             "w-full justify-between text-xs font-medium h-9 px-3 bg-slate-50 hover:bg-white border-slate-200 text-slate-800 transition-all",
             !value && "text-slate-500",
@@ -74,11 +75,20 @@ export function SearchableCombobox({
           <div className="flex items-center gap-1 shrink-0 ml-1">
             {value && value !== "Tümü" && value !== "" && (
               <span
+                role="button"
+                tabIndex={0}
+                aria-label="Seçimi temizle"
                 onClick={(e) => {
                   e.stopPropagation();
                   onChange("");
                 }}
-                className="p-0.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.stopPropagation();
+                    onChange("");
+                  }
+                }}
+                className="p-0.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700 cursor-pointer"
                 title="Temizle"
               >
                 <X className="h-3 w-3" />
@@ -91,9 +101,11 @@ export function SearchableCombobox({
       <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[200px] p-2 bg-white rounded-xl shadow-xl border border-slate-200 z-50">
         {/* Search Input */}
         <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 mb-2">
-          <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+          <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" aria-hidden="true" />
           <input
             type="text"
+            name="combobox-search"
+            aria-label={searchPlaceholder}
             placeholder={searchPlaceholder}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -102,7 +114,9 @@ export function SearchableCombobox({
           />
           {query && (
             <button
+              type="button"
               onClick={() => setQuery("")}
+              aria-label="Aramayı temizle"
               className="text-slate-400 hover:text-slate-700 text-xs"
             >
               <X className="h-3 w-3" />
@@ -153,7 +167,7 @@ export function SearchableCombobox({
                   <span>{opt.label}</span>
                   {opt.description && (
                     <span className="text-[10px] text-slate-400 ml-1.5">
-                      ({opt.description})
+                      · {opt.description}
                     </span>
                   )}
                 </div>

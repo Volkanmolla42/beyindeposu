@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, useMemo, useEffect } from "react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -22,12 +23,13 @@ import {
 
 import ProductCard from "@/components/ProductCard";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
-import { generateWhatsAppLink } from "@/lib/utils";
+import { getWhatsAppUrl } from "@/lib/whatsapp";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { SITE_CONTACT } from "@/config/site";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { SearchableCombobox, ComboboxOption } from "@/components/ui/searchable-combobox";
 
 function ProductCatalogContent() {
@@ -189,7 +191,7 @@ function ProductCatalogContent() {
       {/* 1. Breadcrumbs */}
       <div className="bg-white border-b border-slate-200 py-3">
         <div className="container flex items-center gap-2 text-xs text-slate-500">
-          <Link href="/" className="hover:text-blue-600 transition-colors">Ana Sayfa</Link>
+          <Link href="/" className="hover:text-blue-600 transition-colors">Ana sayfa</Link>
           <ChevronRight className="w-3 h-3 text-slate-400" />
           <Link href="/urunler" onClick={handleResetFilters} className="hover:text-blue-600 transition-colors">Ürünler</Link>
           {selectedCategory && (
@@ -206,7 +208,7 @@ function ProductCatalogContent() {
         <div className="container flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-2 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2">
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 uppercase tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
                 {activeCategoryTitle}
               </h1>
               <Badge variant="secondary" className="font-mono text-xs">
@@ -219,11 +221,13 @@ function ProductCatalogContent() {
           </div>
 
           {/* Dynamic Category Preview */}
-          <div className="w-36 sm:w-44 h-24 sm:h-28 rounded-xl bg-slate-50 border border-slate-200 p-2 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs group">
-            <img
+          <div className="relative w-36 sm:w-44 h-24 sm:h-28 rounded-xl bg-slate-50 border border-slate-200 p-2 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs group">
+            <Image
               src={categoryFirstImage}
               alt={activeCategoryTitle}
-              className="w-full h-full object-contain rounded-lg group-hover:scale-105 transition-all duration-300"
+              fill
+              sizes="(max-width: 640px) 144px, 176px"
+              className="object-contain p-2 rounded-lg group-hover:scale-105 transition-all duration-300"
             />
           </div>
         </div>
@@ -237,10 +241,10 @@ function ProductCatalogContent() {
             {/* 1. DETAYLI FİLTRELER */}
             <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-4 text-xs">
               <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                <h3 className="font-black text-xs uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                <h2 className="font-semibold text-xs text-slate-900 flex items-center gap-1.5">
                   <SlidersHorizontal className="w-3.5 h-3.5 text-blue-600" />
-                  <span>FİLTRELER</span>
-                </h3>
+                  <span>Filtreler</span>
+                </h2>
                 {hasActiveFilters && (
                   <button
                     onClick={handleResetFilters}
@@ -254,10 +258,10 @@ function ProductCatalogContent() {
 
               {/* KATEGORİ */}
               <div className="space-y-1.5">
-                <label className="font-bold text-slate-700 block uppercase text-[10px] tracking-wider flex items-center justify-between">
+                <label className="font-bold text-slate-700 block text-[10px] flex items-center justify-between">
                   <span className="flex items-center gap-1">
                     <Layers className="w-3 h-3 text-slate-400" />
-                    KATEGORİ
+                    Kategori
                   </span>
                   {selectedCategory && (
                     <button
@@ -272,18 +276,18 @@ function ProductCatalogContent() {
                   options={categoryOptions}
                   value={selectedCategory}
                   onChange={(val) => setSelectedCategory(val)}
-                  placeholder="Tüm Kategoriler..."
-                  searchPlaceholder="Kategori ara (ECU, ABS, Airbag...)"
-                  allOptionLabel="Tüm Kategoriler"
+                  placeholder="Tüm kategoriler"
+                  searchPlaceholder="Kategori ara"
+                  allOptionLabel="Tüm kategoriler"
                 />
               </div>
 
               {/* ARAÇ MARKASI */}
               <div className="space-y-1.5">
-                <label className="font-bold text-slate-700 block uppercase text-[10px] tracking-wider flex items-center justify-between">
+                <label className="font-bold text-slate-700 block text-[10px] flex items-center justify-between">
                   <span className="flex items-center gap-1">
                     <Car className="w-3 h-3 text-slate-400" />
-                    ARAÇ MARKASI
+                    Araç markası
                   </span>
                   {selectedBrand && (
                     <button
@@ -298,18 +302,18 @@ function ProductCatalogContent() {
                   options={brandOptions}
                   value={selectedBrand}
                   onChange={(val) => setSelectedBrand(val)}
-                  placeholder="Tüm Markalar..."
-                  searchPlaceholder="Marka ara (BMW, Audi, Mercedes...)"
-                  allOptionLabel="Tüm Markalar"
+                  placeholder="Tüm markalar"
+                  searchPlaceholder="Marka ara"
+                  allOptionLabel="Tüm markalar"
                 />
               </div>
 
               {/* PARÇA DURUMU */}
               <div className="space-y-1.5">
-                <label className="font-bold text-slate-700 block uppercase text-[10px] tracking-wider flex items-center justify-between">
+                <label className="font-bold text-slate-700 block text-[10px] flex items-center justify-between">
                   <span className="flex items-center gap-1">
                     <Tag className="w-3 h-3 text-slate-400" />
-                    PARÇA DURUMU
+                    Parça durumu
                   </span>
                   {selectedCondition !== "Tümü" && (
                     <button
@@ -324,27 +328,27 @@ function ProductCatalogContent() {
                   options={conditionOptions}
                   value={selectedCondition === "Tümü" ? "" : selectedCondition}
                   onChange={(val) => setSelectedCondition(val || "Tümü")}
-                  placeholder="Tüm Parça Durumları..."
-                  searchPlaceholder="Durum ara (Çıkma, Sıfır, Revizyonlu...)"
-                  allOptionLabel="Tüm Parça Durumları"
+                  placeholder="Tüm parça durumları"
+                  searchPlaceholder="Durum ara"
+                  allOptionLabel="Tüm parça durumları"
                 />
               </div>
 
               {/* STOK DURUMU */}
               <div className="space-y-1.5">
-                <label className="font-bold text-slate-700 block uppercase text-[10px] tracking-wider flex items-center gap-1">
+                <label className="font-bold text-slate-700 block text-[10px] flex items-center gap-1">
                   <CheckCircle2 className="w-3 h-3 text-slate-400" />
-                  STOK DURUMU
+                  Stok durumu
                 </label>
                 <SearchableCombobox
                   options={[
-                    { value: "Stokta", label: "Sadece Hazır Stoktakiler" },
+                    { value: "Stokta", label: "Stokta olanlar" },
                   ]}
                   value={selectedStock === "Stokta" ? "Stokta" : ""}
                   onChange={(val) => setSelectedStock(val || "Tümü")}
-                  placeholder="Tüm Stok Durumları..."
-                  allOptionLabel="Tüm Stok Durumları"
-                  searchPlaceholder="Stok durumu ara..."
+                  placeholder="Tüm stok durumları"
+                  allOptionLabel="Tüm stok durumları"
+                  searchPlaceholder="Stok durumu ara"
                 />
               </div>
 
@@ -357,34 +361,35 @@ function ProductCatalogContent() {
                   className="w-full font-bold text-xs hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
                 >
                   <RotateCcw className="w-3.5 h-3.5 mr-1" />
-                  <span>Filtreleri Temizle</span>
+                  <span>Filtreleri temizle</span>
                 </Button>
               )}
             </div>
 
             {/* OEM NO İLE BULAMADINIZ MI? WhatsApp Card */}
             <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-5 space-y-3">
-              <h4 className="text-sm font-medium text-slate-900">
+              <h3 className="text-sm font-medium text-slate-900">
                 Parçayı bulamadınız mı?
-              </h4>
+              </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Parça kodunu veya araç bilgilerini WhatsApp’tan gönderin.
+                OEM kodunu veya araç bilgisini gönderin.
               </p>
-              <a
-                href={generateWhatsAppLink(whatsappNumber, undefined, undefined, "Merhaba Beyin Deposu, aradığım oto elektronik parçayı web sitenizde bulamadım, yardımcı olabilir misiniz?")}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block pt-1"
+              <Button
+                asChild
+                variant="whatsapp"
+                size="sm"
+                className="w-full font-extrabold text-xs shadow-sm flex items-center justify-center gap-1.5 min-h-[44px]"
               >
-                <Button
-                  variant="whatsapp"
-                  size="sm"
-                  className="w-full font-extrabold text-xs shadow-sm flex items-center justify-center gap-1.5"
+                <a
+                  href={getWhatsAppUrl({ message: "Merhaba, aradığım parça için yardımcı olur musunuz?" })}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="WhatsApp'tan yazın"
                 >
                   <WhatsAppIcon className="w-4 h-4 fill-white text-white" />
-                  <span>WhatsApp’tan sorun</span>
-                </Button>
-              </a>
+                  <span>WhatsApp&apos;tan yazın</span>
+                </a>
+              </Button>
             </div>
           </aside>
 
@@ -396,12 +401,15 @@ function ProductCatalogContent() {
                 {/* Search Form */}
                 <form onSubmit={handleFilterSubmit} className="flex-1 max-w-lg flex items-center gap-2">
                   <div className="relative flex-1">
-                    <input
+                    <Input
+                      id="urunler-search-input"
+                      name="q"
                       type="text"
-                      placeholder="OEM veya Parça No ile Ara..."
+                      placeholder="OEM veya parça no ara"
+                      aria-label="OEM veya parça numarası ara"
                       value={oemSearch}
                       onChange={(e) => setOemSearch(e.target.value)}
-                      className="w-full bg-slate-50 hover:bg-slate-100/60 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-mono uppercase focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all pr-7"
+                      className="h-9 bg-slate-50 hover:bg-slate-100/60 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-mono uppercase focus-visible:ring-blue-500 focus-visible:bg-white transition-all pr-7"
                     />
                     {oemSearch && (
                       <button
@@ -410,6 +418,7 @@ function ProductCatalogContent() {
                           setOemSearch("");
                           setActiveSearch("");
                         }}
+                        aria-label="Aramayı temizle"
                         className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs cursor-pointer"
                       >
                         ✕
@@ -430,29 +439,35 @@ function ProductCatalogContent() {
                 {/* Right: Page Size & Sort Dropdowns */}
                 <div className="flex items-center gap-3 shrink-0 flex-wrap">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-slate-400 font-semibold text-[11px]">GÖSTER:</span>
+                    <label htmlFor="products-page-size" className="text-slate-500 font-semibold text-[11px]">Göster:</label>
                     <select
+                      id="products-page-size"
+                      name="pageSize"
+                      aria-label="Sayfa başına gösterilecek ürün adedi"
                       value={pageSize}
                       onChange={(e) => setPageSize(Number(e.target.value))}
                       className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-xs"
                     >
-                      <option value={24}>24 Adet</option>
-                      <option value={48}>48 Adet</option>
-                      <option value={96}>96 Adet</option>
+                      <option value={24}>24 ürün</option>
+                      <option value={48}>48 ürün</option>
+                      <option value={96}>96 ürün</option>
                     </select>
                   </div>
 
                   <div className="flex items-center gap-1.5">
-                    <span className="text-slate-400 font-semibold text-[11px]">SIRALAMA:</span>
+                    <label htmlFor="products-sort-by" className="text-slate-500 font-semibold text-[11px]">Sıralama:</label>
                     <select
+                      id="products-sort-by"
+                      name="sortBy"
+                      aria-label="Ürünleri sırala"
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
                       className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-xs"
                     >
-                      <option value="date-desc">En Yeniler ▾</option>
-                      <option value="oem-asc">OEM / Parça No (A-Z)</option>
-                      <option value="title-asc">Ürün Adı (A-Z)</option>
-                      <option value="title-desc">Ürün Adı (Z-A)</option>
+                      <option value="date-desc">En yeni</option>
+                      <option value="oem-asc">OEM / parça no, A-Z</option>
+                      <option value="title-asc">Ürün adı, A-Z</option>
+                      <option value="title-desc">Ürün adı, Z-A</option>
                     </select>
                   </div>
                 </div>
@@ -461,7 +476,7 @@ function ProductCatalogContent() {
               {/* Active Filter Chips */}
               {hasActiveFilters && (
                 <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-slate-100">
-                  <span className="text-[11px] text-slate-400 font-semibold mr-1">Aktif Filtreler:</span>
+                  <span className="text-[11px] text-slate-400 font-semibold mr-1">Filtreler:</span>
 
                   {selectedCategory && (
                     <Badge variant="info" className="gap-1 py-0.5 px-2 text-[11px] cursor-pointer" onClick={() => setSelectedCategory("")}>
@@ -546,8 +561,8 @@ function ProductCatalogContent() {
             {/* 3. Product Grid */}
             {products && products.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {products.map((p) => (
-                  <ProductCard key={p._id} product={p} />
+                {products.map((p, idx) => (
+                  <ProductCard key={p._id} product={p} priority={idx < 3} />
                 ))}
               </div>
             ) : pageData === undefined ? (
@@ -560,9 +575,9 @@ function ProductCatalogContent() {
               <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-4 shadow-xs">
                 <Cpu className="w-12 h-12 text-slate-300 mx-auto" />
                 <div className="space-y-1">
-                  <h4 className="font-bold text-sm text-slate-900">Kriterlere Uygun Ürün Bulunamadı</h4>
+                  <h4 className="font-bold text-sm text-slate-900">Ürün bulunamadı</h4>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    Aradığınız OEM numarası veya filtre kriterleriyle eşleşen ürün bulunamadı. Filtreleri temizleyebilir veya bize WhatsApp üzerinden sorabilirsiniz.
+                    Aramanızı veya filtreleri değiştirin.
                   </p>
                 </div>
                 {hasActiveFilters && (
@@ -594,38 +609,43 @@ function ProductCatalogContent() {
                 {totalPages > 1 && (
                   <div className="flex items-center gap-1.5 flex-wrap justify-center">
                     {/* First Page */}
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handlePageChange(1)}
                       disabled={currentPage === 1}
-                      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                      title="İlk Sayfa"
+                      className="h-8 w-8 p-0 rounded-lg"
+                      title="İlk sayfa"
                     >
                       <ChevronsLeft className="w-4 h-4" />
-                    </button>
+                    </Button>
 
                     {/* Previous Page */}
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handlePageChange(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors flex items-center gap-1"
+                      className="h-8 px-2.5 rounded-lg text-xs font-bold"
                     >
                       <ChevronLeft className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Önceki</span>
-                    </button>
+                    </Button>
 
                     {/* Page Numbers */}
                     {pageNumbers.map((p, idx) => (
                       typeof p === "number" ? (
-                        <button
+                        <Button
                           key={idx}
+                          variant={currentPage === p ? "default" : "outline"}
+                          size="sm"
                           onClick={() => handlePageChange(p)}
-                          className={`min-w-8 h-8 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p
-                            ? "bg-blue-600 text-white shadow-xs font-black scale-105"
-                            : "border border-slate-200 text-slate-700 hover:bg-slate-100/70"
-                            }`}
+                          className={`min-w-8 h-8 px-2 rounded-lg text-xs font-bold ${
+                            currentPage === p ? "font-black shadow-xs" : ""
+                          }`}
                         >
                           {p}
-                        </button>
+                        </Button>
                       ) : (
                         <span key={idx} className="px-1 text-xs text-slate-400 font-bold">
                           ...
@@ -634,24 +654,28 @@ function ProductCatalogContent() {
                     ))}
 
                     {/* Next Page */}
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handlePageChange(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors flex items-center gap-1"
+                      className="h-8 px-2.5 rounded-lg text-xs font-bold"
                     >
                       <span className="hidden sm:inline">Sonraki</span>
                       <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
+                    </Button>
 
                     {/* Last Page */}
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => handlePageChange(totalPages)}
                       disabled={currentPage === totalPages}
-                      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                      title="Son Sayfa"
+                      className="h-8 w-8 p-0 rounded-lg"
+                      title="Son sayfa"
                     >
                       <ChevronsRight className="w-4 h-4" />
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>

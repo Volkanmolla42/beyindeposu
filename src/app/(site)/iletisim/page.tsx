@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { SITE_CONTACT } from "@/config/site";
-import { generateWhatsAppLink, formatPhoneNumber } from "@/lib/utils";
+import { getWhatsAppUrl, formatPhoneNumber } from "@/lib/utils";
 
 export default function IletisimPage() {
   const whatsappNumber = SITE_CONTACT.whatsappNumber;
@@ -31,7 +31,7 @@ export default function IletisimPage() {
         <div className="container flex items-center gap-2 text-xs font-medium text-slate-500">
           <Link href="/" className="hover:text-blue-600 flex items-center gap-1">
             <Home className="w-3.5 h-3.5" />
-            <span>Ana Sayfa</span>
+            <span>Ana sayfa</span>
           </Link>
           <ChevronRight className="w-3 h-3 text-slate-400" />
           <span className="text-slate-900 font-bold">İletişim</span>
@@ -41,15 +41,9 @@ export default function IletisimPage() {
       {/* Hero Header */}
       <div className="bg-white border-b border-slate-200 py-10">
         <div className="container text-center space-y-3">
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-bold uppercase">
-            Müşteri Hizmetleri & Destek
-          </span>
           <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            BİZE ULAŞIN
+            Bize ulaşın
           </h1>
-          <p className="text-sm text-slate-500 max-w-xl mx-auto">
-            Oto elektronik parçalar, stok bilgisi, fiyat teklifleri veya sipariş sorularınız için bize telefon veya WhatsApp üzerinden doğrudan ulaşabilirsiniz.
-          </p>
         </div>
       </div>
 
@@ -59,22 +53,23 @@ export default function IletisimPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* WhatsApp Card */}
           <a
-            href={generateWhatsAppLink(whatsappNumber)}
+            href={getWhatsAppUrl()}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="WhatsApp'tan parça sorun"
             className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm transition-colors hover:border-emerald-200 hover:shadow-md"
           >
             <div className="space-y-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
                 <WhatsAppIcon className="h-6 w-6 fill-emerald-700 text-emerald-700" />
               </div>
-              <h3 className="text-lg font-medium tracking-tight">WhatsApp hızlı destek</h3>
+              <h2 className="text-lg font-medium tracking-tight">WhatsApp</h2>
               <p className="text-sm leading-relaxed text-slate-600">
-                Parça kodu, fotoğraf veya şase numarası ile anında fiyat ve stok sorgulaması yapın.
+                OEM kodu veya parça fotoğrafı gönderin.
               </p>
             </div>
             <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4 text-sm font-medium text-slate-700">
-              <span>Hemen Mesaj Gönder</span>
+              <span>Mesaj gönder</span>
               <span className="text-emerald-700 group-hover:translate-x-1 transition-transform">→</span>
             </div>
           </a>
@@ -82,15 +77,16 @@ export default function IletisimPage() {
           {/* Phone Card */}
           <a
             href={`tel:${displayPhone.replace(/[^0-9+]/g, "")}`}
+            aria-label={`Bizi telefonla arayın: ${formatPhoneNumber(displayPhone)}`}
             className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm transition-colors hover:border-blue-200 hover:shadow-md"
           >
             <div className="space-y-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
                 <Phone className="h-6 w-6 text-blue-700" />
               </div>
-              <h3 className="text-lg font-medium tracking-tight">Telefon ile arayın</h3>
+              <h2 className="text-lg font-medium tracking-tight">Telefon</h2>
               <p className="text-sm leading-relaxed text-slate-600">
-                Uzman ekibimizle doğrudan görüşerek parçanızın uyumluluğunu hemen teyit edin.
+                Parça uyumu ve stok bilgisi için arayın.
               </p>
             </div>
             <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4 text-sm font-medium text-slate-700">
@@ -105,13 +101,13 @@ export default function IletisimPage() {
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
                 <Truck className="h-6 w-6 text-blue-700" />
               </div>
-              <h3 className="text-lg font-medium tracking-tight">Aynı gün kargo</h3>
+              <h2 className="text-lg font-medium tracking-tight">Kargo</h2>
               <p className="text-sm leading-relaxed text-slate-600">
-                Saat 16:00&apos;a kadar verilen siparişler antistatik korumalı özel ambalajında aynı gün kargoya teslim edilir.
+                Saat 16:00&apos;a kadar verilen stoklu siparişleri aynı gün kargoya veriyoruz.
               </p>
             </div>
             <div className="mt-6 border-t border-slate-200 pt-4 text-sm font-medium text-blue-700">
-              Tüm Türkiye&apos;ye Teslimat
+              Türkiye geneline gönderim
             </div>
           </div>
         </div>
@@ -171,7 +167,7 @@ export default function IletisimPage() {
                     <Clock className="h-5 w-5" />
                   </div>
                   <div>
-                    <div className="font-medium text-slate-900">Çalışma Saatleri</div>
+                    <div className="font-medium text-slate-900">Çalışma saatleri</div>
                     <div className="text-slate-600 mt-0.5">{workingHours}</div>
                   </div>
                 </div>
@@ -185,7 +181,7 @@ export default function IletisimPage() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-700 hover:text-blue-800 transition-colors"
               >
-                Google Haritalar&apos;da Aç
+                Google Haritalar&apos;da aç
                 <ExternalLink className="h-4 w-4" />
               </a>
             </div>
@@ -195,7 +191,7 @@ export default function IletisimPage() {
           <div className="lg:col-span-7">
             <div className="rounded-3xl bg-white border border-slate-200 shadow-sm overflow-hidden h-[340px] lg:h-full min-h-[340px]">
               <iframe
-                title="Konum Haritası"
+                title="İşletme konumu haritası"
                 src={`https://maps.google.com/maps?q=${mapQuery}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                 className="w-full h-full border-0 min-h-[340px]"
                 loading="lazy"

@@ -84,6 +84,7 @@ export default function RootLayout({
     <html
       lang="tr"
       className={`${roboto.variable} ${robotoMono.variable} h-full antialiased`}
+      data-scroll-behavior="smooth"
     >
       <body className="min-h-full flex flex-col">
         <script

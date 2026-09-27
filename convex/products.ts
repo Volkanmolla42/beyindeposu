@@ -41,20 +41,21 @@ async function resolveProductWithCategory(ctx: QueryCtx, p: Doc<"products">) {
 
 async function resolvePublicProduct(ctx: QueryCtx, p: Doc<"products">) {
   const resolvedProduct = await resolveProductWithCategory(ctx, p);
-  const publicProduct = { ...resolvedProduct };
-
   // Raf ve taslak durumu admin alanlarıdır.
-  delete (publicProduct as any).shelfCode;
-  delete (publicProduct as any).isDraft;
+  const { shelfCode: _shelfCode, isDraft: _isDraft, ...publicFields } = resolvedProduct;
 
-  if (publicProduct.tags && p.shelfCode) {
+  let tags = publicFields.tags;
+  if (tags && p.shelfCode) {
     const shelfToken = p.shelfCode.replace(/[^a-z0-9]/gi, "").toLowerCase();
-    publicProduct.tags = publicProduct.tags.filter(
+    tags = tags.filter(
       (tag) => tag.replace(/[^a-z0-9]/gi, "").toLowerCase() !== shelfToken
     );
   }
 
-  return publicProduct;
+  return {
+    ...publicFields,
+    tags,
+  };
 }
 
 export const listPaginated = query({

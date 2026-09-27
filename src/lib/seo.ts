@@ -14,7 +14,7 @@ export const ORGANIZATION_JSON_LD = {
   "@type": "Organization",
   name: SITE_NAME,
   url: SITE_URL,
-  logo: new URL("/images/logo.webp", SITE_URL).toString(),
+  logo: new URL("/images/logo-mark.webp", SITE_URL).toString(),
 };
 
 export function absoluteUrl(path: string): string {

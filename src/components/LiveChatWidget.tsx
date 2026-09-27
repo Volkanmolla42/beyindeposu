@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
   MessageSquare,
   X,
@@ -20,15 +21,32 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+import { api } from "@convex/_generated/api";
+import { Id } from "@convex/_generated/dataModel";
 
-// Play subtle web audio notification chime
+let audioContextInstance: AudioContext | null = null;
+
+function getSharedAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  const AudioCtx =
+    window.AudioContext ||
+    (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  if (!AudioCtx) return null;
+  if (!audioContextInstance || audioContextInstance.state === "closed") {
+    audioContextInstance = new AudioCtx();
+  }
+  return audioContextInstance;
+}
+
+// Play subtle web audio notification chime reusing shared AudioContext
 function playNotificationSound() {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const ctx = getSharedAudioContext();
+    if (!ctx) return;
+    if (ctx.state === "suspended") {
+      ctx.resume().catch(() => {});
+    }
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = "sine";
@@ -40,7 +58,7 @@ function playNotificationSound() {
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.25);
-  } catch (e) {
+  } catch {
     // Audio context may be restricted before user gesture
   }
 }
@@ -194,17 +212,13 @@ export default function LiveChatWidget() {
         <button
           onClick={() => setIsOpen(true)}
           className="group relative flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-4 py-3.5 rounded-full shadow-2xl hover:shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer"
-          aria-label="Canlı Destek"
+          aria-label="Canlı destek"
+          aria-haspopup="dialog"
+          aria-expanded={false}
         >
-          {/* Pulsing online badge */}
-          <span className="relative flex h-3.5 w-3.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white"></span>
-          </span>
-
           <div className="flex items-center gap-2">
             <Headphones className="w-5 h-5" />
-            <span className="text-sm tracking-tight font-extrabold hidden sm:inline">Canlı Destek</span>
+            <span className="text-sm tracking-tight font-extrabold hidden sm:inline">Canlı destek</span>
           </div>
 
           {unreadCount > 0 && (
@@ -217,7 +231,12 @@ export default function LiveChatWidget() {
 
       {/* Expanded Live Chat Window */}
       {isOpen && (
-        <div className="w-[360px] sm:w-[390px] h-[520px] max-h-[85vh] bg-white rounded-3xl shadow-2xl border border-slate-200/80 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div
+          role="dialog"
+          aria-label="Canlı destek sohbet penceresi"
+          aria-modal="false"
+          className="w-[360px] sm:w-[390px] h-[520px] max-h-[85vh] bg-white rounded-3xl shadow-2xl border border-slate-200/80 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200"
+        >
           {/* Header */}
           <div className="bg-slate-900 text-white px-4 py-3.5 flex items-center justify-between shadow-md select-none">
             <div className="flex items-center gap-3">
@@ -225,22 +244,16 @@ export default function LiveChatWidget() {
                 <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-inner">
                   <Headphones className="w-5 h-5" />
                 </div>
-                <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-slate-900"></span>
               </div>
               <div>
-                <h4 className="font-black text-sm text-white flex items-center gap-1.5">
-                  <span>Beyin Deposu Canlı Destek</span>
-                  <Badge variant="secondary" className="bg-blue-500/20 text-blue-300 border-none text-[9px] py-0 px-1.5 font-bold">
-                    Çevrimiçi
-                  </Badge>
-                </h4>
-                <p className="text-[11px] text-slate-400">Teknik uzmanlarımız çevrimiçi</p>
+                <h2 className="font-black text-sm text-white">Canlı destek</h2>
               </div>
             </div>
 
             <button
               onClick={() => setIsOpen(false)}
               className="w-8 h-8 rounded-full hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
+              aria-label="Sohbet penceresini kapat"
             >
               <X className="w-5 h-5" />
             </button>
@@ -250,22 +263,24 @@ export default function LiveChatWidget() {
           {!conversationId ? (
             <div className="flex-1 p-5 flex flex-col justify-between overflow-y-auto bg-slate-50/50">
               <div className="space-y-4">
-                <div className="p-3.5 bg-blue-50/80 border border-blue-100 rounded-2xl text-xs text-slate-700 leading-relaxed">
-                  👋 <strong>Merhaba!</strong> Aradığınız parça, OEM uyumluluğu veya teknik detaylar hakkında uzman ekibimizle anında konuşabilirsiniz.
-                </div>
-
                 {/* Product Detection Banner */}
                 {isProductPage && currentProduct && (
                   <div className="p-3 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-2">
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
                       <ShoppingBag className="w-4 h-4 text-blue-600" />
-                      <span>İncelediğiniz Parça</span>
+                      <span>Bu ürün</span>
                     </div>
 
                     <div className="flex items-center gap-2.5 bg-slate-50 p-2 rounded-xl border border-slate-100">
-                      <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
+                      <div className="relative w-10 h-10 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
                         {currentProduct.images?.[0] ? (
-                          <img src={currentProduct.images[0]} alt={currentProduct.title} className="w-full h-full object-contain" />
+                          <Image
+                            src={currentProduct.images[0]}
+                            alt={currentProduct.title}
+                            fill
+                            sizes="40px"
+                            className="object-contain"
+                          />
                         ) : (
                           <ShoppingBag className="w-4 h-4 text-slate-400" />
                         )}
@@ -283,18 +298,20 @@ export default function LiveChatWidget() {
                         onChange={(e) => setIncludeProduct(e.target.checked)}
                         className="rounded text-blue-600 w-3.5 h-3.5"
                       />
-                      <span>Bu parçayı sohbete kart olarak ekle</span>
+                      <span>Ürünü sohbete ekle</span>
                     </label>
                   </div>
                 )}
 
                 <form id="start-chat-form" onSubmit={handleStartChat} className="space-y-3">
                   <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Adınız Soyadınız <span className="text-slate-400 font-normal">(İsteğe bağlı)</span>
+                    <label htmlFor="chat-visitor-name" className="text-[11px] font-bold text-slate-700 block mb-1">
+                      Ad soyad <span className="text-slate-400 font-normal">· isteğe bağlı</span>
                     </label>
                     <Input
-                      placeholder="Örn: Ahmet Yılmaz"
+                      id="chat-visitor-name"
+                      name="visitor-name"
+                      aria-label="Ad soyad"
                       value={visitorName}
                       onChange={(e) => setVisitorName(e.target.value)}
                       className="bg-white text-xs h-9"
@@ -302,12 +319,15 @@ export default function LiveChatWidget() {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      Telefon Numaranız <span className="text-emerald-600 font-normal">(WhatsApp ile devam edebilmek için)</span>
+                    <label htmlFor="chat-visitor-phone" className="text-[11px] font-bold text-slate-700 block mb-1">
+                      Telefon <span className="text-emerald-600 font-normal">(WhatsApp için)</span>
                     </label>
                     <Input
+                      id="chat-visitor-phone"
+                      name="visitor-phone"
+                      aria-label="Telefon numarası"
                       type="tel"
-                      placeholder="Örn: 0534 000 00 00"
+                      placeholder="0534 000 00 00"
                       value={visitorPhone}
                       onChange={(e) => setVisitorPhone(e.target.value)}
                       className="bg-white text-xs h-9"
@@ -315,11 +335,14 @@ export default function LiveChatWidget() {
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
-                      İlk Mesajınız <span className="text-slate-400 font-normal">(İsteğe bağlı)</span>
+                    <label htmlFor="chat-visitor-message" className="text-[11px] font-bold text-slate-700 block mb-1">
+                      Mesaj <span className="text-slate-400 font-normal">· isteğe bağlı</span>
                     </label>
                     <Input
-                      placeholder="Merhaba, parça hakkında bilgi almak istiyorum..."
+                      id="chat-visitor-message"
+                      name="visitor-message"
+                      aria-label="Mesajınız"
+                      placeholder="Parça kodu veya sorunuzu yazın"
                       value={inputMessage}
                       onChange={(e) => setInputMessage(e.target.value)}
                       className="bg-white text-xs h-9"
@@ -338,10 +361,10 @@ export default function LiveChatWidget() {
                   {isStarting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      <span>Sohbet Başlatılıyor...</span>
+                      <span>Sohbet başlatılıyor...</span>
                     </>
                   ) : (
-                    <span>Sohbeti Başlat</span>
+                    <span>Sohbeti başlat</span>
                   )}
                 </Button>
               </div>
@@ -382,11 +405,15 @@ export default function LiveChatWidget() {
                           <div className="mb-2 p-2 rounded-xl bg-black/10 border border-black/10 text-left">
                             <div className="flex items-center gap-2">
                               {m.productCard.image && (
-                                <img
-                                  src={m.productCard.image}
-                                  alt={m.productCard.title}
-                                  className="w-8 h-8 object-contain rounded bg-white"
-                                />
+                                <div className="relative w-8 h-8 rounded bg-white overflow-hidden shrink-0">
+                                  <Image
+                                    src={m.productCard.image}
+                                    alt={m.productCard.title}
+                                    fill
+                                    sizes="32px"
+                                    className="object-contain"
+                                  />
+                                </div>
                               )}
                               <div className="min-w-0">
                                 <p className="font-extrabold text-[11px] truncate">{m.productCard.title}</p>
@@ -422,7 +449,10 @@ export default function LiveChatWidget() {
               {/* Input Bar */}
               <form onSubmit={handleSendMessage} className="p-2.5 bg-white border-t border-slate-200 flex items-center gap-2">
                 <Input
-                  placeholder="Mesajınızı yazın..."
+                  id="chat-active-message-input"
+                  name="active-chat-message"
+                  aria-label="Canlı sohbet mesajı"
+                  placeholder="Mesaj yazın"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   className="text-xs h-9 bg-slate-50 rounded-xl"
@@ -433,6 +463,7 @@ export default function LiveChatWidget() {
                   size="sm"
                   disabled={!inputMessage.trim()}
                   className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-9 w-9 p-0 shrink-0 cursor-pointer shadow-xs"
+                  aria-label="Mesajı gönder"
                 >
                   <Send className="w-4 h-4" />
                 </Button>

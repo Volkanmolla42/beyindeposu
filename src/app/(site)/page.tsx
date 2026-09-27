@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, Cpu, Layers } from "lucide-react";
+import { ArrowRight, Cpu, Layers } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import OemSearchBar from "@/components/OemSearchBar";
@@ -33,7 +33,7 @@ export default function HomePage() {
         <div className="absolute inset-0 z-0 hidden sm:block">
           <Image
             src="/images/home-hero.webp"
-            alt=""
+            alt="Beyin Deposu oto elektronik parça merkezi"
             fill
             priority
             sizes="100vw"
@@ -41,36 +41,26 @@ export default function HomePage() {
           />
         </div>
 
+        <div className="absolute inset-0 z-0 sm:hidden">
+          <Image
+            src="/images/home-hero-mobile.webp"
+            alt="Beyin Deposu oto elektronik parça merkezi"
+            fill
+            sizes="100vw"
+            className="object-cover object-center"
+          />
+        </div>
+
         <div className="container relative z-20 flex flex-col justify-start py-8 sm:flex-1 sm:justify-center sm:py-12">
           <div className="max-w-xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/85 px-3.5 py-2 text-sm font-medium text-blue-800 shadow-sm backdrop-blur-sm">
-              <BadgeCheck className="h-4 w-4 text-blue-700" aria-hidden="true" />
-              Orijinal ve garantili modüller
-            </div>
-
-            <h1 className="mt-6 max-w-xl text-4xl font-medium leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+            <h1 className="max-w-xl text-4xl font-medium leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
               Aracınıza uygun <span className="text-blue-700">elektronik parçayı</span> bulun.
             </h1>
-
-            <p className="mt-5 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
-              OEM numarası veya araç modeliyle stokta arayın.
-            </p>
 
             <div className="mt-8 max-w-lg">
               <OemSearchBar variant="hero" />
             </div>
           </div>
-        </div>
-
-        <div className="absolute inset-0 z-0 sm:hidden">
-          <Image
-            src="/images/home-hero-mobile.webp"
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-center"
-          />
         </div>
       </section>
 
@@ -113,12 +103,15 @@ export default function HomePage() {
             >
               <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 sm:h-16 sm:w-16">
                 {category.image ? (
-                  <img
-                    src={category.image}
-                    alt=""
-                    loading="lazy"
-                    className="h-full w-full object-contain p-1"
-                  />
+                  <div className="relative h-full w-full">
+                    <Image
+                      src={category.image}
+                      alt={category.name}
+                      fill
+                      sizes="64px"
+                      className="object-contain p-1"
+                    />
+                  </div>
                 ) : (
                   <Cpu className="h-7 w-7 text-blue-700" aria-hidden="true" />
                 )}
@@ -171,13 +164,12 @@ export default function HomePage() {
                               className="group inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
                             >
                               {brand.logoUrl ? (
-                                <img
+                                <Image
                                   src={brand.logoUrl}
                                   alt=""
+                                  width={16}
+                                  height={16}
                                   className="h-4 w-4 object-contain opacity-80 transition-opacity group-hover:opacity-100"
-                                  onError={(e) => {
-                                    (e.currentTarget as HTMLElement).style.display = "none";
-                                  }}
                                 />
                               ) : (
                                 <Layers className="h-4 w-4 text-slate-500" aria-hidden="true" />

@@ -1,13 +1,14 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, Search, X } from "lucide-react";
 
 const navLinks = [
-  { href: "/", label: "Ana Sayfa" },
-  { href: "/kurumsal", label: "Kurumsal" },
+  { href: "/", label: "Ana sayfa" },
+  { href: "/kurumsal", label: "Hakkımızda" },
   { href: "/urunler", label: "Ürünler" },
   { href: "/markalar", label: "Markalar" },
   { href: "/iletisim", label: "İletişim" },
@@ -30,10 +31,14 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="container">
         <div className="flex h-16 items-center justify-between sm:h-[72px]">
-          <Link href="/" className="flex shrink-0 items-center rounded-lg focus-visible:outline-none">
-            <img
+          <Link href="/" aria-label="Beyin Deposu ana sayfa" className="flex shrink-0 items-center rounded-lg focus-visible:outline-none">
+            <Image
               src="/images/logo_transparent.webp"
               alt="Beyin Deposu ana sayfa"
+              width={160}
+              height={40}
+              priority
+              style={{ width: "auto" }}
               className="h-9 w-auto object-contain sm:h-10"
             />
           </Link>
@@ -84,6 +89,8 @@ export default function Header() {
             <form onSubmit={handleSearchSubmit} className="mx-auto flex max-w-2xl items-center gap-2 rounded-full border border-slate-300 bg-slate-50 p-1.5 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100">
               <Search className="ml-3 h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" />
               <input
+                id="header-search-input"
+                name="header-search"
                 type="search"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
