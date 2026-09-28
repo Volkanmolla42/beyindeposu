@@ -1,9 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, Home, ArrowRight, Cpu } from "lucide-react";
 import { getPublicBrands } from "@/lib/seo-data";
+import { createPageMetadata, SITE_NAME } from "@/lib/seo";
 
 export const revalidate = 3600;
+
+export const metadata: Metadata = createPageMetadata({
+  title: `Araç Markaları | ${SITE_NAME}`,
+  description:
+    "Tüm araç markalarına uyumlu ECU beyinleri, ABS ve elektronik kontrol ünitelerini listeleyin.",
+  path: "/markalar",
+});
 
 export default async function MarkalarPage() {
   const brands = await getPublicBrands();

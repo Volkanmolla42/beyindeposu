@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Plus,
@@ -15,8 +16,6 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Star,
   Sparkles,
   ExternalLink,
@@ -28,7 +27,7 @@ import {
 } from "lucide-react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { Id } from "@convex/_generated/dataModel";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,6 +39,9 @@ import {
 } from "@/components/ui/dialog";
 import { slugify } from "../admin-utils";
 import { ModernImageZoom } from "@/components/ModernImageZoom";
+import type { OemAssistantData } from "@/lib/ai/oem-assistant";
+
+type Product = Doc<"products">;
 
 type FolderProductGroup = {
   key: string;
@@ -176,18 +178,17 @@ export default function AdminProductsPage() {
   const [selectedBrandFilter, setSelectedBrandFilter] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("");
   const [draftStatus, setDraftStatus] = useState<"all" | "draft" | "published">("all");
-  const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(25);
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchProduct, selectedBrandFilter, selectedCategoryFilter, draftStatus, pageSize]);
+  const [pagination, setPagination] = useState<{
+    key: string;
+    page: number;
+    cursors: Array<string | null>;
+  } | null>(null);
 
   // Product Modals & Form State
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
@@ -202,8 +203,6 @@ export default function AdminProductsPage() {
   const [description, setDescription] = useState("");
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [selectedFormImageIndex, setSelectedFormImageIndex] = useState(0);
-  const [formImageZoom, setFormImageZoom] = useState(1);
-  const [formImageZoomOrigin, setFormImageZoomOrigin] = useState("center center");
   const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
   const [lightboxZoom, setLightboxZoom] = useState(1);
   const [lightboxZoomOrigin, setLightboxZoomOrigin] = useState("center center");
@@ -265,27 +264,33 @@ export default function AdminProductsPage() {
   const [aiSources, setAiSources] = useState<Array<{ title: string; url: string }>>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const scanImageInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [folderUploading, setFolderUploading] = useState(false);
   const [folderUploadProgress, setFolderUploadProgress] = useState<FolderUploadProgress | null>(null);
 
-  // Paginated Query
-  const pageData = useQuery(api.products.getProductsPage, {
-    page: currentPage,
-    pageSize: pageSize,
+  const productFilters = {
     searchTerm: searchProduct || undefined,
     categorySlug: selectedCategoryFilter || undefined,
     brand: selectedBrandFilter || undefined,
     draftStatus,
+  };
+  const paginationKey = JSON.stringify({ ...productFilters, pageSize });
+  const currentPagination = pagination?.key === paginationKey
+    ? pagination
+    : { key: paginationKey, page: 1, cursors: [null] };
+  const currentPage = currentPagination.page;
+  const pageData = useQuery(api.products.listPaginatedAdmin, {
+    ...productFilters,
+    paginationOpts: {
+      numItems: pageSize,
+      cursor: currentPagination.cursors[currentPage - 1] ?? null,
+    },
   });
 
   const categories = useQuery(api.categories.list, { onlyActive: false });
-  const brands = useQuery(api.brands.list);
+  const brands = useQuery(api.brands.list, { onlyActive: false });
 
-  const products = pageData?.items;
-  const totalItems = pageData?.totalItems ?? 0;
-  const totalPages = pageData?.totalPages ?? 1;
+  const products = pageData?.page;
 
   // Mutations
   const createProduct = useMutation(api.products.create);
@@ -323,32 +328,33 @@ export default function AdminProductsPage() {
     setEditingProduct(null);
   };
 
-  const populateProductForm = (data: any) => {
-    if (data.detectedOem || data.cleanOem) {
-      setOemNumber(data.detectedOem || data.cleanOem);
-    }
+  const populateProductForm = (data: OemAssistantData) => {
+    const detectedOem = data.detectedOem || data.cleanOem;
+    if (detectedOem) setOemNumber(detectedOem);
     if (data.title) {
       setTitle(data.title);
       setSlug(slugify(data.title));
       setSlugManuallyEdited(false);
     }
-    if (data.brand) {
+    const suggestedBrand = data.brand;
+    if (suggestedBrand) {
       const matchedBrand = brands?.find(
-        (b) => b.name.toLowerCase() === data.brand.toLowerCase()
+        (b) => b.name.toLowerCase() === suggestedBrand.toLowerCase()
       );
       if (matchedBrand) {
         setBrand(matchedBrand.name);
       } else {
-        setBrand(data.brand);
+        setBrand(suggestedBrand);
       }
     }
     if (data.matchedCategoryId) {
       setSelectedCategoryId(data.matchedCategoryId);
     } else if (data.suggestedCategoryName && categories) {
+      const suggestedCategoryName = data.suggestedCategoryName;
       const found = categories.find(
         (c) =>
-          c.name.toLowerCase().includes(data.suggestedCategoryName.toLowerCase()) ||
-          data.suggestedCategoryName.toLowerCase().includes(c.name.toLowerCase())
+          c.name.toLowerCase().includes(suggestedCategoryName.toLowerCase()) ||
+          suggestedCategoryName.toLowerCase().includes(c.name.toLowerCase())
       );
       if (found) setSelectedCategoryId(found._id);
     }
@@ -393,7 +399,7 @@ export default function AdminProductsPage() {
     setAiSources([]);
 
     try {
-      let data: any = null;
+      let data: OemAssistantData | null = null;
 
       // 1. Convex Action ile doğrudan dene (Convex backend standardı)
       try {
@@ -428,18 +434,19 @@ export default function AdminProductsPage() {
           }),
         });
 
-        const json = await res.json();
+        const json = await res.json() as OemAssistantData & { error?: string };
         if (!res.ok) {
           throw new Error(json.error || "OEM parça bilgileri doğrulanamadı.");
         }
         data = json;
       }
 
+      if (!data) throw new Error("OEM parça bilgileri doğrulanamadı.");
       populateProductForm(data);
 
       setAiSuccessMessage("OEM bilgileri bulundu. Alanları kontrol edin.");
-    } catch (err: any) {
-      setAiError(err.message || "OEM analizi başarısız oldu.");
+    } catch (err: unknown) {
+      setAiError(err instanceof Error ? err.message : "OEM analizi başarısız oldu.");
     } finally {
       setAiLoading(false);
     }
@@ -461,7 +468,7 @@ export default function AdminProductsPage() {
       }),
     });
 
-    const data = await res.json();
+    const data = await res.json() as OemAssistantData & { error?: string };
     if (!res.ok) {
       throw new Error(data.error || "Görselde okunabilir etiket veya OEM numarası bulunamadı.");
     }
@@ -469,53 +476,6 @@ export default function AdminProductsPage() {
     populateProductForm(data);
 
     setAiSuccessMessage("Etiket bilgileri forma aktarıldı. Kaydetmeden önce kontrol edin.");
-  };
-
-  const handleScanPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setScanImageLoading(true);
-    setAiError(null);
-    setAiSuccessMessage(null);
-
-    try {
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      // Galeriye eklemek için arka planda upload et
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("label", oemNumber.trim() || slugify(title) || "oem-scan");
-        const uploadRes = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-        const uploadJson = await uploadRes.json();
-        if (uploadJson.url) {
-          setPreviewImages((prev) => {
-            if (!prev.includes(uploadJson.url)) {
-              return [...prev, uploadJson.url];
-            }
-            return prev;
-          });
-        }
-      } catch (uploadErr) {
-        console.warn("Galeriye otomatik ekleme atlandı:", uploadErr);
-      }
-
-      await scanAndFillFromBase64(base64Data, file.type || "image/jpeg");
-    } catch (err: any) {
-      setAiError(err.message || "Fotoğraftan OEM okunurken bir hata oluştu.");
-    } finally {
-      setScanImageLoading(false);
-      if (e.target) e.target.value = "";
-    }
   };
 
   const handleScanActivePreviewImage = async () => {
@@ -550,8 +510,8 @@ export default function AdminProductsPage() {
       }
 
       await scanAndFillFromBase64(base64Data, mimeType);
-    } catch (err: any) {
-      setAiError(err.message || "Seçili görsel taranırken bir hata oluştu.");
+    } catch (err: unknown) {
+      setAiError(err instanceof Error ? err.message : "Seçili görsel taranırken bir hata oluştu.");
     } finally {
       setScanImageLoading(false);
     }
@@ -585,7 +545,7 @@ export default function AdminProductsPage() {
     setAddProductModalOpen(true);
   };
 
-  const handleOpenEditProduct = (p: any) => {
+  const handleOpenEditProduct = (p: Product) => {
     setEditingProduct(p);
     setIsDraft(p.isDraft === true);
     setTitle(p.title);
@@ -791,7 +751,7 @@ export default function AdminProductsPage() {
 
     const images = previewImages;
 
-    const payload: any = {
+    const payload = {
       title,
       slug: generatedSlug,
       oemNumber,
@@ -823,46 +783,24 @@ export default function AdminProductsPage() {
     resetProductForm();
   };
 
-  const handleDeleteProduct = async (p: any) => {
+  const handleDeleteProduct = async (p: Product) => {
     if (confirm(`'${p.oemNumber} - ${p.title}' parçası silinsin mi?`)) {
       await deleteProduct({ id: p._id });
     }
   };
 
-  const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setCurrentPage(newPage);
-      window.scrollTo({ top: 100, behavior: "smooth" });
-    }
-  };
-
-  // Helper for generating numeric page numbers with ellipses
-  const pageNumbers = useMemo(() => {
-    const pages: (number | string)[] = [];
-    const maxVisible = 5;
-
-    if (totalPages <= maxVisible + 2) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
+  const handlePageChange = (direction: "previous" | "next") => {
+    if (direction === "previous" && currentPage > 1) {
+      setPagination({ ...currentPagination, page: currentPage - 1 });
+    } else if (direction === "next" && pageData && !pageData.isDone) {
+      const cursors = currentPagination.cursors.slice(0, currentPage + 1);
+      cursors[currentPage] = pageData.continueCursor;
+      setPagination({ ...currentPagination, page: currentPage + 1, cursors });
     } else {
-      pages.push(1);
-      let start = Math.max(2, currentPage - 1);
-      let end = Math.min(totalPages - 1, currentPage + 1);
-
-      if (currentPage <= 3) {
-        start = 2;
-        end = 4;
-      } else if (currentPage >= totalPages - 2) {
-        start = totalPages - 3;
-        end = totalPages - 1;
-      }
-
-      if (start > 2) pages.push("...");
-      for (let i = start; i <= end; i++) pages.push(i);
-      if (end < totalPages - 1) pages.push("...");
-      pages.push(totalPages);
+      return;
     }
-    return pages;
-  }, [currentPage, totalPages]);
+    window.scrollTo({ top: 100, behavior: "smooth" });
+  };
 
   return (
     <div className="space-y-4 w-full min-w-0">
@@ -872,7 +810,7 @@ export default function AdminProductsPage() {
           <h1 className="text-lg font-bold text-slate-900 flex flex-wrap items-center gap-x-2 gap-y-1">
             <span>Parçalar</span>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-              {totalItems.toLocaleString("tr-TR")} Parça
+              {products?.length ?? 0} parça bu sayfada
             </span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
@@ -986,7 +924,7 @@ export default function AdminProductsPage() {
         <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-50/80 border-b border-slate-200">
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-800 text-xs">Parça Listesi</span>
-            <span className="text-[11px] text-slate-500 font-medium">({totalItems.toLocaleString("tr-TR")})</span>
+            <span className="text-[11px] text-slate-500 font-medium">(Sayfa {currentPage})</span>
           </div>
 
           <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 shadow-2xs">
@@ -1036,7 +974,7 @@ export default function AdminProductsPage() {
                 products.map((p) => (
                   <tr key={p._id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="p-3.5">
-                      <div className="w-10 h-10 rounded-md bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center p-1">
+                      <div className="relative w-10 h-10 rounded-md bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center p-1">
                         {p.images?.[0] ? (
                           <button
                             type="button"
@@ -1047,7 +985,14 @@ export default function AdminProductsPage() {
                             className="w-full h-full cursor-zoom-in"
                             title="Görseli büyüt"
                           >
-                            <img src={p.images[0]} alt={p.title} className="w-full h-full object-contain" />
+                            <Image
+                              src={p.images[0]}
+                              alt={p.title}
+                              width={40}
+                              height={40}
+                              unoptimized
+                              className="w-full h-full object-contain"
+                            />
                           </button>
                         ) : (
                           <Cpu className="w-4 h-4 text-slate-400" />
@@ -1157,9 +1102,12 @@ export default function AdminProductsPage() {
                         aria-label={`${p.title || "Parça"} görselini büyüt`}
                         className="h-full w-full cursor-zoom-in flex items-center justify-center"
                       >
-                        <img
+                        <Image
                           src={p.images[0]}
                           alt={p.title || "Parça"}
+                          width={60}
+                          height={60}
+                          unoptimized
                           className="h-full w-full object-contain"
                         />
                       </button>
@@ -1276,11 +1224,7 @@ export default function AdminProductsPage() {
         {/* Admin Pagination Controls */}
         <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/80 p-3 sm:p-4 text-center text-xs sm:flex-row sm:gap-4 sm:text-left">
           <div className="max-w-full text-slate-500 font-medium leading-5">
-            Toplam <span className="font-bold text-slate-900">{totalItems.toLocaleString("tr-TR")}</span> kayıttan{" "}
-            <span className="font-bold text-blue-600">
-              {totalItems > 0 ? (currentPage - 1) * pageSize + 1 : 0}-{Math.min(currentPage * pageSize, totalItems)}
-            </span>{" "}
-            arası gösteriliyor (Sayfa {currentPage} / {totalPages})
+            Sayfa <span className="font-bold text-slate-900">{currentPage}</span> · {products?.length ?? 0} kayıt gösteriliyor
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
@@ -1298,93 +1242,28 @@ export default function AdminProductsPage() {
               </select>
             </div>
 
-            {totalPages > 1 && (
-              <>
-                {/* Mobile compact pagination */}
-                <div className="flex items-center gap-1 sm:hidden">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                  >
-                    Önceki
-                  </button>
-                  <span className="px-2 font-mono font-bold text-slate-800 text-xs">
-                    {currentPage} / {totalPages}
-                  </span>
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                  >
-                    Sonraki
-                  </button>
-                </div>
-
-                {/* Desktop full pagination */}
-                <div className="hidden sm:flex items-center gap-1">
-                {/* First Page */}
-                <button
-                  onClick={() => handlePageChange(1)}
-                  disabled={currentPage === 1}
-                  className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                  title="İlk sayfa"
-                >
-                  <ChevronsLeft className="w-3.5 h-3.5" />
-                </button>
-
-                {/* Previous Page */}
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors flex items-center gap-1"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                  <span>Önceki</span>
-                </button>
-
-                {/* Page Numbers */}
-                {pageNumbers.map((p, idx) =>
-                  typeof p === "number" ? (
-                    <button
-                      key={idx}
-                      onClick={() => handlePageChange(p)}
-                      className={`min-w-7 h-7 px-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${currentPage === p
-                        ? "bg-blue-600 text-white shadow-xs font-black"
-                        : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
-                        }`}
-                    >
-                      {p}
-                    </button>
-                  ) : (
-                    <span key={idx} className="px-1 text-xs text-slate-400 font-bold">
-                      ...
-                    </span>
-                  )
-                )}
-
-                {/* Next Page */}
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors flex items-center gap-1"
-                >
-                  <span>Sonraki</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-
-                {/* Last Page */}
-                <button
-                  onClick={() => handlePageChange(totalPages)}
-                  disabled={currentPage === totalPages}
-                  className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                  title="Son sayfa"
-                >
-                  <ChevronsRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              </>
-            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange("previous")}
+              disabled={currentPage === 1}
+              className="h-8 px-2.5 text-xs"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              Önceki
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange("next")}
+              disabled={!pageData || pageData.isDone}
+              className="h-8 px-2.5 text-xs"
+            >
+              Sonraki
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
           </div>
         </div>
       </div>
@@ -1439,7 +1318,14 @@ export default function AdminProductsPage() {
                           className="h-full w-full cursor-pointer"
                           title={`${i + 1}. görseli seç`}
                         >
-                          <img src={img} alt={`${i + 1}. parça görseli`} className="h-full w-full rounded object-contain" />
+                          <Image
+                            src={img}
+                            alt={`${i + 1}. parça görseli`}
+                            width={64}
+                            height={64}
+                            unoptimized
+                            className="h-full w-full rounded object-contain"
+                          />
                         </button>
 
                         {/* Kapak Görseli Rozeti */}
@@ -1868,11 +1754,14 @@ export default function AdminProductsPage() {
             zIndex: 9998,
             pointerEvents: "none",
           }}
-          className="w-80 h-80 rounded-2xl border-2 border-white/20 bg-slate-900 shadow-2xl overflow-hidden flex items-center justify-center p-3 ring-1 ring-black/30"
+          className="relative w-80 h-80 rounded-2xl border-2 border-white/20 bg-slate-900 shadow-2xl overflow-hidden flex items-center justify-center p-3 ring-1 ring-black/30"
         >
-          <img
+          <Image
             src={hoverPreview.src}
             alt="Önizleme"
+            width={320}
+            height={320}
+            unoptimized
             className="max-w-full max-h-full object-contain"
             draggable={false}
           />
@@ -1913,10 +1802,13 @@ export default function AdminProductsPage() {
               <div
                 className="relative flex h-[min(58vh,620px)] w-full items-center justify-center overflow-hidden rounded-2xl bg-black/35 shadow-2xl lg:h-[min(74vh,720px)]"
               >
-                <img
+                <Image
                   key={lightbox.index}
                   src={lightbox.images[lightbox.index]}
                   alt={`Görsel ${lightbox.index + 1}`}
+                  fill
+                  sizes="94vw"
+                  unoptimized
                   onClick={handleLightboxImageClick}
                   onWheel={handleLightboxImageWheel}
                   style={{
@@ -1967,7 +1859,15 @@ export default function AdminProductsPage() {
                         : "border-white/30 opacity-60 hover:opacity-100"
                         }`}
                     >
-                      <img src={img} alt={`Küçük resim ${i + 1}`} className="w-full h-full object-contain" draggable={false} />
+                      <Image
+                        src={img}
+                        alt={`Küçük resim ${i + 1}`}
+                        fill
+                        sizes="56px"
+                        unoptimized
+                        className="object-contain"
+                        draggable={false}
+                      />
                       {i === 0 && (
                         <span className="absolute bottom-0.5 left-0.5 px-1 py-0.5 rounded text-[7px] font-black bg-amber-500 text-white shadow-xs leading-none">
                           KAPAK

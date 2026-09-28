@@ -1,6 +1,22 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import type { Doc } from "./_generated/dataModel";
+import { requireAdmin } from "./authz";
+
+type ConversationPatch = Partial<
+  Pick<
+    Doc<"conversations">,
+    | "updatedAt"
+    | "visitorName"
+    | "visitorPhone"
+    | "productCard"
+    | "status"
+    | "lastMessage"
+    | "lastMessageAt"
+    | "unreadCountAdmin"
+    | "unreadCountVisitor"
+  >
+>;
 
 // 1. Ziyaretçi Sohbetini Getir veya Başlat
 export const getOrCreateConversation = mutation({
@@ -29,7 +45,7 @@ export const getOrCreateConversation = mutation({
 
     if (existing) {
       // If conversation exists but visitor provides a name, phone, or product card update
-      const updates: any = { updatedAt: now };
+      const updates: ConversationPatch = { updatedAt: now };
       if (args.visitorName) {
         updates.visitorName = args.visitorName;
       }
@@ -121,10 +137,17 @@ export const getOrCreateConversation = mutation({
 export const getActiveConversationByVisitor = query({
   args: { visitorId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const conversation = await ctx.db
       .query("conversations")
       .withIndex("by_visitorId", (q) => q.eq("visitorId", args.visitorId))
       .first();
+
+    if (!conversation) return null;
+    return {
+      _id: conversation._id,
+      status: conversation.status,
+      unreadCountVisitor: conversation.unreadCountVisitor,
+    };
   },
 });
 
@@ -132,6 +155,7 @@ export const getActiveConversationByVisitor = query({
 export const getConversation = query({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     return await ctx.db.get(args.conversationId);
   },
 });
@@ -143,6 +167,7 @@ export const listConversations = query({
     searchTerm: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     let convs = await ctx.db
       .query("conversations")
       .collect();
@@ -172,8 +197,22 @@ export const listConversations = query({
 
 // 5. Sohbetin Mesajlarını Gerçek Zamanlı Listele
 export const getMessages = query({
-  args: { conversationId: v.id("conversations") },
+  args: {
+    conversationId: v.id("conversations"),
+    visitorId: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
+    const conversation = await ctx.db.get(args.conversationId);
+    if (!conversation) return [];
+
+    if (args.visitorId !== undefined) {
+      if (args.visitorId !== conversation.visitorId) {
+        throw new Error("Yetkisiz erişim.");
+      }
+    } else {
+      await requireAdmin(ctx);
+    }
+
     return await ctx.db
       .query("messages")
       .withIndex("by_conversationId", (q) => q.eq("conversationId", args.conversationId))
@@ -185,7 +224,8 @@ export const getMessages = query({
 export const sendMessage = mutation({
   args: {
     conversationId: v.id("conversations"),
-    sender: v.string(), // "visitor" | "admin"
+    sender: v.union(v.literal("visitor"), v.literal("admin")),
+    visitorId: v.optional(v.string()),
     text: v.string(),
     productCard: v.optional(
       v.object({
@@ -203,6 +243,12 @@ export const sendMessage = mutation({
       throw new Error("Sohbet bulunamadı.");
     }
 
+    if (args.sender === "admin") {
+      await requireAdmin(ctx);
+    } else if (!args.visitorId || args.visitorId !== conv.visitorId) {
+      throw new Error("Yetkisiz erişim.");
+    }
+
     const now = Date.now();
 
     // Insert new message
@@ -216,7 +262,7 @@ export const sendMessage = mutation({
     });
 
     // Update conversation record
-    const updates: any = {
+    const updates: ConversationPatch = {
       lastMessage: args.text,
       lastMessageAt: now,
       updatedAt: now,
@@ -243,11 +289,18 @@ export const sendMessage = mutation({
 export const markAsRead = mutation({
   args: {
     conversationId: v.id("conversations"),
-    reader: v.string(), // "admin" | "visitor"
+    reader: v.union(v.literal("admin"), v.literal("visitor")),
+    visitorId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const conv = await ctx.db.get(args.conversationId);
     if (!conv) return;
+
+    if (args.reader === "admin") {
+      await requireAdmin(ctx);
+    } else if (!args.visitorId || args.visitorId !== conv.visitorId) {
+      throw new Error("Yetkisiz erişim.");
+    }
 
     if (args.reader === "admin") {
       await ctx.db.patch(args.conversationId, { unreadCountAdmin: 0 });
@@ -273,6 +326,7 @@ export const markAsRead = mutation({
 export const closeConversation = mutation({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const now = Date.now();
     await ctx.db.patch(args.conversationId, {
       status: "closed",
@@ -293,6 +347,7 @@ export const closeConversation = mutation({
 export const deleteConversation = mutation({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const msgs = await ctx.db
       .query("messages")
       .withIndex("by_conversationId", (q) => q.eq("conversationId", args.conversationId))

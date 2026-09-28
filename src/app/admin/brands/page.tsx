@@ -1,20 +1,19 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
+import Image from "next/image";
 import {
-  Car,
   Plus,
   Search,
   Edit2,
   Trash2,
   Cpu,
   ImageIcon,
-  Upload,
   X,
-  Loader2,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
+import type { Doc } from "@convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,12 +24,14 @@ import {
 } from "@/components/ui/dialog";
 import { slugify, LOCAL_BRAND_LOGOS } from "../admin-utils";
 
+type Brand = Doc<"brands">;
+
 export default function AdminBrandsPage() {
   const [brandSearch, setBrandSearch] = useState("");
 
   // Brand Modal & Form State
   const [brandModalOpen, setBrandModalOpen] = useState(false);
-  const [editingBrand, setEditingBrand] = useState<any>(null);
+  const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
   const [brandName, setBrandName] = useState("");
   const [brandSlug, setBrandSlug] = useState("");
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
@@ -42,7 +43,7 @@ export default function AdminBrandsPage() {
 
   
   // Queries & Mutations
-  const brands = useQuery(api.brands.list);
+  const brands = useQuery(api.brands.list, { onlyActive: false });
     const createBrand = useMutation(api.brands.create);
   const updateBrand = useMutation(api.brands.update);
   const deleteBrand = useMutation(api.brands.deleteBrand);
@@ -64,7 +65,7 @@ export default function AdminBrandsPage() {
     setBrandModalOpen(true);
   };
 
-  const handleOpenEditBrand = (b: any) => {
+  const handleOpenEditBrand = (b: Brand) => {
     setEditingBrand(b);
     setBrandName(b.name);
     setBrandSlug(b.slug);
@@ -93,7 +94,7 @@ export default function AdminBrandsPage() {
       }
     }, 250);
     return () => clearTimeout(timer);
-  }, [brandName, brandSlug, brandModalOpen]);
+  }, [brandName, brandSlug, brandModalOpen, brandLogoUrl]);
 
   
   const handleSaveBrand = async (e: React.FormEvent) => {
@@ -128,17 +129,17 @@ export default function AdminBrandsPage() {
 
       setBrandModalOpen(false);
       resetBrandForm();
-    } catch (err: any) {
-      setBrandError(err?.message || "Marka kaydedilirken bir hata oluştu.");
+    } catch (err: unknown) {
+      setBrandError(err instanceof Error ? err.message : "Marka kaydedilirken bir hata oluştu.");
     }
   };
 
-  const handleDeleteBrand = async (b: any) => {
+  const handleDeleteBrand = async (b: Brand) => {
     if (confirm(`'${b.name}' markası silinsin mi?`)) {
       try {
         await deleteBrand({ id: b._id });
-      } catch (err: any) {
-        alert(err?.message || "Marka silinemedi.");
+      } catch (err: unknown) {
+        alert(err instanceof Error ? err.message : "Marka silinemedi.");
       }
     }
   };
@@ -196,12 +197,15 @@ export default function AdminBrandsPage() {
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 p-2">
                 {b.logoUrl ? (
-                  <img
+                  <Image
                     src={LOCAL_BRAND_LOGOS[b.slug] || b.logoUrl}
                     alt={`${b.name} logosu`}
+                    width={48}
+                    height={48}
+                    unoptimized
                     className="w-full h-full object-contain"
                     onError={(e) => {
-                      (e.currentTarget as HTMLElement).style.display = "none";
+                      e.currentTarget.style.display = "none";
                     }}
                   />
                 ) : (
@@ -312,12 +316,15 @@ export default function AdminBrandsPage() {
               {brandLogoUrl ? (
                 <div className="flex items-center gap-3 pt-1">
                   <div className="relative w-14 h-14 rounded-md border border-slate-200 bg-white p-2 flex items-center justify-center">
-                    <img
+                    <Image
                       src={brandLogoUrl}
                       alt="Logo Preview"
+                      width={56}
+                      height={56}
+                      unoptimized
                       className="w-full h-full object-contain"
                       onError={(e) => {
-                        (e.currentTarget as HTMLElement).style.display = "none";
+                        e.currentTarget.style.display = "none";
                       }}
                     />
                     <button

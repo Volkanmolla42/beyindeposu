@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAdmin } from "./authz";
 
 function normalizeBrandLogoUrl(url?: string | null): string | undefined {
   if (!url) return undefined;
@@ -7,10 +8,14 @@ function normalizeBrandLogoUrl(url?: string | null): string | undefined {
 }
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { onlyActive: v.optional(v.boolean()) },
+  handler: async (ctx, args) => {
+    if (args.onlyActive === false) {
+      await requireAdmin(ctx);
+    }
     const brands = await ctx.db.query("brands").collect();
     return brands
+      .filter((brand) => args.onlyActive === false || brand.isActive !== false)
       .sort((a, b) => (a.order ?? 99) - (b.order ?? 99))
       .map((b) => ({
         ...b,
@@ -26,7 +31,7 @@ export const getPopular = query({
       .query("brands")
       .withIndex("by_popular", (q) => q.eq("popular", true))
       .take(50);
-    return brands.map((b) => ({
+    return brands.filter((brand) => brand.isActive !== false).map((b) => ({
       ...b,
       logoUrl: normalizeBrandLogoUrl(b.logoUrl),
     }));
@@ -43,6 +48,7 @@ export const create = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     return await ctx.db.insert("brands", {
       ...args,
       isActive: args.isActive ?? true,
@@ -61,6 +67,7 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const { id, ...data } = args;
     await ctx.db.patch(id, {
       ...data,
@@ -72,6 +79,7 @@ export const update = mutation({
 export const deleteBrand = mutation({
   args: { id: v.id("brands") },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     await ctx.db.delete(args.id);
   },
 });
@@ -115,6 +123,7 @@ export const INITIAL_BRANDS = [
 export const seedAll = mutation({
   args: {},
   handler: async (ctx) => {
+    await requireAdmin(ctx);
     const existing = await ctx.db.query("brands").collect();
     const existingBySlug = new Map(existing.map((b) => [b.slug.toLowerCase(), b]));
     let created = 0;

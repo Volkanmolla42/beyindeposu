@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
+import Image from "next/image";
 import {
   Layers,
   Plus,
@@ -8,13 +9,12 @@ import {
   Edit2,
   Trash2,
   ImageIcon,
-  Upload,
   X,
-  Loader2,
   Globe,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
+import type { Doc } from "@convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,12 +25,14 @@ import {
 } from "@/components/ui/dialog";
 import { slugify, LOCAL_CATEGORY_IMAGES } from "../admin-utils";
 
+type Category = Doc<"categories"> & { image?: string };
+
 export default function AdminCategoriesPage() {
   const [catSearch, setCatSearch] = useState("");
 
   // Category Modal & Form State
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [catName, setCatName] = useState("");
   const [catSlug, setCatSlug] = useState("");
   const [catSlugManuallyEdited, setCatSlugManuallyEdited] = useState(false);
@@ -70,7 +72,7 @@ export default function AdminCategoriesPage() {
     setCategoryModalOpen(true);
   };
 
-  const handleOpenEditCategory = (c: any) => {
+  const handleOpenEditCategory = (c: Category) => {
     setEditingCategory(c);
     setCatName(c.name);
     setCatSlug(c.slug);
@@ -117,17 +119,17 @@ export default function AdminCategoriesPage() {
 
       setCategoryModalOpen(false);
       resetCategoryForm();
-    } catch (err: any) {
-      setCategoryError(err?.message || "Kategori kaydedilirken hata oluştu.");
+    } catch (err: unknown) {
+      setCategoryError(err instanceof Error ? err.message : "Kategori kaydedilirken hata oluştu.");
     }
   };
 
-  const handleDeleteCategory = async (cat: any) => {
+  const handleDeleteCategory = async (cat: Category) => {
     if (confirm(`'${cat.name}' kategorisi silinsin mi?`)) {
       try {
         await deleteCategory({ id: cat._id });
-      } catch (err: any) {
-        alert(err?.message || "Kategori silinemedi. Bağlı parçalar olabilir.");
+      } catch (err: unknown) {
+        alert(err instanceof Error ? err.message : "Kategori silinemedi. Bağlı parçalar olabilir.");
       }
     }
   };
@@ -185,7 +187,14 @@ export default function AdminCategoriesPage() {
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 p-1">
                 {cat.image ? (
-                  <img src={cat.image} alt={cat.name} className="w-full h-full object-contain" />
+                  <Image
+                    src={cat.image}
+                    alt={cat.name}
+                    width={48}
+                    height={48}
+                    unoptimized
+                    className="w-full h-full object-contain"
+                  />
                 ) : (
                   <Layers className="w-5 h-5 text-slate-400" />
                 )}
@@ -292,7 +301,14 @@ export default function AdminCategoriesPage() {
               {catPreviewImage ? (
                 <div className="flex items-center gap-3 pt-1">
                   <div className="relative w-14 h-14 rounded-md border border-slate-200 overflow-hidden bg-white p-1">
-                    <img src={catPreviewImage} alt="Kategori görseli" className="w-full h-full object-contain" />
+                    <Image
+                      src={catPreviewImage}
+                      alt="Kategori görseli"
+                      width={56}
+                      height={56}
+                      unoptimized
+                      className="w-full h-full object-contain"
+                    />
                     <button
                       type="button"
                       onClick={() => {

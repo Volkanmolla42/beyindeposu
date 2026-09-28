@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import * as path from "path";
-import * as fs from "fs";
 import { mkdir, writeFile } from "fs/promises";
+import sharp from "sharp";
 import {
   getVisionLookupSystemInstruction,
   formatCategoriesList,
@@ -10,10 +10,20 @@ import {
   parseLlmJson,
   DEFAULT_GEMINI_MODELS,
 } from "@/lib/ai/oem-assistant";
+import { requireAdminApiRequest } from "@/lib/auth/admin-api";
 
 export const runtime = "nodejs";
+const IMAGE_FORMATS = {
+  jpeg: { extension: ".jpg", mimeType: "image/jpeg" },
+  png: { extension: ".png", mimeType: "image/png" },
+  webp: { extension: ".webp", mimeType: "image/webp" },
+  avif: { extension: ".avif", mimeType: "image/avif" },
+} as const;
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireAdminApiRequest(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -30,11 +40,13 @@ export async function POST(req: NextRequest) {
     const categoriesJson = (formData.get("categories") as string) || "[]";
     const brandsJson = (formData.get("brands") as string) || "[]";
 
-    let categories: any[] = [];
-    let brands: any[] = [];
+    let categories: unknown[] = [];
+    let brands: unknown[] = [];
     try {
-      categories = JSON.parse(categoriesJson);
-      brands = JSON.parse(brandsJson);
+      const parsedCategories: unknown = JSON.parse(categoriesJson);
+      const parsedBrands: unknown = JSON.parse(brandsJson);
+      if (Array.isArray(parsedCategories)) categories = parsedCategories;
+      if (Array.isArray(parsedBrands)) brands = parsedBrands;
     } catch {
       // Fallback empty
     }
@@ -47,11 +59,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const validatedFiles = await Promise.all(files.map(async (file) => {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const metadata = await sharp(buffer, { failOn: "error" }).metadata();
+      const format = metadata.format && IMAGE_FORMATS[metadata.format as keyof typeof IMAGE_FORMATS];
+      if (!format) {
+        throw new Error("Yalnızca JPEG, PNG, WebP veya AVIF görseller desteklenir.");
+      }
+      return { buffer, format };
+    }));
+
     // 1. Görselleri Sisteme Kaydet (public/uploads/products)
-    const uploadDir = process.env.PRODUCT_UPLOAD_DIR
-      ? path.resolve(process.env.PRODUCT_UPLOAD_DIR)
-      : path.join(process.cwd(), "public", "uploads", "products");
-    const publicBasePath = process.env.PRODUCT_UPLOAD_PUBLIC_PATH || "/uploads/products";
+    const uploadDir = path.join(process.cwd(), "public", "uploads", "products");
+    const publicBasePath = "/uploads/products";
 
     await mkdir(uploadDir, { recursive: true });
 
@@ -62,11 +82,8 @@ export async function POST(req: NextRequest) {
     const timestamp = Date.now();
 
     for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      const ext = path.extname(file.name) || ".webp";
+      const { buffer, format } = validatedFiles[i];
+      const ext = format.extension;
       const fileName = `product_${cleanShelf}_${timestamp}_${i + 1}${ext}`;
       const filePath = path.join(uploadDir, fileName);
 
@@ -75,11 +92,10 @@ export async function POST(req: NextRequest) {
 
       // İlk 4 görseli AI Vision analizi için hazırla
       if (i < 4) {
-        const mimeType = file.type || (ext === ".png" ? "image/png" : ext === ".webp" ? "image/webp" : "image/jpeg");
         imageParts.push({
           inlineData: {
             data: buffer.toString("base64"),
-            mimeType,
+            mimeType: format.mimeType,
           },
         });
       }
@@ -106,8 +122,8 @@ SİSTEMDE KAYITLI MARKALAR:
 ${brandsStr}`;
 
     const modelsToTry = DEFAULT_GEMINI_MODELS;
-    let aiResponse: any = null;
-    let lastErr: any = null;
+    let aiResponse: Awaited<ReturnType<typeof ai.models.generateContent>> | undefined;
+    let lastErr: unknown;
 
     for (const model of modelsToTry) {
       try {
@@ -126,13 +142,14 @@ ${brandsStr}`;
           },
         });
         if (aiResponse?.text) break;
-      } catch (e: any) {
-        lastErr = e;
+      } catch (error: unknown) {
+        lastErr = error;
       }
     }
 
     if (!aiResponse?.text) {
-      throw new Error(`Yapay zeka analizi başarısız oldu: ${lastErr?.message || "Bilinmeyen hata"}`);
+      const errorMessage = lastErr instanceof Error ? lastErr.message : "Bilinmeyen hata";
+      throw new Error(`Yapay zeka analizi başarısız oldu: ${errorMessage}`);
     }
 
     const parsedData = parseLlmJson(aiResponse.text);
@@ -159,12 +176,16 @@ ${brandsStr}`;
       metaTitle: isDraft ? "" : (parsedData.metaTitle || detectedTitle.slice(0, 60)),
       metaDescription: isDraft ? "" : (parsedData.metaDescription || ""),
       metaKeywords: isDraft ? "" : (parsedData.metaKeywords || ""),
-      tags: isDraft ? ["inceleme-gerekli", shelfCode] : (parsedData.tags || [detectedOem, shelfCode]),
+      tags: isDraft ? [] : (parsedData.tags || [detectedOem, shelfCode]),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Batch process item error:", error);
     return NextResponse.json(
-      { error: error?.message || "Parça işlenirken beklenmeyen bir hata oluştu." },
+      {
+        error: error instanceof Error
+          ? error.message
+          : "Parça işlenirken beklenmeyen bir hata oluştu.",
+      },
       { status: 500 }
     );
   }

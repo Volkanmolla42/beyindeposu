@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { requireAdminApiRequest } from "@/lib/auth/admin-api";
 import {
   getTextLookupSystemInstruction,
   formatCategoriesList,
@@ -9,6 +10,9 @@ import {
 } from "@/lib/ai/oem-assistant";
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireAdminApiRequest(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -21,11 +25,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
-    const { oemNumber, categories = [], brands = [] } = body;
+    const contentLength = Number(req.headers.get("content-length"));
+    if (Number.isFinite(contentLength) && contentLength > 256 * 1024) {
+      return NextResponse.json({ error: "İstek gövdesi çok büyük." }, { status: 413 });
+    }
+
+    const body: unknown = await req.json();
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
+    }
+    const { oemNumber, categories = [], brands = [] } = body as Record<string, unknown>;
 
     const trimmedOem = typeof oemNumber === "string" ? oemNumber.trim() : "";
-    if (!trimmedOem) {
+    if (!trimmedOem || trimmedOem.length > 120 || !Array.isArray(categories) || !Array.isArray(brands)) {
       return NextResponse.json(
         { error: "Lütfen geçerli bir OEM veya parça kodu giriniz." },
         { status: 400 }
@@ -48,9 +60,9 @@ SİSTEMDE KAYITLI MARKALAR:
 ${brandsListStr}
 `;
 
-    let response: any;
+    let response: Awaited<ReturnType<typeof ai.models.generateContent>> | undefined;
     const modelsToTry = DEFAULT_GEMINI_MODELS;
-    let lastError: any = null;
+    let lastError: unknown;
 
     for (const model of modelsToTry) {
       try {
@@ -77,13 +89,15 @@ ${brandsListStr}
         }
 
         if (response?.text) break;
-      } catch (err: any) {
-        lastError = err;
+      } catch (error: unknown) {
+        lastError = error;
       }
     }
 
     if (!response?.text) {
-      throw lastError || new Error("Gemini modelinden yanıt alınamadı.");
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Gemini modelinden yanıt alınamadı.");
     }
 
     // Google Search Grounding kaynaklarını ayıkla
@@ -119,12 +133,12 @@ ${brandsListStr}
       ...parsedData,
       sources,
     });
-  } catch (err: any) {
-    console.error("AI OEM Lookup Error:", err);
+  } catch (error: unknown) {
+    console.error("AI OEM Lookup Error:", error);
     return NextResponse.json(
       {
         error:
-          err?.message ||
+          (error instanceof Error ? error.message : undefined) ||
           "OEM analizi yapılırken beklenmeyen bir hata oluştu. Lütfen tekrar deneyiniz.",
       },
       { status: 500 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { requireAdminApiRequest } from "@/lib/auth/admin-api";
 import {
   getVisionLookupSystemInstruction,
   formatCategoriesList,
@@ -9,6 +10,9 @@ import {
 } from "@/lib/ai/oem-assistant";
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireAdminApiRequest(req);
+  if (unauthorized) return unauthorized;
+
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -21,10 +25,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
-    const { imageBase64, imageMimeType = "image/jpeg", categories = [], brands = [] } = body;
+    const contentLength = Number(req.headers.get("content-length"));
+    if (Number.isFinite(contentLength) && contentLength > 14 * 1024 * 1024) {
+      return NextResponse.json({ error: "Görsel en fazla 10 MB olabilir." }, { status: 413 });
+    }
 
-    if (!imageBase64 || typeof imageBase64 !== "string") {
+    const body: unknown = await req.json();
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
+    }
+    const {
+      imageBase64,
+      imageMimeType = "image/jpeg",
+      categories = [],
+      brands = [],
+    } = body as Record<string, unknown>;
+
+    if (
+      !imageBase64 ||
+      typeof imageBase64 !== "string" ||
+      imageBase64.length > 14 * 1024 * 1024 ||
+      !Array.isArray(categories) ||
+      !Array.isArray(brands) ||
+      typeof imageMimeType !== "string" ||
+      !["image/jpeg", "image/png", "image/webp", "image/avif"].includes(imageMimeType)
+    ) {
       return NextResponse.json(
         { error: "Lütfen analiz edilecek bir görsel yükleyiniz." },
         { status: 400 }
@@ -48,9 +73,9 @@ ${categoriesListStr}
 SİSTEMDE KAYITLI MARKALAR:
 ${brandsListStr}`;
 
-    let response: any;
+    let response: Awaited<ReturnType<typeof ai.models.generateContent>> | undefined;
     const modelsToTry = DEFAULT_GEMINI_MODELS;
-    let lastError: any = null;
+    let lastError: unknown;
 
     for (const model of modelsToTry) {
       try {
@@ -77,13 +102,15 @@ ${brandsListStr}`;
         });
 
         if (response?.text) break;
-      } catch (err: any) {
-        lastError = err;
+      } catch (error: unknown) {
+        lastError = error;
       }
     }
 
     if (!response?.text) {
-      throw lastError || new Error("Görsel analizi sırasında Gemini modelinden yanıt alınamadı.");
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("Görsel analizi sırasında Gemini modelinden yanıt alınamadı.");
     }
 
     const parsedData = parseLlmJson(response.text || "");
@@ -103,12 +130,12 @@ ${brandsListStr}`;
     return NextResponse.json({
       ...parsedData,
     });
-  } catch (err: any) {
-    console.error("AI OEM from Image Error:", err);
+  } catch (error: unknown) {
+    console.error("AI OEM from Image Error:", error);
     return NextResponse.json(
       {
         error:
-          err?.message ||
+          (error instanceof Error ? error.message : undefined) ||
           "Fotoğraftan parça analizi yapılırken beklenmeyen bir hata oluştu. Lütfen tekrar deneyiniz.",
       },
       { status: 500 }

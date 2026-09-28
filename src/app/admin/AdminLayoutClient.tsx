@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -8,7 +9,6 @@ import {
   MessageSquare,
   Layers,
   Car,
-  Settings,
   Menu,
   X,
   ChevronRight,
@@ -87,13 +87,16 @@ export default function AdminLayout({
 
   const { isLoading: authLoading, isAuthenticated } = useConvexAuth();
   const { signOut } = useAuthActions();
+  const isAdmin = useQuery(api.users.isAdmin, isAuthenticated ? {} : "skip");
 
   // Client-side authentication guard
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.push("/login");
+      router.replace("/login");
+    } else if (isAuthenticated && isAdmin === false) {
+      router.replace("/");
     }
-  }, [authLoading, isAuthenticated, router]);
+  }, [authLoading, isAuthenticated, isAdmin, router]);
 
   const handleLogout = async () => {
     try {
@@ -107,9 +110,10 @@ export default function AdminLayout({
     }
   };
 
-  const conversations = useQuery(api.chats.listConversations, {
-    status: "active",
-  });
+  const conversations = useQuery(
+    api.chats.listConversations,
+    isAdmin ? { status: "active" } : "skip",
+  );
   const unreadChatsCount =
     conversations?.reduce((acc, c) => acc + (c.unreadCountAdmin || 0), 0) || 0;
 
@@ -121,7 +125,7 @@ export default function AdminLayout({
   const isChatsPage = pathname.startsWith("/admin/chats");
 
   // Auth Loading Screen
-  if (authLoading || (!isAuthenticated && typeof window !== "undefined")) {
+  if (authLoading || !isAuthenticated || isAdmin !== true) {
     return (
       <div className="h-screen w-full bg-slate-50 flex flex-col items-center justify-center text-slate-500 gap-2 text-xs">
         <Loader2 className="w-5 h-5 animate-spin text-slate-600" />
@@ -183,9 +187,11 @@ export default function AdminLayout({
               className="flex items-center gap-2.5 group"
               onClick={() => setMobileMenuOpen(false)}
             >
-              <img
+              <Image
                 src="/images/logo_transparent.webp"
                 alt="Beyin Deposu"
+                width={160}
+                height={40}
                 className="h-8 w-auto object-contain"
               />
               <span className="rounded-full border border-blue-100 bg-blue-50 px-2 py-1 text-[10px] font-medium tracking-wide text-blue-800">

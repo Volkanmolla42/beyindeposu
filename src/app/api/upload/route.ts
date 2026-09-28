@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import sharp from "sharp";
+import { requireAdminApiRequest } from "@/lib/auth/admin-api";
 
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -10,6 +11,9 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/avif",
 ]);
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_REQUEST_SIZE = 16 * 1024 * 1024;
+const MAX_CONTENT_LENGTH = 17 * 1024 * 1024;
+const MAX_FILES = 20;
 
 function fileSafePart(value: string) {
   return value
@@ -21,6 +25,17 @@ function fileSafePart(value: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const unauthorized = await requireAdminApiRequest(req);
+  if (unauthorized) return unauthorized;
+
+  const contentLength = Number(req.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_CONTENT_LENGTH) {
+    return NextResponse.json(
+      { success: false, message: "Tek istekte en fazla 16 MB görsel yüklenebilir." },
+      { status: 413 },
+    );
+  }
+
   try {
     const formData = await req.formData();
     const files = formData.getAll("files") as File[];
@@ -40,6 +55,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (filesToProcess.length > MAX_FILES) {
+      return NextResponse.json(
+        { success: false, message: "Tek istekte en fazla 20 görsel yüklenebilir." },
+        { status: 413 },
+      );
+    }
+
+    if (filesToProcess.reduce((total, file) => total + file.size, 0) > MAX_REQUEST_SIZE) {
+      return NextResponse.json(
+        { success: false, message: "Tek istekte en fazla 16 MB görsel yüklenebilir." },
+        { status: 413 },
+      );
+    }
+
     for (const file of filesToProcess) {
       if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
         return NextResponse.json(
@@ -55,12 +84,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const uploadDir = process.env.PRODUCT_UPLOAD_DIR
-      ? path.resolve(process.env.PRODUCT_UPLOAD_DIR)
-      : path.join(process.cwd(), "public", "uploads", "products");
-    const publicBasePath = (process.env.PRODUCT_UPLOAD_PUBLIC_PATH || "/uploads/products")
-      .replace(/\/+$/, "")
-      .replace(/^([^/])/, "/$1");
+    const uploadDir = path.join(process.cwd(), "public", "uploads", "products");
+    const publicBasePath = "/uploads/products";
     await mkdir(uploadDir, { recursive: true });
 
     const uploadedUrls: string[] = [];

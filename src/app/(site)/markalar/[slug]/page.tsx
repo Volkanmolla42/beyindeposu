@@ -7,9 +7,16 @@ import {
   metadataDescription,
   SITE_NAME,
 } from "@/lib/seo";
-import { getPublicBrandPage } from "@/lib/seo-data";
+import { getPublicBrandPage, getPublicBrands } from "@/lib/seo-data";
 
 export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const brands = await getPublicBrands();
+  return brands.map((brand) => ({
+    slug: brand.slug,
+  }));
+}
 
 type BrandPageProps = {
   params: Promise<{ slug: string }>;

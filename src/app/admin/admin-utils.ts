@@ -109,7 +109,13 @@ export const LOCAL_CATEGORY_IMAGES: Record<string, string> = {
 // Subtle audio chime for new incoming chat message
 export function playAdminNotificationSound() {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextConstructor =
+      window.AudioContext ||
+      (window as Window & { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioContextConstructor) return;
+
+    const ctx = new AudioContextConstructor();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = "sine";
@@ -121,7 +127,7 @@ export function playAdminNotificationSound() {
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.3);
-  } catch (e) {
+  } catch {
     // Ignore restricted audio
   }
 }

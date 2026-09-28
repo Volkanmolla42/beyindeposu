@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireAdmin } from "./authz";
 
 export const list = query({
   args: { onlyActive: v.optional(v.boolean()) },
@@ -11,6 +12,7 @@ export const list = query({
         .withIndex("by_isActive", (q) => q.eq("isActive", true))
         .collect();
     } else {
+      await requireAdmin(ctx);
       cats = await ctx.db.query("categories").collect();
     }
 
@@ -31,7 +33,7 @@ export const getBySlug = query({
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first();
 
-    if (!cat) return null;
+    if (!cat || cat.isActive === false) return null;
 
     return {
       ...cat,
@@ -43,6 +45,7 @@ export const getBySlug = query({
 export const getById = query({
   args: { id: v.id("categories") },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const cat = await ctx.db.get(args.id);
     if (!cat) return null;
 
@@ -66,6 +69,7 @@ export const create = mutation({
     metaKeywords: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const existing = await ctx.db
       .query("categories")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
@@ -97,6 +101,7 @@ export const update = mutation({
     metaKeywords: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const { id, ...fields } = args;
     await ctx.db.patch(id, {
       ...fields,
@@ -108,6 +113,7 @@ export const update = mutation({
 export const deleteCategory = mutation({
   args: { id: v.id("categories") },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const cat = await ctx.db.get(args.id);
     if (!cat) return;
 
@@ -249,6 +255,7 @@ export const INITIAL_CATEGORIES = [
 export const seedAll = mutation({
   args: {},
   handler: async (ctx) => {
+    await requireAdmin(ctx);
     const existing = await ctx.db.query("categories").collect();
     const existingBySlug = new Map(existing.map((c) => [c.slug.toLowerCase(), c]));
     let created = 0;

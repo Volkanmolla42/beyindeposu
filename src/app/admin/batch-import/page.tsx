@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useMemo, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "@convex/_generated/api";
 import {
   FolderUp,
@@ -10,19 +10,11 @@ import {
   RotateCcw,
   CheckCircle2,
   AlertCircle,
-  Clock,
-  Sparkles,
-  ExternalLink,
-  ChevronRight,
-  Layers,
-  FileText,
+  File,
   Search,
   Check,
-  Eye,
   Loader2,
-  Info,
 } from "lucide-react";
-import Link from "next/link";
 
 interface ProductFileGroup {
   id: string;
@@ -37,24 +29,21 @@ interface ProductFileGroup {
     productId?: string;
     oemNumber?: string;
     title?: string;
-    categoryName?: string;
     brand?: string;
     model?: string;
     imageUrl?: string;
-    slug?: string;
   };
 }
+
+type StatusFilter = "all" | "success" | "skipped" | "error" | "pending";
 
 export default function BatchImportPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Convex Data
   const categories = useQuery(api.categories.list, { onlyActive: false }) || [];
-  const brands = useQuery(api.brands.list) || [];
-  const existingProductsRes = useQuery(api.products.getProductsPage, {
-    draftStatus: "all",
-    pageSize: 500,
-  });
+  const brands = useQuery(api.brands.list, { onlyActive: false }) || [];
+  const convex = useConvex();
 
   const createProduct = useMutation(api.products.create);
   const updateProduct = useMutation(api.products.update);
@@ -65,10 +54,9 @@ export default function BatchImportPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
-  const [saveAsDraft, setSaveAsDraft] = useState(false);
   const [skipExisting, setSkipExisting] = useState(true);
   const [searchFilter, setSearchFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "success" | "error" | "pending">("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   // Keep a ref to isRunning / isPaused to break out of processing loops instantly
   const shouldStopRef = useRef(false);
@@ -104,19 +92,6 @@ export default function BatchImportPage() {
       document.removeEventListener("click", handleAnchorClick, true);
     };
   }, [isRunning]);
-
-  // Map of existing products by shelfCode
-  const existingProductsByShelf = useMemo(() => {
-    const map = new Map<string, any>();
-    if (existingProductsRes?.items) {
-      for (const p of existingProductsRes.items) {
-        if (p.shelfCode) {
-          map.set(p.shelfCode.trim().toLowerCase(), p);
-        }
-      }
-    }
-    return map;
-  }, [existingProductsRes]);
 
   // Handle Directory Selection
   const handleDirectorySelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -251,40 +226,42 @@ export default function BatchImportPage() {
     const item = productGroups[index];
     if (!item) return;
 
-    // Check if already completed and skipExisting is true
-    const existing = existingProductsByShelf.get(item.shelfCode.trim().toLowerCase());
-    const isAlreadyFull = existing && existing.oemNumber && existing.title && existing.oemNumber.trim() !== "";
-
-    if (skipExisting && isAlreadyFull) {
-      setProductGroups((prev) =>
-        prev.map((g, i) =>
-          i === index
-            ? {
-                ...g,
-                status: "skipped",
-                result: {
-                  productId: existing._id,
-                  oemNumber: existing.oemNumber,
-                  title: existing.title,
-                  categoryName: existing.categoryName,
-                  brand: existing.brand,
-                  model: existing.model,
-                  imageUrl: existing.images?.[0],
-                  slug: existing.slug,
-                },
-              }
-            : g
-        )
-      );
-      return;
-    }
-
     // Set processing state
     setProductGroups((prev) =>
       prev.map((g, i) => (i === index ? { ...g, status: "processing", error: undefined } : g))
     );
 
     try {
+      const shelfCode = item.shelfCode.trim();
+      const existing = shelfCode
+        ? await convex.query(api.products.getByShelfCode, { shelfCode })
+        : null;
+      const isAlreadyFull = Boolean(
+        existing?.oemNumber && existing.title && existing.oemNumber.trim(),
+      );
+
+      if (skipExisting && isAlreadyFull && existing) {
+        setProductGroups((prev) =>
+          prev.map((group, groupIndex) =>
+            groupIndex === index
+              ? {
+                ...group,
+                status: "skipped",
+                result: {
+                  productId: existing._id,
+                  oemNumber: existing.oemNumber,
+                  title: existing.title,
+                  brand: existing.brand,
+                  model: existing.model,
+                  imageUrl: existing.images?.[0],
+                },
+              }
+              : group,
+          ),
+        );
+        return;
+      }
+
       // 1. Prepare FormData to send to backend API
       const formData = new FormData();
       formData.append("shelfCode", item.shelfCode);
@@ -320,11 +297,12 @@ export default function BatchImportPage() {
         data.suggestedCategoryName
       );
 
-      const baseSlug = slugify(data.title || item.shelfCode);
-      const finalSlug = `${baseSlug}-${Date.now().toString().slice(-4)}`;
-
       // 4. Save to Convex (Update existing draft or Create new)
-      const isDraft = Boolean(data.isDraft || saveAsDraft);
+      const isDraft = Boolean(data.isDraft);
+      const baseSlug = slugify(data.title || item.shelfCode);
+      const finalSlug = isDraft
+        ? ""
+        : `${baseSlug}-${Date.now().toString().slice(-4)}`;
       const payload = {
         title: data.title,
         slug: finalSlug,
@@ -340,7 +318,7 @@ export default function BatchImportPage() {
         metaTitle: data.metaTitle,
         metaDescription: data.metaDescription,
         metaKeywords: data.metaKeywords,
-        tags: data.tags,
+        tags: isDraft ? [] : data.tags,
         isDraft,
       };
 
@@ -353,32 +331,30 @@ export default function BatchImportPage() {
         prev.map((g, i) =>
           i === index
             ? {
-                ...g,
-                status: "success",
-                result: {
-                  productId: finalProductId,
-                  oemNumber: data.oemNumber,
-                  title: data.title,
-                  categoryName: matchedCat?.name,
-                  brand: data.brand,
-                  model: data.model,
-                  imageUrl: data.images?.[0],
-                  slug: finalSlug,
-                },
-              }
+              ...g,
+              status: "success",
+              result: {
+                productId: finalProductId,
+                oemNumber: data.oemNumber,
+                title: data.title,
+                brand: data.brand,
+                model: data.model,
+                imageUrl: data.images?.[0],
+              },
+            }
             : g
         )
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error processing item:", err);
       setProductGroups((prev) =>
         prev.map((g, i) =>
           i === index
             ? {
-                ...g,
-                status: "error",
-                error: err.message || "Bilinmeyen hata",
-              }
+              ...g,
+              status: "error",
+              error: err instanceof Error ? err.message : "Bilinmeyen hata",
+            }
             : g
         )
       );
@@ -454,15 +430,26 @@ export default function BatchImportPage() {
   const skippedCount = productGroups.filter((g) => g.status === "skipped").length;
   const errorCount = productGroups.filter((g) => g.status === "error").length;
   const completedCount = successCount + skippedCount + errorCount;
+  const pendingCount = totalCount - completedCount;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const statusFilters: { value: StatusFilter; label: string; count?: number }[] = [
+    { value: "all", label: "Tümü" },
+    { value: "success", label: "Başarılı", count: successCount },
+    { value: "skipped", label: "Atlandı", count: skippedCount },
+    { value: "pending", label: "Bekleyen", count: pendingCount },
+  ];
+  if (errorCount > 0) {
+    statusFilters.push({ value: "error", label: "Hata", count: errorCount });
+  }
 
   // Filtered List
   const filteredGroups = useMemo(() => {
     return productGroups.filter((item) => {
       // Status filter
       if (statusFilter === "success" && item.status !== "success") return false;
+      if (statusFilter === "skipped" && item.status !== "skipped") return false;
       if (statusFilter === "error" && item.status !== "error") return false;
-      if (statusFilter === "pending" && (item.status === "success" || item.status === "skipped")) return false;
+      if (statusFilter === "pending" && item.status !== "idle" && item.status !== "processing") return false;
 
       // Search term
       if (searchFilter.trim()) {
@@ -479,35 +466,6 @@ export default function BatchImportPage() {
 
   return (
     <div className="space-y-6">
-      {/* 1. Header */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/20">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                Toplu parça yükleme
-              </h1>
-              <p className="text-xs text-slate-500">
-                Görsellerden OEM bilgilerini okuyup parça taslakları oluşturun.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/admin/products"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
-          >
-            <span>Parça listesine dön</span>
-            <ChevronRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-      </div>
-
       {/* 2. Klasör Seçim Kutusu (Dropzone) */}
       {productGroups.length === 0 ? (
         <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-white p-10 text-center transition-all hover:border-blue-500 hover:bg-blue-50/20">
@@ -554,7 +512,7 @@ export default function BatchImportPage() {
               {/* Klasör Bilgisi */}
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                  <Layers className="h-6 w-6" />
+                  <File className="h-6 w-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -644,64 +602,30 @@ export default function BatchImportPage() {
               </div>
             </div>
 
-            {/* Ayarlar ve Filtreler */}
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-4 text-xs">
-              <div className="flex flex-wrap items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={skipExisting}
-                    onChange={(e) => setSkipExisting(e.target.checked)}
-                    disabled={isRunning}
-                    className="h-4 w-4 rounded border-slate-300 text-blue-600 accent-blue-600"
-                  />
-                  <span>Kayıtlı parçaları atla</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={saveAsDraft}
-                    onChange={(e) => setSaveAsDraft(e.target.checked)}
-                    disabled={isRunning}
-                    className="h-4 w-4 rounded border-slate-300 text-blue-600 accent-blue-600"
-                  />
-                  <span>Taslak olarak kaydet</span>
-                </label>
-              </div>
-
-              {/* İstatistik Rozetleri */}
-              <div className="flex items-center gap-2 font-mono text-[11px]">
-                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-emerald-700 font-bold">
-                  <CheckCircle2 className="h-3 w-3" />
-                  <span>{successCount} Başarılı</span>
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-slate-600 font-bold">
-                  <span>{skippedCount} Atlandı</span>
-                </span>
-                {errorCount > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-2 py-1 text-rose-700 font-bold">
-                    <AlertCircle className="h-3 w-3" />
-                    <span>{errorCount} Hata</span>
-                  </span>
-                )}
-                <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-1 text-blue-700 font-bold">
-                  <Clock className="h-3 w-3" />
-                  <span>{totalCount - completedCount} Kalan</span>
-                </span>
-              </div>
+            {/* Yükleme Ayarı */}
+            <div className="mt-5 border-t border-slate-100 pt-4 text-xs">
+              <label className="flex w-fit items-center gap-2 cursor-pointer font-medium text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={skipExisting}
+                  onChange={(e) => setSkipExisting(e.target.checked)}
+                  disabled={isRunning}
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600 accent-blue-600"
+                />
+                <span>Kayıtlı parçaları atla</span>
+              </label>
             </div>
           </div>
 
           {/* 4. Canlı Parça Listesi ve Arama */}
           <div className="space-y-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 sm:flex-row-reverse sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-sm font-bold text-slate-900">İşlem listesi</h3>
                 <span className="text-xs text-slate-500 font-mono">({filteredGroups.length} kayıt)</span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {/* Arama Input */}
                 <div className="relative">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
@@ -715,34 +639,28 @@ export default function BatchImportPage() {
                 </div>
 
                 {/* Filtre Butonları */}
-                <div className="flex rounded-lg border border-slate-300 bg-white p-0.5 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setStatusFilter("all")}
-                    className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
-                      statusFilter === "all" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    Tümü
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStatusFilter("success")}
-                    className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
-                      statusFilter === "success" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    Başarılı
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setStatusFilter("pending")}
-                    className={`px-2.5 py-1 rounded-md font-medium transition-colors ${
-                      statusFilter === "pending" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    Bekleyen
-                  </button>
+                <div
+                  role="group"
+                  aria-label="Duruma göre filtrele"
+                  className="flex max-w-full overflow-x-auto rounded-lg border border-slate-300 bg-white p-0.5 text-xs"
+                >
+                  {statusFilters.map((filter) => (
+                    <button
+                      key={filter.value}
+                      type="button"
+                      aria-pressed={statusFilter === filter.value}
+                      onClick={() => setStatusFilter(filter.value)}
+                      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${statusFilter === filter.value
+                        ? "bg-slate-900 text-white"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                        }`}
+                    >
+                      <span>{filter.label}</span>
+                      {filter.count !== undefined && (
+                        <span className="font-mono text-[10px] opacity-70">{filter.count}</span>
+                      )}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -755,15 +673,14 @@ export default function BatchImportPage() {
                 return (
                   <div
                     key={item.id}
-                    className={`flex items-center justify-between gap-4 p-4 transition-colors ${
-                      isCurrent
+                    className={`flex items-center justify-between gap-4 p-4 transition-colors ${isCurrent
                         ? "bg-blue-50/50"
                         : item.status === "success"
-                        ? "hover:bg-slate-50"
-                        : item.status === "error"
-                        ? "bg-rose-50/20"
-                        : "hover:bg-slate-50"
-                    }`}
+                          ? "hover:bg-slate-50"
+                          : item.status === "error"
+                            ? "bg-rose-50/20"
+                            : "hover:bg-slate-50"
+                      }`}
                   >
                     <div className="flex items-center gap-3.5 min-w-0">
                       {/* Sıra & Durum İkonu */}
@@ -820,25 +737,9 @@ export default function BatchImportPage() {
                       </div>
                     </div>
 
-                    {/* Sağ Taraf: Kategori & Aksiyon */}
+                    {/* Sağ Taraf: Aksiyon */}
                     <div className="flex shrink-0 items-center gap-3">
-                      {item.result?.categoryName && (
-                        <span className="hidden sm:inline-block rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700">
-                          {item.result.categoryName}
-                        </span>
-                      )}
-
-                      {item.result?.slug ? (
-                        <Link
-                          href={`/parcalar/${item.result.slug}`}
-                          target="_blank"
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          <span>İncele</span>
-                          <ExternalLink className="h-3 w-3 text-slate-400" />
-                        </Link>
-                      ) : item.status === "idle" && !isRunning ? (
+                      {item.status === "idle" && !isRunning ? (
                         <button
                           type="button"
                           onClick={() => {

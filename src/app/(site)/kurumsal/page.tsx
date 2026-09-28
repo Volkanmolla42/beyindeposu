@@ -1,9 +1,21 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
   ChevronRight,
   Home,
 } from "lucide-react";
+import { createPageMetadata, SITE_NAME } from "@/lib/seo";
+
+export const dynamic = "force-static";
+export const revalidate = 3600;
+
+export const metadata: Metadata = createPageMetadata({
+  title: `Hakkımızda | ${SITE_NAME}`,
+  description:
+    "Beyin Deposu, 20 yılı aşkın tecrübesiyle motor, fren, airbag ve oto elektronik kontrol üniteleri tedarik etmektedir.",
+  path: "/kurumsal",
+});
 
 export default function KurumsalPage() {
   const experienceYears = "20+";

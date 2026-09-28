@@ -50,11 +50,10 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
       : "skip"
   );
 
-  const whatsappNumber = SITE_CONTACT.whatsappNumber;
   const displayPhone = SITE_CONTACT.phone;
 
   // Resolve brand logo
-  const brands = useQuery(api.brands.list);
+  const brands = useQuery(api.brands.list, {});
   const brandSlug = product?.brand ? slugify(product.brand) : "";
   const brandInfo = brands?.find(
     (b) =>

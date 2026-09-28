@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { Suspense, useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import {
   MessageSquare,
   Search,
@@ -22,10 +24,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { playAdminNotificationSound } from "../admin-utils";
 
-export default function AdminChatsPage() {
-  const [selectedChatId, setSelectedChatId] = useState<Id<"conversations"> | null>(null);
+function AdminChatsContent() {
+  const searchParams = useSearchParams();
+  const requestedConversationId = searchParams.get("conversationId");
+  const [selectedChatIdState, setSelectedChatId] = useState<Id<"conversations"> | null>(
+    () => requestedConversationId as Id<"conversations"> | null
+  );
   const [chatSearch, setChatSearch] = useState("");
-  const [chatStatusFilter, setChatStatusFilter] = useState<string>("active");
+  const [chatStatusFilter, setChatStatusFilter] = useState<string>(() =>
+    requestedConversationId ? "all" : "active"
+  );
   const [adminMessageInput, setAdminMessageInput] = useState("");
   const chatMessagesEndRef = useRef<HTMLDivElement>(null);
   const prevAdminMsgCountRef = useRef<number>(0);
@@ -35,6 +43,9 @@ export default function AdminChatsPage() {
     status: chatStatusFilter === "all" ? undefined : chatStatusFilter,
     searchTerm: chatSearch || undefined,
   });
+
+  const selectedChatId =
+    selectedChatIdState ?? conversations?.[0]?._id ?? null;
 
   const activeChatMessages = useQuery(
     api.chats.getMessages,
@@ -48,21 +59,6 @@ export default function AdminChatsPage() {
   const markChatAsRead = useMutation(api.chats.markAsRead);
   const closeChatMutation = useMutation(api.chats.closeConversation);
   const deleteChatMutation = useMutation(api.chats.deleteConversation);
-
-  // Auto select first chat if none selected
-  useEffect(() => {
-    if (conversations && conversations.length > 0 && !selectedChatId) {
-      setSelectedChatId(conversations[0]._id);
-    }
-  }, [conversations, selectedChatId]);
-
-  useEffect(() => {
-    const conversationId = new URLSearchParams(window.location.search).get("conversationId");
-    if (!conversationId) return;
-
-    setChatStatusFilter("all");
-    setSelectedChatId(conversationId as Id<"conversations">);
-  }, []);
 
   // Mark chat as read by admin when opened
   useEffect(() => {
@@ -317,9 +313,12 @@ export default function AdminChatsPage() {
                 <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-md bg-white border border-slate-200 overflow-hidden flex items-center justify-center p-1 shrink-0">
                     {selectedConversation.productCard.image ? (
-                      <img
+                      <Image
                         src={selectedConversation.productCard.image}
                         alt="Product Inquiry"
+                        width={40}
+                        height={40}
+                        unoptimized
                         className="w-full h-full object-contain"
                       />
                     ) : (
@@ -422,5 +421,13 @@ export default function AdminChatsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminChatsPage() {
+  return (
+    <Suspense fallback={null}>
+      <AdminChatsContent />
+    </Suspense>
   );
 }

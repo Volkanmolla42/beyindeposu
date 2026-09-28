@@ -1,8 +1,10 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { Doc } from "./_generated/dataModel";
-import { QueryCtx } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
+import type { OrderedQuery, PaginationOptions } from "convex/server";
+import { mutation, query } from "./_generated/server";
+import type { DataModel, Doc, Id } from "./_generated/dataModel";
+import type { QueryCtx } from "./_generated/server";
+import { requireAdmin } from "./authz";
 
 async function resolveProductWithCategory(ctx: QueryCtx, p: Doc<"products">) {
   const product = {
@@ -58,193 +60,212 @@ async function resolvePublicProduct(ctx: QueryCtx, p: Doc<"products">) {
   };
 }
 
+type ProductFilterArgs = {
+  categorySlug?: string;
+  categoryId?: Id<"categories">;
+  brand?: string;
+  condition?: string;
+  inStockOnly?: boolean;
+  searchTerm?: string;
+  sortBy?: string;
+};
+
+const productFilterArgs = {
+  categorySlug: v.optional(v.string()),
+  categoryId: v.optional(v.id("categories")),
+  brand: v.optional(v.string()),
+  condition: v.optional(v.string()),
+  inStockOnly: v.optional(v.boolean()),
+  searchTerm: v.optional(v.string()),
+  sortBy: v.optional(v.string()),
+};
+
+function productQuery(
+  ctx: QueryCtx,
+  args: ProductFilterArgs,
+  categoryId: Id<"categories"> | undefined,
+): OrderedQuery<DataModel["products"]> {
+  const sortBy = args.sortBy ?? "date-desc";
+  const direction = sortBy === "title-desc" ? "desc" : "asc";
+
+  if (categoryId) {
+    if (sortBy === "title-asc" || sortBy === "title-desc") {
+      return ctx.db.query("products")
+        .withIndex("by_categoryId_and_title", (q) => q.eq("categoryId", categoryId))
+        .order(direction);
+    }
+    if (sortBy === "oem-asc") {
+      return ctx.db.query("products")
+        .withIndex("by_categoryId_and_oemNumber", (q) => q.eq("categoryId", categoryId))
+        .order("asc");
+    }
+    return ctx.db.query("products")
+      .withIndex("by_categoryId_and_createdAt", (q) => q.eq("categoryId", categoryId))
+      .order("desc");
+  }
+
+  if (args.brand && args.brand !== "Tümü") {
+    if (sortBy === "title-asc" || sortBy === "title-desc") {
+      return ctx.db.query("products")
+        .withIndex("by_brand_and_title", (q) => q.eq("brand", args.brand!))
+        .order(direction);
+    }
+    if (sortBy === "oem-asc") {
+      return ctx.db.query("products")
+        .withIndex("by_brand_and_oemNumber", (q) => q.eq("brand", args.brand!))
+        .order("asc");
+    }
+    return ctx.db.query("products")
+      .withIndex("by_brand_and_createdAt", (q) => q.eq("brand", args.brand!))
+      .order("desc");
+  }
+
+  if (sortBy === "title-asc" || sortBy === "title-desc") {
+    return ctx.db.query("products").withIndex("by_title").order(direction);
+  }
+  if (sortBy === "oem-asc") {
+    return ctx.db.query("products").withIndex("by_oemNumber").order("asc");
+  }
+  return ctx.db.query("products").withIndex("by_createdAt").order("desc");
+}
+
+function applyProductFilters(
+  query: OrderedQuery<DataModel["products"]>,
+  args: ProductFilterArgs,
+  draftStatus: "all" | "draft" | "published",
+) {
+  let filtered = query;
+
+  if (draftStatus === "draft") {
+    filtered = filtered.filter((q) => q.eq(q.field("isDraft"), true));
+  } else if (draftStatus === "published") {
+    filtered = filtered.filter((q) => q.neq(q.field("isDraft"), true));
+  }
+
+  if (args.condition && args.condition !== "Tümü") {
+    filtered = filtered.filter((q) => q.eq(q.field("condition"), args.condition!));
+  }
+  if (args.inStockOnly) {
+    filtered = filtered.filter((q) => q.eq(q.field("inStock"), true));
+  }
+
+  return filtered;
+}
+
+async function resolveCategoryId(ctx: QueryCtx, args: ProductFilterArgs) {
+  if (args.categoryId) return args.categoryId;
+  if (!args.categorySlug) return undefined;
+
+  const category = await ctx.db
+    .query("categories")
+    .withIndex("by_slug", (q) => q.eq("slug", args.categorySlug!))
+    .first();
+  return category?._id;
+}
+
+function emptyPaginationResult(paginationOpts: PaginationOptions) {
+  return {
+    page: [],
+    isDone: true,
+    continueCursor: paginationOpts.cursor ?? "",
+  };
+}
+
+async function paginateProducts(
+  ctx: QueryCtx,
+  args: ProductFilterArgs & { paginationOpts: PaginationOptions },
+  draftStatus: "all" | "draft" | "published",
+) {
+  const categoryId = await resolveCategoryId(ctx, args);
+  if ((args.categoryId || args.categorySlug) && !categoryId) {
+    return emptyPaginationResult(args.paginationOpts);
+  }
+
+  const searchTerm = args.searchTerm?.trim();
+  let query: OrderedQuery<DataModel["products"]>;
+
+  if (searchTerm) {
+    const isOemSearch = searchTerm.length >= 4 && /\d/.test(searchTerm) && !/\s/.test(searchTerm);
+    const isShelfSearch = /^raf(?:$|[-_\s]|\d)/i.test(searchTerm);
+    const brand = args.brand && args.brand !== "Tümü" ? args.brand : undefined;
+    const condition = args.condition && args.condition !== "Tümü" ? args.condition : undefined;
+
+    if (isShelfSearch) {
+      query = ctx.db.query("products").withSearchIndex("search_shelfCode", (q) => {
+        let search = q.search("shelfCode", searchTerm);
+        if (brand) search = search.eq("brand", brand);
+        if (categoryId) search = search.eq("categoryId", categoryId);
+        if (condition) search = search.eq("condition", condition);
+        if (args.inStockOnly) search = search.eq("inStock", true);
+        return search;
+      });
+    } else if (isOemSearch) {
+      query = ctx.db.query("products").withSearchIndex("search_oemNumber", (q) => {
+        let search = q.search("oemNumber", searchTerm);
+        if (brand) search = search.eq("brand", brand);
+        if (categoryId) search = search.eq("categoryId", categoryId);
+        if (condition) search = search.eq("condition", condition);
+        if (args.inStockOnly) search = search.eq("inStock", true);
+        return search;
+      });
+    } else {
+      query = ctx.db.query("products").withSearchIndex("search_title", (q) => {
+        let search = q.search("title", searchTerm);
+        if (brand) search = search.eq("brand", brand);
+        if (categoryId) search = search.eq("categoryId", categoryId);
+        if (condition) search = search.eq("condition", condition);
+        if (args.inStockOnly) search = search.eq("inStock", true);
+        return search;
+      });
+    }
+  } else {
+    query = productQuery(ctx, args, categoryId);
+  }
+
+  const filtered = applyProductFilters(query, args, draftStatus);
+  return await filtered.paginate(args.paginationOpts);
+}
+
 export const listPaginated = query({
   args: {
     paginationOpts: paginationOptsValidator,
-    categorySlug: v.optional(v.string()),
-    categoryId: v.optional(v.id("categories")),
-    brand: v.optional(v.string()),
-    condition: v.optional(v.string()),
-    inStockOnly: v.optional(v.boolean()),
-    searchTerm: v.optional(v.string()),
+    ...productFilterArgs,
   },
   handler: async (ctx, args) => {
-    let paginated;
-
-    if (args.categoryId) {
-      paginated = await ctx.db
-        .query("products")
-        .withIndex("by_categoryId", (idx) => idx.eq("categoryId", args.categoryId!))
-        .filter((q) => q.neq(q.field("isDraft"), true))
-        .order("desc")
-        .paginate(args.paginationOpts);
-    } else if (args.categorySlug) {
-      const category = await ctx.db
-        .query("categories")
-        .withIndex("by_slug", (idx) => idx.eq("slug", args.categorySlug!))
-        .first();
-
-      if (category) {
-        paginated = await ctx.db
-          .query("products")
-          .withIndex("by_categoryId", (idx) => idx.eq("categoryId", category._id))
-          .filter((q) => q.neq(q.field("isDraft"), true))
-          .order("desc")
-          .paginate(args.paginationOpts);
-      } else {
-        paginated = await ctx.db
-          .query("products")
-          .filter((q) => q.neq(q.field("isDraft"), true))
-          .order("desc")
-          .paginate(args.paginationOpts);
-      }
-    } else if (args.brand && args.brand !== "Tümü") {
-      paginated = await ctx.db
-        .query("products")
-        .withIndex("by_brand", (idx) => idx.eq("brand", args.brand!))
-        .filter((q) => q.neq(q.field("isDraft"), true))
-        .order("desc")
-        .paginate(args.paginationOpts);
-    } else {
-      paginated = await ctx.db
-        .query("products")
-        .filter((q) => q.neq(q.field("isDraft"), true))
-        .order("desc")
-        .paginate(args.paginationOpts);
-    }
-
-    const resolvedPage = await Promise.all(
-      paginated.page.map((p) => resolvePublicProduct(ctx, p))
-    );
-
+    const result = await paginateProducts(ctx, args, "published");
     return {
-      ...paginated,
-      page: resolvedPage,
+      ...result,
+      page: await Promise.all(result.page.map((product) => resolvePublicProduct(ctx, product))),
     };
   },
 });
 
-export const getProductsPage = query({
+export const listPaginatedAdmin = query({
   args: {
-    page: v.optional(v.number()),
-    pageSize: v.optional(v.number()),
-    categorySlug: v.optional(v.string()),
-    categoryId: v.optional(v.id("categories")),
-    brand: v.optional(v.string()),
-    condition: v.optional(v.string()),
-    inStockOnly: v.optional(v.boolean()),
-    searchTerm: v.optional(v.string()),
-    sortBy: v.optional(v.string()),
+    paginationOpts: paginationOptsValidator,
+    ...productFilterArgs,
     draftStatus: v.optional(v.union(v.literal("all"), v.literal("draft"), v.literal("published"))),
   },
   handler: async (ctx, args) => {
-    const page = Math.max(1, args.page || 1);
-    const pageSize = args.pageSize || 24;
-
-    let items: Doc<"products">[] = [];
-
-    if (args.categoryId) {
-      items = await ctx.db
-        .query("products")
-        .withIndex("by_categoryId", (idx) => idx.eq("categoryId", args.categoryId!))
-        .order("desc")
-        .collect();
-    } else if (args.categorySlug) {
-      const category = await ctx.db
-        .query("categories")
-        .withIndex("by_slug", (idx) => idx.eq("slug", args.categorySlug!))
-        .first();
-
-      if (category) {
-        items = await ctx.db
-          .query("products")
-          .withIndex("by_categoryId", (idx) => idx.eq("categoryId", category._id))
-          .order("desc")
-          .collect();
-      } else {
-        items = [];
-      }
-    } else if (args.brand && args.brand !== "Tümü") {
-      items = await ctx.db
-        .query("products")
-        .withIndex("by_brand", (idx) => idx.eq("brand", args.brand!))
-        .order("desc")
-        .collect();
-    } else {
-      items = await ctx.db
-        .query("products")
-        .order("desc")
-        .collect();
-    }
-
-    const draftStatus = args.draftStatus ?? "published";
-    if (draftStatus !== "all") {
-      items = items.filter((p) => draftStatus === "draft" ? p.isDraft === true : p.isDraft !== true);
-    }
-
-    // Filter in memory for condition, inStock, and search term
-    let filtered = items;
-
-    if (args.condition && args.condition !== "Tümü") {
-      filtered = filtered.filter((p) => p.condition === args.condition);
-    }
-
-    if (args.inStockOnly) {
-      filtered = filtered.filter((p) => p.inStock);
-    }
-
-    if (args.searchTerm && args.searchTerm.trim() !== "") {
-      const term = args.searchTerm.toLowerCase().trim();
-      filtered = filtered.filter((p) => {
-        const titleMatch = p.title.toLowerCase().includes(term);
-        const oemMatch = p.oemNumber.toLowerCase().includes(term);
-        const shelfMatch = (p.shelfCode || "").toLowerCase().includes(term);
-        const tagMatch = (p.tags || []).some((t) => t.toLowerCase().includes(term));
-        return titleMatch || oemMatch || shelfMatch || tagMatch;
-      });
-    }
-
-    // Sorting
-    switch (args.sortBy) {
-      case "oem-asc":
-        filtered.sort((a, b) => (a.oemNumber || "").localeCompare(b.oemNumber || ""));
-        break;
-      case "title-asc":
-        filtered.sort((a, b) => a.title.localeCompare(b.title, "tr"));
-        break;
-      case "title-desc":
-        filtered.sort((a, b) => b.title.localeCompare(a.title, "tr"));
-        break;
-      case "date-desc":
-      default:
-        filtered.sort((a, b) => (b.createdAt || b._creationTime || 0) - (a.createdAt || a._creationTime || 0));
-        break;
-    }
-
-    const totalItems = filtered.length;
-    const totalPages = Math.ceil(totalItems / pageSize) || 1;
-    const startIndex = (page - 1) * pageSize;
-    const pageItems = filtered.slice(startIndex, startIndex + pageSize);
-
-    const resolvedItems = await Promise.all(
-      pageItems.map((p) => resolveProductWithCategory(ctx, p))
-    );
-
+    await requireAdmin(ctx);
+    const result = await paginateProducts(ctx, args, args.draftStatus ?? "published");
     return {
-      items: resolvedItems,
-      totalItems,
-      totalPages,
-      currentPage: page,
-      pageSize,
+      ...result,
+      page: await Promise.all(result.page.map((product) => resolveProductWithCategory(ctx, product))),
     };
   },
 });
 
-export const getTotalCount = query({
-  args: {},
-  handler: async (ctx) => {
-    const products = await ctx.db.query("products").collect();
-    return products.filter((p) => p.isDraft !== true).length;
+export const getByShelfCode = query({
+  args: { shelfCode: v.string() },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const product = await ctx.db
+      .query("products")
+      .withIndex("by_shelfCode", (index) => index.eq("shelfCode", args.shelfCode.trim()))
+      .first();
+
+    return product ? await resolveProductWithCategory(ctx, product) : null;
   },
 });
 
@@ -259,6 +280,9 @@ export const list = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const requestedLimit = args.limit === undefined
+      ? undefined
+      : Math.min(300, Math.max(1, Math.floor(args.limit)));
     let items: Doc<"products">[] = [];
 
     if (args.categoryId) {
@@ -266,7 +290,7 @@ export const list = query({
         .query("products")
         .withIndex("by_categoryId", (q) => q.eq("categoryId", args.categoryId!))
         .filter((q) => q.neq(q.field("isDraft"), true))
-        .take(args.limit ?? 200);
+        .take(requestedLimit ?? 200);
     } else if (args.categorySlug) {
       const category = await ctx.db
         .query("categories")
@@ -278,7 +302,7 @@ export const list = query({
           .query("products")
           .withIndex("by_categoryId", (q) => q.eq("categoryId", category._id))
           .filter((q) => q.neq(q.field("isDraft"), true))
-          .take(args.limit ?? 200);
+          .take(requestedLimit ?? 200);
       } else {
         items = [];
       }
@@ -287,12 +311,12 @@ export const list = query({
         .query("products")
         .withIndex("by_brand", (q) => q.eq("brand", args.brand!))
         .filter((q) => q.neq(q.field("isDraft"), true))
-        .take(args.limit ?? 200);
+        .take(requestedLimit ?? 200);
     } else {
       items = await ctx.db
         .query("products")
         .filter((q) => q.neq(q.field("isDraft"), true))
-        .take(args.limit ?? 300);
+        .take(requestedLimit ?? 300);
     }
 
     let filtered = items;
@@ -342,10 +366,11 @@ export const list = query({
 export const getFeatured = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, args) => {
+    const limit = Math.min(50, Math.max(1, Math.floor(args.limit ?? 12)));
     const items = await ctx.db
       .query("products")
       .filter((q) => q.neq(q.field("isDraft"), true))
-      .take(args.limit ?? 12);
+      .take(limit);
 
     return await Promise.all(items.map((p) => resolvePublicProduct(ctx, p)));
   },
@@ -449,6 +474,7 @@ export const create = mutation({
     isDraft: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const now = Date.now();
     return await ctx.db.insert("products", {
       ...args,
@@ -473,11 +499,12 @@ export const createDraftBatch = mutation({
     skipped: v.number(),
   }),
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const now = Date.now();
     let created = 0;
     let skipped = 0;
 
-    for (const [index, product] of args.products.entries()) {
+    for (const product of args.products) {
       if (product.images.length === 0) {
         skipped += 1;
         continue;
@@ -558,6 +585,7 @@ export const update = mutation({
     isDraft: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     const { id, ...fields } = args;
     await ctx.db.patch(id, {
       ...fields,
@@ -569,6 +597,7 @@ export const update = mutation({
 export const toggleStock = mutation({
   args: { id: v.id("products"), inStock: v.boolean() },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     await ctx.db.patch(args.id, {
       inStock: args.inStock,
       updatedAt: Date.now(),
@@ -579,6 +608,7 @@ export const toggleStock = mutation({
 export const deleteProduct = mutation({
   args: { id: v.id("products") },
   handler: async (ctx, args) => {
+    await requireAdmin(ctx);
     await ctx.db.delete(args.id);
   },
 });

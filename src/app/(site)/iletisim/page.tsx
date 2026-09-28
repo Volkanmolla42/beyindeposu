@@ -1,5 +1,4 @@
-"use client";
-
+import type { Metadata } from "next";
 import Link from "next/link";
 import {
   Phone,
@@ -14,9 +13,19 @@ import {
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { SITE_CONTACT } from "@/config/site";
 import { getWhatsAppUrl, formatPhoneNumber } from "@/lib/utils";
+import { createPageMetadata, serializeJsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
+
+export const dynamic = "force-static";
+export const revalidate = 3600;
+
+export const metadata: Metadata = createPageMetadata({
+  title: `İletişim | ${SITE_NAME}`,
+  description:
+    "Beyin Deposu iletişim bilgileri, telefon, WhatsApp destek hattı, adres ve çalışma saatleri.",
+  path: "/iletisim",
+});
 
 export default function IletisimPage() {
-  const whatsappNumber = SITE_CONTACT.whatsappNumber;
   const displayPhone = SITE_CONTACT.phone;
   const displayEmail = SITE_CONTACT.email;
   const displayAddress = SITE_CONTACT.address;
@@ -24,8 +33,30 @@ export default function IletisimPage() {
 
   const mapQuery = encodeURIComponent(displayAddress);
 
+  const contactJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "AutoPartsStore",
+    name: SITE_NAME,
+    url: `${SITE_URL}/iletisim`,
+    image: new URL("/images/logo-mark.webp", SITE_URL).toString(),
+    telephone: displayPhone,
+    email: displayEmail,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: displayAddress,
+      addressLocality: "Başakşehir",
+      addressRegion: "İstanbul",
+      addressCountry: "TR",
+    },
+    openingHours: "Mo-Sa 09:00-18:30",
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(contactJsonLd) }}
+      />
       {/* Breadcrumbs */}
       <div className="bg-white border-b border-slate-200 py-3">
         <div className="container flex items-center gap-2 text-xs font-medium text-slate-500">

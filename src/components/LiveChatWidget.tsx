@@ -1,21 +1,14 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect, useRef, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
-import Link from "next/link";
 import Image from "next/image";
 import {
-  MessageSquare,
   X,
   Send,
-  Minimize2,
   Headphones,
   Check,
   CheckCheck,
-  Sparkles,
-  ExternalLink,
-  ChevronDown,
-  User,
   ShoppingBag,
   Loader2,
 } from "lucide-react";
@@ -23,9 +16,46 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
-import { Id } from "@convex/_generated/dataModel";
 
 let audioContextInstance: AudioContext | null = null;
+const VISITOR_STORAGE_CHANGE_EVENT = "beyindeposu:visitor-storage-change";
+
+function subscribeToVisitorStorage(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(VISITOR_STORAGE_CHANGE_EVENT, onChange);
+
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(VISITOR_STORAGE_CHANGE_EVENT, onChange);
+  };
+}
+
+function getVisitorStorageValue(key: string) {
+  try {
+    return window.localStorage.getItem(key) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function writeVisitorStorageValue(key: string, value: string) {
+  window.localStorage.setItem(key, value);
+  window.dispatchEvent(new Event(VISITOR_STORAGE_CHANGE_EVENT));
+}
+
+function useVisitorStorageValue(key: string) {
+  const value = useSyncExternalStore(
+    subscribeToVisitorStorage,
+    () => getVisitorStorageValue(key),
+    () => ""
+  );
+  const setValue = useCallback(
+    (nextValue: string) => writeVisitorStorageValue(key, nextValue),
+    [key]
+  );
+
+  return [value, setValue] as const;
+}
 
 function getSharedAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -66,9 +96,13 @@ function playNotificationSound() {
 export default function LiveChatWidget() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const [visitorId, setVisitorId] = useState<string>("");
-  const [visitorName, setVisitorName] = useState<string>("");
-  const [visitorPhone, setVisitorPhone] = useState<string>("");
+  const [visitorId, setVisitorId] = useVisitorStorageValue("beyindeposu_visitor_id");
+  const [savedVisitorName, setSavedVisitorName] = useVisitorStorageValue("beyindeposu_visitor_name");
+  const [savedVisitorPhone, setSavedVisitorPhone] = useVisitorStorageValue("beyindeposu_visitor_phone");
+  const [visitorNameDraft, setVisitorNameDraft] = useState<string | null>(null);
+  const [visitorPhoneDraft, setVisitorPhoneDraft] = useState<string | null>(null);
+  const visitorName = visitorNameDraft ?? savedVisitorName;
+  const visitorPhone = visitorPhoneDraft ?? savedVisitorPhone;
   const [includeProduct, setIncludeProduct] = useState<boolean>(true);
   const [inputMessage, setInputMessage] = useState("");
   const [isStarting, setIsStarting] = useState(false);
@@ -78,19 +112,13 @@ export default function LiveChatWidget() {
 
   // Initialize persistent visitor ID
   useEffect(() => {
-    let vid = localStorage.getItem("beyindeposu_visitor_id");
-    if (!vid) {
-      vid = "vis_" + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
-      localStorage.setItem("beyindeposu_visitor_id", vid);
-    }
-    setVisitorId(vid);
+    if (visitorId) return;
 
-    const savedName = localStorage.getItem("beyindeposu_visitor_name");
-    if (savedName) setVisitorName(savedName);
-
-    const savedPhone = localStorage.getItem("beyindeposu_visitor_phone");
-    if (savedPhone) setVisitorPhone(savedPhone);
-  }, []);
+    const storedVisitorId = getVisitorStorageValue("beyindeposu_visitor_id");
+    const nextVisitorId = storedVisitorId ||
+      "vis_" + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+    setVisitorId(nextVisitorId);
+  }, [visitorId, setVisitorId]);
 
   // Product page detection
   const isProductPage = pathname?.startsWith("/parcalar/") && pathname !== "/parcalar";
@@ -110,7 +138,7 @@ export default function LiveChatWidget() {
 
   const messages = useQuery(
     api.chats.getMessages,
-    conversationId ? { conversationId } : "skip"
+    conversationId && visitorId ? { conversationId, visitorId } : "skip"
   );
 
   const getOrCreateConversation = useMutation(api.chats.getOrCreateConversation);
@@ -134,9 +162,9 @@ export default function LiveChatWidget() {
   // Mark messages as read when widget is opened
   useEffect(() => {
     if (isOpen && conversationId && activeConversation?.unreadCountVisitor) {
-      markAsReadMutation({ conversationId, reader: "visitor" });
+      markAsReadMutation({ conversationId, reader: "visitor", visitorId });
     }
-  }, [isOpen, conversationId, activeConversation?.unreadCountVisitor, markAsReadMutation]);
+  }, [isOpen, conversationId, visitorId, activeConversation?.unreadCountVisitor, markAsReadMutation]);
 
   // Handle start chat
   const handleStartChat = async (e: React.FormEvent) => {
@@ -144,13 +172,8 @@ export default function LiveChatWidget() {
     if (!visitorId) return;
 
     setIsStarting(true);
-    if (visitorName.trim()) {
-      localStorage.setItem("beyindeposu_visitor_name", visitorName.trim());
-    }
-    if (visitorPhone.trim()) {
-      localStorage.setItem("beyindeposu_visitor_phone", visitorPhone.trim());
-    }
-
+    if (visitorName.trim()) setSavedVisitorName(visitorName.trim());
+    if (visitorPhone.trim()) setSavedVisitorPhone(visitorPhone.trim());
     let productCardPayload = undefined;
     if (isProductPage && currentProduct && includeProduct) {
       productCardPayload = {
@@ -191,6 +214,7 @@ export default function LiveChatWidget() {
       await sendMessageMutation({
         conversationId,
         sender: "visitor",
+        visitorId,
         text,
       });
     } catch (err) {
@@ -313,7 +337,7 @@ export default function LiveChatWidget() {
                       name="visitor-name"
                       aria-label="Ad soyad"
                       value={visitorName}
-                      onChange={(e) => setVisitorName(e.target.value)}
+                      onChange={(e) => setVisitorNameDraft(e.target.value)}
                       className="bg-white text-xs h-9"
                     />
                   </div>
@@ -329,7 +353,7 @@ export default function LiveChatWidget() {
                       type="tel"
                       placeholder="0534 000 00 00"
                       value={visitorPhone}
-                      onChange={(e) => setVisitorPhone(e.target.value)}
+                      onChange={(e) => setVisitorPhoneDraft(e.target.value)}
                       className="bg-white text-xs h-9"
                     />
                   </div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { Eye, EyeOff } from "lucide-react";
@@ -46,9 +47,11 @@ export default function LoginPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <Link href="/" className="inline-block">
-          <img
+          <Image
             src="/images/logo.webp"
             alt="Beyin Deposu"
+            width={1027}
+            height={581}
             className="h-20 w-auto mx-auto object-contain"
           />
         </Link>

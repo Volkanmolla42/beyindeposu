@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Menu, Search, X } from "lucide-react";
 
@@ -17,6 +17,7 @@ const navLinks = [
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
@@ -24,7 +25,7 @@ export default function Header() {
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (searchInput.trim()) {
-      window.location.href = `/parcalar?q=${encodeURIComponent(searchInput.trim())}`;
+      router.push(`/parcalar?q=${encodeURIComponent(searchInput.trim())}`);
     }
   };
 

@@ -4,12 +4,14 @@ import { v } from "convex/values";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
+import { requireAdmin } from "./authz";
 import { GoogleGenAI } from "@google/genai";
 import {
   getTextLookupSystemInstruction,
   formatCategoriesList,
   formatBrandsList,
   parseLlmJson,
+  type OemAssistantData,
 } from "../src/lib/ai/oem-assistant";
 
 type LookupOemResult =
@@ -73,6 +75,7 @@ export const lookupOem = action({
     })
   ),
   handler: async (ctx, args): Promise<LookupOemResult> => {
+    await requireAdmin(ctx);
     const apiKey = args.apiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return {
@@ -93,9 +96,8 @@ export const lookupOem = action({
     }
 
     // Query categories and brands directly from Convex database via ctx.runQuery
-    const categories: Array<{ _id: Id<"categories">; name: string; slug: string }> =
-      (await ctx.runQuery(api.categories.list, { onlyActive: false })) as any;
-    const brands: Array<{ name: string }> = (await ctx.runQuery(api.brands.list, {})) as any;
+    const categories = await ctx.runQuery(api.categories.list, { onlyActive: false });
+    const brands = await ctx.runQuery(api.brands.list, { onlyActive: false });
 
     const categoriesListStr = formatCategoriesList(categories);
     const brandsListStr = formatBrandsList(brands);
@@ -113,9 +115,9 @@ SİSTEMDE KAYITLI MARKALAR:
 ${brandsListStr}
 `;
 
-    let response: any;
+    let response: Awaited<ReturnType<typeof ai.models.generateContent>> | undefined;
     const modelsToTry = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"];
-    let lastError: any = null;
+    let lastError: unknown;
 
     for (const model of modelsToTry) {
       try {
@@ -141,7 +143,7 @@ ${brandsListStr}
         }
 
         if (response?.text) break;
-      } catch (err: any) {
+      } catch (err: unknown) {
         lastError = err;
       }
     }
@@ -150,7 +152,9 @@ ${brandsListStr}
       return {
         success: false,
         isValidOem: false,
-        error: lastError?.message || "Gemini modelinden yanıt alınamadı.",
+        error: lastError instanceof Error
+          ? lastError.message
+          : "Gemini modelinden yanıt alınamadı.",
       };
     }
 
@@ -169,7 +173,7 @@ ${brandsListStr}
       }
     }
 
-    let parsedData: any;
+    let parsedData: OemAssistantData;
     try {
       parsedData = parseLlmJson(response.text || "");
     } catch {

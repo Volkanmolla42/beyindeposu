@@ -8,9 +8,16 @@ import {
   plainText,
   SITE_NAME,
 } from "@/lib/seo";
-import { getPublicCategoryPage } from "@/lib/seo-data";
+import { getPublicCategoryPage, getPublicCategories } from "@/lib/seo-data";
 
 export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const categories = await getPublicCategories();
+  return categories.map((cat) => ({
+    slug: cat.slug,
+  }));
+}
 
 type CategoryPageProps = {
   params: Promise<{ slug: string }>;

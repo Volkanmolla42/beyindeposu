@@ -1,7 +1,9 @@
 "use client";
 
+import { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import RoutartLogo from "./RoutartLogo";
 import { MapPin, Mail, Phone } from "lucide-react";
 import { SITE_CONTACT } from "@/config/site";
@@ -10,20 +12,49 @@ export default function Footer() {
   const phone = SITE_CONTACT.phone;
   const email = SITE_CONTACT.email;
   const address = SITE_CONTACT.address;
+  const router = useRouter();
+
+  const clickCountRef = useRef(0);
+  const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleLogoClick = (e: React.MouseEvent) => {
+    clickCountRef.current += 1;
+
+    if (clickTimeoutRef.current) {
+      clearTimeout(clickTimeoutRef.current);
+    }
+
+    if (clickCountRef.current >= 5) {
+      e.preventDefault();
+      clickCountRef.current = 0;
+      router.push("/admin");
+      return;
+    }
+
+    // 1.5 saniye yeni tıklama gelmezse sayacı sıfırla
+    clickTimeoutRef.current = setTimeout(() => {
+      clickCountRef.current = 0;
+    }, 1500);
+  };
 
   return (
     <footer className="mt-auto py-8 w-full border-t border-slate-200 bg-white text-slate-700">
       <div className="container py-10 lg:py-12">
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
           <div className="space-y-3">
-            <Link href="/" aria-label="Beyin Deposu ana sayfa" className="inline-flex rounded-md">
+            <Link
+              href="/"
+              aria-label="Beyin Deposu ana sayfa"
+              className="inline-flex rounded-md select-none"
+              onClick={handleLogoClick}
+            >
               <Image
                 src="/images/logo_transparent.webp"
                 alt="Beyin Deposu"
                 width={144}
                 height={36}
                 style={{ width: "auto" }}
-                className="h-9 w-auto object-contain"
+                className="h-9 w-auto object-contain pointer-events-none"
               />
             </Link>
           </div>

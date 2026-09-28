@@ -1,5 +1,6 @@
 import { query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { hasAdminAccess } from "./authz";
 
 export const viewer = query({
   args: {},
@@ -10,4 +11,9 @@ export const viewer = query({
     }
     return await ctx.db.get(userId);
   },
+});
+
+export const isAdmin = query({
+  args: {},
+  handler: async (ctx) => await hasAdminAccess(ctx),
 });

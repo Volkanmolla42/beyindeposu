@@ -131,33 +131,125 @@ ${COMMON_JSON_OUTPUT_SCHEMA}`;
 /**
  * Kategori listesini prompt için metne dönüştürür
  */
-export function formatCategoriesList(categories: any[] = []): string {
+export function formatCategoriesList(categories: readonly unknown[] = []): string {
   if (!Array.isArray(categories) || categories.length === 0) {
     return "Kategori listesi verilmedi.";
   }
-  return categories
-    .map(
-      (c: any) =>
-        `- ID: ${c._id || c.id}, Kategori Adı: "${c.name}", Slug: "${c.slug || ""}"`
-    )
-    .join("\n");
+
+  const formattedCategories = categories.flatMap((category) => {
+    if (!category || typeof category !== "object") return [];
+
+    const data = category as Record<string, unknown>;
+    const id = typeof data._id === "string"
+      ? data._id
+      : typeof data.id === "string"
+        ? data.id
+        : "";
+    const name = typeof data.name === "string" ? data.name : "";
+    const slug = typeof data.slug === "string" ? data.slug : "";
+
+    if (!name) return [];
+    return [`- ID: ${id}, Kategori Adı: "${name}", Slug: "${slug}"`];
+  });
+
+  return formattedCategories.length > 0
+    ? formattedCategories.join("\n")
+    : "Kategori listesi verilmedi.";
 }
 
 /**
  * Marka listesini prompt için metne dönüştürür
  */
-export function formatBrandsList(brands: any[] = []): string {
+export function formatBrandsList(brands: readonly unknown[] = []): string {
   if (!Array.isArray(brands) || brands.length === 0) {
     return "Marka listesi verilmedi.";
   }
-  return brands.map((b: any) => (typeof b === "string" ? b : b.name)).join(", ");
+
+  const names = brands.flatMap((brand) => {
+    if (typeof brand === "string") return [brand];
+    if (!brand || typeof brand !== "object") return [];
+
+    const name = (brand as Record<string, unknown>).name;
+    return typeof name === "string" ? [name] : [];
+  });
+
+  return names.length > 0 ? names.join(", ") : "Marka listesi verilmedi.";
+}
+
+export type OemAssistantData = {
+  isValidOem?: boolean;
+  isDraft?: boolean;
+  reason?: string;
+  cleanOem?: string;
+  detectedOem?: string;
+  brand?: string;
+  matchedCategoryId?: string;
+  suggestedCategoryName?: string;
+  model?: string;
+  title?: string;
+  condition?: string;
+  description?: string;
+  tags?: string[];
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  crossReferences?: string[];
+  sources?: Array<{ title: string; url: string }>;
+  [key: string]: unknown;
+};
+
+function normalizeOemAssistantData(value: unknown): OemAssistantData {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Yapay zeka yanıtı geçerli bir nesne değil.");
+  }
+
+  const data = value as Record<string, unknown>;
+  const getString = (key: string) =>
+    typeof data[key] === "string" ? data[key] : undefined;
+  const getStringArray = (key: string) => {
+    const value = data[key];
+    return Array.isArray(value)
+      ? value.filter((item: unknown): item is string => typeof item === "string")
+      : undefined;
+  };
+
+  return {
+    ...data,
+    isValidOem: typeof data.isValidOem === "boolean" ? data.isValidOem : undefined,
+    isDraft: typeof data.isDraft === "boolean" ? data.isDraft : undefined,
+    reason: getString("reason"),
+    cleanOem: getString("cleanOem"),
+    detectedOem: getString("detectedOem"),
+    brand: getString("brand"),
+    matchedCategoryId: getString("matchedCategoryId"),
+    suggestedCategoryName: getString("suggestedCategoryName"),
+    model: getString("model"),
+    title: getString("title"),
+    condition: getString("condition"),
+    description: getString("description"),
+    tags: getStringArray("tags"),
+    metaTitle: getString("metaTitle"),
+    metaDescription: getString("metaDescription"),
+    metaKeywords: getString("metaKeywords"),
+    crossReferences: getStringArray("crossReferences"),
+    sources: Array.isArray(data.sources)
+      ? data.sources.flatMap((source) => {
+        if (!source || typeof source !== "object") return [];
+
+        const sourceData = source as Record<string, unknown>;
+        return typeof sourceData.title === "string" && typeof sourceData.url === "string"
+          ? [{ title: sourceData.title, url: sourceData.url }]
+          : [];
+      })
+      : undefined,
+  };
 }
 
 /**
  * LLM'in ürettiği metinden JSON'u güvenle ayıklar ve ayrıştırır.
  * Tırnak içindeki ham satır sonlarını (\n, \r) ve tabları escape eder.
  */
-export function parseLlmJson(rawText: string): any {
+export function parseLlmJson(rawText: string): OemAssistantData {
   let cleaned = rawText.trim();
   const match = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
   if (match) {
@@ -170,8 +262,8 @@ export function parseLlmJson(rawText: string): any {
   }
 
   try {
-    return JSON.parse(cleaned);
-  } catch (initialErr) {
+    return normalizeOemAssistantData(JSON.parse(cleaned));
+  } catch {
     let inString = false;
     let escaped = false;
     let result = "";
@@ -194,15 +286,16 @@ export function parseLlmJson(rawText: string): any {
     }
 
     try {
-      return JSON.parse(result);
-    } catch (parseErr: any) {
-      const posMatch = String(parseErr?.message || "").match(/at position (\d+)/i);
+      return normalizeOemAssistantData(JSON.parse(result));
+    } catch (parseErr: unknown) {
+      const errorMessage = parseErr instanceof Error ? parseErr.message : String(parseErr);
+      const posMatch = errorMessage.match(/at position (\d+)/i);
       if (posMatch) {
         const pos = parseInt(posMatch[1], 10);
         const sub = result.slice(0, pos);
         const lastValidBrace = sub.lastIndexOf("}");
         if (lastValidBrace !== -1) {
-          return JSON.parse(sub.slice(0, lastValidBrace + 1));
+          return normalizeOemAssistantData(JSON.parse(sub.slice(0, lastValidBrace + 1)));
         }
       }
       throw parseErr;
