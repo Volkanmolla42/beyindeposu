@@ -51,7 +51,7 @@ export default function LoginPage() {
             src="/images/logo.webp"
             alt="Beyin Deposu"
             width={1027}
-            height={581}
+            height={581} priority
             className="h-20 w-auto mx-auto object-contain"
           />
         </Link>

@@ -248,7 +248,7 @@ export default function AdminProductsPage() {
     setLightboxZoomOriginFromPoint(e.currentTarget, e.clientX, e.clientY);
     setLightboxZoom((current) => Math.min(4, Math.max(1, current + (e.deltaY < 0 ? 0.25 : -0.25))));
   };
-  const resetFormImageZoom = () => {};
+  const resetFormImageZoom = () => { };
   // Hover preview (floating near cursor)
   const [hoverPreview, setHoverPreview] = useState<{ src: string; x: number; y: number } | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -808,17 +808,6 @@ export default function AdminProductsPage() {
     <div className="space-y-4 w-full min-w-0">
       {/* Page Header */}
       <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-lg font-bold text-slate-900 flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span>Parçalar</span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-              {products?.length ?? 0} parça bu sayfada
-            </span>
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Parça, stok ve OEM bilgilerini yönetin.
-          </p>
-        </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
           <input
@@ -932,11 +921,10 @@ export default function AdminProductsPage() {
             <button
               type="button"
               onClick={() => setViewMode("table")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                viewMode === "table"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${viewMode === "table"
                   ? "bg-blue-600 text-white shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
-              }`}
+                }`}
             >
               <Table className="w-3.5 h-3.5" />
               <span>Tablo</span>
@@ -944,11 +932,10 @@ export default function AdminProductsPage() {
             <button
               type="button"
               onClick={() => setViewMode("list")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
-                viewMode === "list"
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${viewMode === "list"
                   ? "bg-blue-600 text-white shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
-              }`}
+                }`}
             >
               <LayoutList className="w-3.5 h-3.5" />
               <span>Liste</span>
@@ -1169,11 +1156,10 @@ export default function AdminProductsPage() {
                 <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
                   <div className="flex items-center gap-1.5">
                     <span
-                      className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
-                        p.isDraft === true
+                      className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${p.isDraft === true
                           ? "bg-amber-50 text-amber-700 border-amber-200/80"
                           : "bg-emerald-50 text-emerald-700 border-emerald-200/80"
-                      }`}
+                        }`}
                     >
                       {p.isDraft === true ? "Taslak" : "Yayında"}
                     </span>
@@ -1184,11 +1170,10 @@ export default function AdminProductsPage() {
                         e.stopPropagation();
                         toggleStock({ id: p._id, inStock: !p.inStock });
                       }}
-                      className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-semibold border cursor-pointer ${
-                        p.inStock
+                      className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-semibold border cursor-pointer ${p.inStock
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
                           : "bg-amber-50 text-amber-700 border-amber-200/80"
-                      }`}
+                        }`}
                     >
                       {p.inStock ? "Stokta" : "Tükendi"}
                     </button>
@@ -1432,15 +1417,13 @@ export default function AdminProductsPage() {
                           role="switch"
                           aria-checked={inStock}
                           onClick={() => setInStock(!inStock)}
-                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                            inStock ? "bg-emerald-600" : "bg-slate-300"
-                          }`}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${inStock ? "bg-emerald-600" : "bg-slate-300"
+                            }`}
                           title={inStock ? "Stokta (Tıklayarak Tükendi yap)" : "Tükendi (Tıklayarak Stokta yap)"}
                         >
                           <span
-                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                              inStock ? "translate-x-5" : "translate-x-0"
-                            }`}
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${inStock ? "translate-x-5" : "translate-x-0"
+                              }`}
                           />
                         </button>
                       </div>
@@ -1458,15 +1441,13 @@ export default function AdminProductsPage() {
                           role="switch"
                           aria-checked={isDraft}
                           onClick={() => setIsDraft(!isDraft)}
-                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                            isDraft ? "bg-amber-500" : "bg-emerald-600"
-                          }`}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isDraft ? "bg-amber-500" : "bg-emerald-600"
+                            }`}
                           title={isDraft ? "Taslak (Tıklayarak Yayına al)" : "Yayında (Tıklayarak Taslağa al)"}
                         >
                           <span
-                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                              isDraft ? "translate-x-5" : "translate-x-0"
-                            }`}
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${isDraft ? "translate-x-5" : "translate-x-0"
+                              }`}
                           />
                         </button>
                       </div>
@@ -1683,7 +1664,7 @@ export default function AdminProductsPage() {
 
                       <div className="space-y-1.5">
                         <label className="font-semibold text-slate-700">Açıklama</label>
-                          <Textarea
+                        <Textarea
                           rows={4}
                           value={description}
                           onChange={(e) => setDescription(e.target.value)}
