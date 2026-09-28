@@ -594,7 +594,7 @@ export default function AdminProductsPage() {
         });
         const payload = await result.json();
         if (!result.ok || !payload.url) {
-          throw new Error(payload.message || "Görsel yüklenemedi.");
+          throw new Error(payload.error || payload.message || "Görsel yüklenemedi.");
         }
         uploadedUrls.push(payload.url);
       }
