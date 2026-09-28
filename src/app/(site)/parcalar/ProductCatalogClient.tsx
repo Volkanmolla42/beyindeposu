@@ -213,6 +213,7 @@ function ProductCatalogView({
               src={categoryFirstImage}
               alt={activeCategoryTitle}
               fill
+              unoptimized={categoryFirstImage.startsWith("/uploads/products/")}
               sizes="(max-width: 640px) 144px, 176px"
               className="object-contain p-2 rounded-lg group-hover:scale-105 transition-all duration-300"
             />

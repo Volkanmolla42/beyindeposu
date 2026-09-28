@@ -175,6 +175,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                           src={img}
                           alt=""
                           fill
+                          unoptimized
                           sizes="80px"
                           className="object-cover"
                         />

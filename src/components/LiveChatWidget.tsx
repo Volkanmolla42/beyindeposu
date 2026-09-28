@@ -302,6 +302,7 @@ export default function LiveChatWidget() {
                             src={currentProduct.images[0]}
                             alt={currentProduct.title}
                             fill
+                            unoptimized
                             sizes="40px"
                             className="object-contain"
                           />
@@ -434,6 +435,7 @@ export default function LiveChatWidget() {
                                     src={m.productCard.image}
                                     alt={m.productCard.title}
                                     fill
+                                    unoptimized
                                     sizes="32px"
                                     className="object-contain"
                                   />

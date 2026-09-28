@@ -140,6 +140,7 @@ export default function OemSearchBar({
                         src={product.images[0]}
                         alt={product.title}
                         fill
+                        unoptimized
                         sizes="56px"
                         className="object-cover group-hover:scale-105 transition-transform"
                       />
