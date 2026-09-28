@@ -10,6 +10,7 @@ import {
   Trash2,
   Cpu,
   ImageIcon,
+  Camera,
   Upload,
   X,
   Loader2,
@@ -264,6 +265,7 @@ export default function AdminProductsPage() {
   const [aiSources, setAiSources] = useState<Array<{ title: string; url: string }>>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [folderUploading, setFolderUploading] = useState(false);
   const [folderUploadProgress, setFolderUploadProgress] = useState<FolderUploadProgress | null>(null);
@@ -575,14 +577,14 @@ export default function AdminProductsPage() {
 
   // Upload image to the persistent aapanel product media directory.
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    e.target.value = "";
 
     setUploadingImage(true);
     try {
       const uploadedUrls: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+      for (const file of files) {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("label", oemNumber.trim() || slugify(title) || "product");
@@ -924,7 +926,6 @@ export default function AdminProductsPage() {
         <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-50/80 border-b border-slate-200">
           <div className="flex items-center gap-2">
             <span className="font-bold text-slate-800 text-xs">Parça Listesi</span>
-            <span className="text-[11px] text-slate-500 font-medium">(Sayfa {currentPage})</span>
           </div>
 
           <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 shadow-2xs">
@@ -1222,18 +1223,18 @@ export default function AdminProductsPage() {
         </div>
 
         {/* Admin Pagination Controls */}
-        <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-200 bg-slate-50/80 p-3 sm:p-4 text-center text-xs sm:flex-row sm:gap-4 sm:text-left">
-          <div className="max-w-full text-slate-500 font-medium leading-5">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-t border-slate-200 bg-slate-50/80 p-3 text-xs sm:flex sm:items-center sm:justify-between sm:gap-4 sm:p-4">
+          <div className="min-w-0 text-slate-500 font-medium leading-5">
             Sayfa <span className="font-bold text-slate-900">{currentPage}</span> · {products?.length ?? 0} kayıt gösteriliyor
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5">
+          <div className="contents sm:flex sm:items-center sm:gap-3">
+            <div className="col-span-2 row-start-2 flex items-center justify-between border-t border-slate-200/70 pt-2 sm:col-span-1 sm:row-auto sm:justify-start sm:gap-1.5 sm:border-0 sm:pt-0">
               <span className="text-slate-500 text-[11px]">Sayfa başına:</span>
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}
-                className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-slate-700 font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs cursor-pointer"
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
               >
                 <option value={25}>25</option>
                 <option value={50}>50</option>
@@ -1242,28 +1243,34 @@ export default function AdminProductsPage() {
               </select>
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange("previous")}
-              disabled={currentPage === 1}
-              className="h-8 px-2.5 text-xs"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-              Önceki
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange("next")}
-              disabled={!pageData || pageData.isDone}
-              className="h-8 px-2.5 text-xs"
-            >
-              Sonraki
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
+            {(currentPage > 1 || !pageData?.isDone) && (
+              <div className="col-start-2 row-start-1 flex items-center gap-1.5 sm:col-auto sm:row-auto">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange("previous")}
+                  disabled={currentPage === 1}
+                  aria-label="Önceki sayfa"
+                  className="h-9 w-9 rounded-lg p-0 sm:h-8 sm:w-auto sm:gap-1.5 sm:px-2.5"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                  <span className="hidden text-xs sm:inline">Önceki</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handlePageChange("next")}
+                  disabled={!pageData || pageData.isDone}
+                  aria-label="Sonraki sayfa"
+                  className="h-9 w-9 rounded-lg p-0 sm:h-8 sm:w-auto sm:gap-1.5 sm:px-2.5"
+                >
+                  <span className="hidden text-xs sm:inline">Sonraki</span>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1303,6 +1310,26 @@ export default function AdminProductsPage() {
                   </div>
 
                   <div className="mt-2 flex max-w-full gap-2 overflow-x-auto pb-1">
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      disabled={uploadingImage}
+                      aria-label="Kamerayla fotoğraf çek"
+                      className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-md border border-dashed border-slate-300 bg-white text-slate-500 transition-colors hover:border-blue-500 hover:text-blue-600 disabled:cursor-wait"
+                    >
+                      {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                      <span className="mt-1 text-[9px] font-bold">Kamera</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingImage}
+                      aria-label="Galeriden görsel ekle"
+                      className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-md border border-dashed border-slate-300 bg-white text-slate-500 transition-colors hover:border-blue-500 hover:text-blue-600 disabled:cursor-wait"
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span className="mt-1 text-[9px] font-bold">Galeri</span>
+                    </button>
                     {previewImages.map((img, i) => (
                       <div
                         key={i}
@@ -1352,20 +1379,19 @@ export default function AdminProductsPage() {
                         </button>
                       </div>
                     ))}
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingImage}
-                      className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-md border border-dashed border-slate-300 bg-white text-slate-500 transition-colors hover:border-blue-500 hover:text-blue-600 disabled:cursor-wait"
-                    >
-                      {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                      <span className="mt-1 text-[9px] font-bold">Ekle</span>
-                    </button>
                     <input
                       ref={fileInputRef}
                       type="file"
                       accept="image/*"
                       multiple
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <input
+                      ref={cameraInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
                       onChange={handleImageUpload}
                       className="hidden"
                     />
