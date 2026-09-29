@@ -7,7 +7,6 @@ import {
   FolderUp,
   Play,
   Pause,
-  RotateCcw,
   CheckCircle2,
   AlertCircle,
   File,
@@ -57,9 +56,11 @@ export default function BatchImportPage() {
   const [isPaused, setIsPaused] = useState(false);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [skipExisting, setSkipExisting] = useState(true);
-  const [concurrency, setConcurrency] = useState<number>(5); // 5x Turbo varsayılan
   const [searchFilter, setSearchFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+
+  // Her zaman varsayılan en yüksek performans: 8x Ultra Mod
+  const ULTRA_CONCURRENCY = 8;
 
   // Keep a ref to isRunning / isPaused to break out of processing loops instantly
   const shouldStopRef = useRef(false);
@@ -390,7 +391,7 @@ export default function BatchImportPage() {
     }
 
     let nextQueueIdx = 0;
-    const workerCount = Math.max(1, Math.min(concurrency, pendingIndices.length));
+    const workerCount = Math.max(1, Math.min(ULTRA_CONCURRENCY, pendingIndices.length));
 
     const runWorker = async () => {
       while (nextQueueIdx < pendingIndices.length) {
@@ -570,17 +571,6 @@ export default function BatchImportPage() {
 
                 <button
                   type="button"
-                  onClick={handleReset}
-                  disabled={isRunning}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
-                  title="Durumu sıfırla"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  <span>Sıfırla</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => {
                     handleReset();
                     setProductGroups([]);
@@ -603,9 +593,9 @@ export default function BatchImportPage() {
                   {isRunning && (
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-600 animate-pulse">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
-                        <Zap className="h-3 w-3 fill-amber-500 text-amber-500" />
-                        {concurrency}x Turbo
+                      <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200">
+                        <Zap className="h-3 w-3 fill-blue-600 text-blue-600" />
+                        8x Ultra Mod
                       </span>
                       <span>({processingCount > 0 ? `${processingCount} parça` : "parçalar"} aynı anda taranıyor)</span>
                     </span>
@@ -625,8 +615,8 @@ export default function BatchImportPage() {
               </div>
             </div>
 
-            {/* Yükleme & Turbo Mod Ayarları */}
-            <div className="mt-5 border-t border-slate-100 pt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-xs">
+            {/* Yükleme Ayarı & Ultra Mod Göstergesi */}
+            <div className="mt-5 border-t border-slate-100 pt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-xs">
               <label className="flex w-fit items-center gap-2 cursor-pointer font-medium text-slate-700">
                 <input
                   type="checkbox"
@@ -638,34 +628,10 @@ export default function BatchImportPage() {
                 <span>Kayıtlı parçaları atla</span>
               </label>
 
-              {/* Çoklu İşlem / Turbo Mod Seçici */}
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-semibold text-slate-600 flex items-center gap-1">
-                  <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
-                  İşlem Hızı:
-                </span>
-                <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
-                  {[
-                    { value: 1, label: "1x Sırayla" },
-                    { value: 3, label: "3x Standart" },
-                    { value: 5, label: "5x ⚡ Turbo" },
-                    { value: 8, label: "8x 🚀 Ultra" },
-                  ].map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      disabled={isRunning}
-                      onClick={() => setConcurrency(opt.value)}
-                      className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer disabled:cursor-not-allowed ${
-                        concurrency === opt.value
-                          ? "bg-white text-blue-700 shadow-xs font-bold"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+              {/* Sabit Ultra Mod Rozeti */}
+              <div className="inline-flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50/70 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
+                <Zap className="h-3.5 w-3.5 fill-blue-600 text-blue-600" />
+                <span>Ultra Mod Aktif (8x Eşzamanlı Tarama)</span>
               </div>
             </div>
           </div>
