@@ -11,7 +11,7 @@ export const DEFAULT_GEMINI_MODELS = [
   "gemini-3.1-flash-lite", // Yedek (backup) model
 ] as const;
 
-export const SEO_DESCRIPTION_MARKDOWN_TEMPLATE = `AŞAĞIDAKİ 100/100 SEO UYUMLU ŞABLONA BİREBİR UYGUN MARKDOWN FORMATINDA OLUŞTURULMALIDIR:
+const SEO_DESCRIPTION_MARKDOWN_TEMPLATE = `AŞAĞIDAKİ 100/100 SEO UYUMLU ŞABLONA BİREBİR UYGUN MARKDOWN FORMATINDA OLUŞTURULMALIDIR:
 
 ## [OEM No] [Marka] [Parça Tam Adı]
 
@@ -52,7 +52,7 @@ Satışa sunulan bu parça orijinal çıkma olup soket tırnakları, pin bağlan
 ## Uyumluluk ve Sipariş Uyarısı
 Oto elektronik kontrol ünitelerinde yazılım versiyonu, pin dizilimi ve donanım varyasyonları kritik öneme sahiptir. Lütfen sipariş vermeden önce aracınızdan sökülen arızalı parçanın üzerindeki etiket numaralarını, soket yapısını ve mümkünse araç şase (VIN) numarasını mutlaka karşılaştırınız.`;
 
-export const COMMON_JSON_OUTPUT_SCHEMA = `{
+const COMMON_JSON_OUTPUT_SCHEMA = `{
   "isValidOem": true,
   "detectedOem": "Formatlanmış veya tespit edilen birincil OEM numarası (Örn: 7M3962258L)",
   "cleanOem": "Boşluklu/temiz parça kodu (Örn: 7M3 962 258 L veya 0 281 001 781)",

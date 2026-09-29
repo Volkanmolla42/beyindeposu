@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { SITE_CONTACT } from "@/config/site";
-import { getWhatsAppUrl, formatPhoneNumber } from "@/lib/utils";
+import { getWhatsAppUrl, formatPhoneNumber } from "@/lib/whatsapp";
 import { createPageMetadata, serializeJsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const dynamic = "force-static";

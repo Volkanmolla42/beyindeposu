@@ -16,14 +16,14 @@ export const getPublicProductBySlug = cache(async (slug: string) => {
   return client.query(api.products.getBySlug, { slug });
 });
 
-export const getPublicCategoryBySlug = cache(async (slug: string) => {
+const getPublicCategoryBySlug = cache(async (slug: string) => {
   const client = getConvexHttpClient();
   if (!client) return null;
 
   return client.query(api.categories.getBySlug, { slug });
 });
 
-export const getPublicCategoryProductsPage = cache(async (slug: string) => {
+const getPublicCategoryProductsPage = cache(async (slug: string) => {
   const client = getConvexHttpClient();
   if (!client) return null;
 
@@ -43,7 +43,7 @@ export const getPublicCategoryPage = cache(async (slug: string) => {
   return { category, products };
 });
 
-export async function listPublicCategories(client: ConvexHttpClient) {
+async function listPublicCategories(client: ConvexHttpClient) {
   const categories = await client.query(api.categories.list, { onlyActive: true });
   return categories.filter((category) => category.slug.trim().length > 0);
 }
@@ -71,12 +71,6 @@ export async function listPublicCategoriesWithProducts(client: ConvexHttpClient)
   return categoriesWithProducts.filter((category) => category !== null);
 }
 
-export const getPublicCategoriesWithProducts = cache(async () => {
-  const client = getConvexHttpClient();
-  if (!client) return [];
-
-  return listPublicCategoriesWithProducts(client);
-});
 
 export const getPublicBrandPage = cache(async (slug: string) => {
   const client = getConvexHttpClient();
@@ -94,7 +88,7 @@ export const getPublicBrandPage = cache(async (slug: string) => {
   return { brand, products };
 });
 
-export async function listPublicBrands(client: ConvexHttpClient) {
+async function listPublicBrands(client: ConvexHttpClient) {
   const brands = await client.query(api.brands.list, {});
   return brands.filter(
     (brand) => brand.isActive !== false && brand.slug.trim().length > 0,
@@ -124,9 +118,3 @@ export async function listPublicBrandsWithProducts(client: ConvexHttpClient) {
   return brandsWithProducts.filter((brand) => brand !== null);
 }
 
-export const getPublicBrandsWithProducts = cache(async () => {
-  const client = getConvexHttpClient();
-  if (!client) return [];
-
-  return listPublicBrandsWithProducts(client);
-});

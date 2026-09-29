@@ -3,7 +3,7 @@ import { paginationOptsValidator } from "convex/server";
 import type { OrderedQuery, PaginationOptions } from "convex/server";
 import { mutation, query } from "./_generated/server";
 import type { DataModel, Doc, Id } from "./_generated/dataModel";
-import type { QueryCtx } from "./_generated/server";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { requireAdmin } from "./authz";
 
 async function resolveProductWithCategory(ctx: QueryCtx, p: Doc<"products">) {
@@ -66,6 +66,7 @@ type ProductFilterArgs = {
   brand?: string;
   condition?: string;
   inStockOnly?: boolean;
+  stockStatus?: "all" | "in_stock" | "out_of_stock";
   searchTerm?: string;
   sortBy?: string;
 };
@@ -76,6 +77,7 @@ const productFilterArgs = {
   brand: v.optional(v.string()),
   condition: v.optional(v.string()),
   inStockOnly: v.optional(v.boolean()),
+  stockStatus: v.optional(v.union(v.literal("all"), v.literal("in_stock"), v.literal("out_of_stock"))),
   searchTerm: v.optional(v.string()),
   sortBy: v.optional(v.string()),
 };
@@ -145,8 +147,10 @@ function applyProductFilters(
   if (args.condition && args.condition !== "Tümü") {
     filtered = filtered.filter((q) => q.eq(q.field("condition"), args.condition!));
   }
-  if (args.inStockOnly) {
+  if (args.stockStatus === "in_stock" || args.inStockOnly) {
     filtered = filtered.filter((q) => q.eq(q.field("inStock"), true));
+  } else if (args.stockStatus === "out_of_stock") {
+    filtered = filtered.filter((q) => q.eq(q.field("inStock"), false));
   }
 
   return filtered;
@@ -189,6 +193,12 @@ async function paginateProducts(
     const isShelfSearch = /^raf(?:$|[-_\s]|\d)/i.test(searchTerm);
     const brand = args.brand && args.brand !== "Tümü" ? args.brand : undefined;
     const condition = args.condition && args.condition !== "Tümü" ? args.condition : undefined;
+    const inStockFilter =
+      args.stockStatus === "in_stock" || args.inStockOnly
+        ? true
+        : args.stockStatus === "out_of_stock"
+        ? false
+        : undefined;
 
     if (isShelfSearch) {
       query = ctx.db.query("products").withSearchIndex("search_shelfCode", (q) => {
@@ -196,7 +206,7 @@ async function paginateProducts(
         if (brand) search = search.eq("brand", brand);
         if (categoryId) search = search.eq("categoryId", categoryId);
         if (condition) search = search.eq("condition", condition);
-        if (args.inStockOnly) search = search.eq("inStock", true);
+        if (inStockFilter !== undefined) search = search.eq("inStock", inStockFilter);
         return search;
       });
     } else if (isOemSearch) {
@@ -205,7 +215,7 @@ async function paginateProducts(
         if (brand) search = search.eq("brand", brand);
         if (categoryId) search = search.eq("categoryId", categoryId);
         if (condition) search = search.eq("condition", condition);
-        if (args.inStockOnly) search = search.eq("inStock", true);
+        if (inStockFilter !== undefined) search = search.eq("inStock", inStockFilter);
         return search;
       });
     } else {
@@ -214,7 +224,7 @@ async function paginateProducts(
         if (brand) search = search.eq("brand", brand);
         if (categoryId) search = search.eq("categoryId", categoryId);
         if (condition) search = search.eq("condition", condition);
-        if (args.inStockOnly) search = search.eq("inStock", true);
+        if (inStockFilter !== undefined) search = search.eq("inStock", inStockFilter);
         return search;
       });
     }
@@ -455,6 +465,26 @@ export const search = query({
   },
 });
 
+async function adjustStats(
+  ctx: MutationCtx,
+  delta: { total?: number; drafts?: number; published?: number; outOfStock?: number }
+) {
+  const stats = await ctx.db
+    .query("stats")
+    .withIndex("by_key", (q) => q.eq("key", "products"))
+    .first();
+
+  if (!stats) return;
+
+  await ctx.db.patch(stats._id, {
+    total: Math.max(0, stats.total + (delta.total ?? 0)),
+    drafts: Math.max(0, stats.drafts + (delta.drafts ?? 0)),
+    published: Math.max(0, stats.published + (delta.published ?? 0)),
+    outOfStock: Math.max(0, (stats.outOfStock ?? 0) + (delta.outOfStock ?? 0)),
+    updatedAt: Date.now(),
+  });
+}
+
 export const create = mutation({
   args: {
     title: v.string(),
@@ -477,12 +507,20 @@ export const create = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
     const now = Date.now();
-    return await ctx.db.insert("products", {
+    const isDraft = args.isDraft ?? true;
+    const newId = await ctx.db.insert("products", {
       ...args,
-      isDraft: args.isDraft ?? true,
+      isDraft,
       createdAt: now,
       updatedAt: now,
     });
+    await adjustStats(ctx, {
+      total: 1,
+      drafts: isDraft ? 1 : 0,
+      published: !isDraft ? 1 : 0,
+      outOfStock: !args.inStock ? 1 : 0,
+    });
+    return newId;
   },
 });
 
@@ -538,11 +576,6 @@ export const createDraftBatch = mutation({
         }
       }
 
-
-
-
-
-
       await ctx.db.insert("products", {
         title: "",
         slug: "",
@@ -559,6 +592,14 @@ export const createDraftBatch = mutation({
         updatedAt: now,
       });
       created += 1;
+    }
+
+    if (created > 0) {
+      await adjustStats(ctx, {
+        total: created,
+        drafts: created,
+        outOfStock: created,
+      });
     }
 
     return { created, skipped };
@@ -588,6 +629,38 @@ export const update = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
     const { id, ...fields } = args;
+    const existing = await ctx.db.get(id);
+
+    let deltaDrafts = 0;
+    let deltaPublished = 0;
+    let deltaOutOfStock = 0;
+
+    if (existing && args.isDraft !== undefined && existing.isDraft !== args.isDraft) {
+      if (args.isDraft) {
+        deltaDrafts = 1;
+        deltaPublished = -1;
+      } else {
+        deltaDrafts = -1;
+        deltaPublished = 1;
+      }
+    }
+
+    if (existing && args.inStock !== undefined && existing.inStock !== args.inStock) {
+      if (!args.inStock) {
+        deltaOutOfStock = 1;
+      } else {
+        deltaOutOfStock = -1;
+      }
+    }
+
+    if (deltaDrafts !== 0 || deltaPublished !== 0 || deltaOutOfStock !== 0) {
+      await adjustStats(ctx, {
+        drafts: deltaDrafts,
+        published: deltaPublished,
+        outOfStock: deltaOutOfStock,
+      });
+    }
+
     await ctx.db.patch(id, {
       ...fields,
       updatedAt: Date.now(),
@@ -599,6 +672,12 @@ export const toggleStock = mutation({
   args: { id: v.id("products"), inStock: v.boolean() },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
+    const existing = await ctx.db.get(args.id);
+    if (existing && existing.inStock !== args.inStock) {
+      await adjustStats(ctx, {
+        outOfStock: args.inStock ? -1 : 1,
+      });
+    }
     await ctx.db.patch(args.id, {
       inStock: args.inStock,
       updatedAt: Date.now(),
@@ -610,6 +689,72 @@ export const deleteProduct = mutation({
   args: { id: v.id("products") },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
-    await ctx.db.delete(args.id);
+    const existing = await ctx.db.get(args.id);
+    if (existing) {
+      await adjustStats(ctx, {
+        total: -1,
+        drafts: existing.isDraft ? -1 : 0,
+        published: !existing.isDraft ? -1 : 0,
+        outOfStock: !existing.inStock ? -1 : 0,
+      });
+      await ctx.db.delete(args.id);
+    }
+  },
+});
+
+export const getStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const stats = await ctx.db
+      .query("stats")
+      .withIndex("by_key", (q) => q.eq("key", "products"))
+      .first();
+    return stats ?? null;
+  },
+});
+
+export const syncProductStats = mutation({
+  args: {},
+  handler: async (ctx) => {
+    let total = 0;
+    let drafts = 0;
+    let published = 0;
+    let outOfStock = 0;
+
+    for await (const p of ctx.db.query("products")) {
+      total++;
+      if (p.isDraft === true) {
+        drafts++;
+      } else {
+        published++;
+      }
+      if (!p.inStock) {
+        outOfStock++;
+      }
+    }
+
+    const existing = await ctx.db
+      .query("stats")
+      .withIndex("by_key", (q) => q.eq("key", "products"))
+      .first();
+
+    const data = {
+      total,
+      drafts,
+      published,
+      outOfStock,
+      updatedAt: Date.now(),
+    };
+
+    if (existing) {
+      await ctx.db.patch(existing._id, data);
+    } else {
+      await ctx.db.insert("stats", {
+        key: "products",
+        ...data,
+      });
+    }
+
+    return data;
   },
 });

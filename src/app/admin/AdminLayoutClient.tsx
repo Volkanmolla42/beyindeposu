@@ -21,7 +21,6 @@ import { useQuery, useConvexAuth } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { api } from "@convex/_generated/api";
 import RoutartLogo from "@/components/RoutartLogo";
-import { AdminHeaderProvider, useAdminHeader } from "./AdminHeaderContext";
 
 interface NavItem {
   href: string;
@@ -76,12 +75,11 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-function AdminLayoutContent({
+export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { headerAction } = useAdminHeader();
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -154,7 +152,6 @@ function AdminLayoutContent({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {headerAction && <div className="flex items-center gap-2">{headerAction}</div>}
           {unreadChatsCount > 0 && (
             <Link
               href="/admin/chats"
@@ -325,7 +322,6 @@ function AdminLayoutContent({
           </div>
 
           <div className="flex items-center gap-3">
-            {headerAction && <div className="flex items-center gap-2">{headerAction}</div>}
             {unreadChatsCount > 0 && (
               <Link
                 href="/admin/chats"
@@ -350,14 +346,6 @@ function AdminLayoutContent({
         </main>
       </div>
     </div>
-  );
-}
-
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AdminHeaderProvider>
-      <AdminLayoutContent>{children}</AdminLayoutContent>
-    </AdminHeaderProvider>
   );
 }
 

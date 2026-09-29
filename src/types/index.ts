@@ -1,12 +1,6 @@
-import { Doc, Id } from "@convex/_generated/dataModel";
-import { SITE_CONTACT } from "@/config/site";
+import type { Doc, Id } from "@convex/_generated/dataModel";
 
-export type Product = Doc<"products">;
-export type Category = Doc<"categories">;
-export type Brand = Doc<"brands">;
-export type SiteSettings = typeof SITE_CONTACT;
-export type Conversation = Doc<"conversations">;
-export type ChatMessage = Doc<"messages">;
+type Product = Doc<"products">;
 
 // Product populated with relational category information
 export interface ProductWithCategory extends Product {

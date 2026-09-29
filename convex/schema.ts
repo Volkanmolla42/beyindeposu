@@ -134,6 +134,16 @@ export default defineSchema({
   })
     .index("by_conversationId", ["conversationId"])
     .index("by_createdAt", ["createdAt"]),
+
+  // 8. Sistem Sayaçları ve İstatistikleri (Hızlı O(1) okuma)
+  stats: defineTable({
+    key: v.string(), // "products"
+    total: v.number(),
+    published: v.number(),
+    drafts: v.number(),
+    outOfStock: v.optional(v.number()),
+    updatedAt: v.number(),
+  }).index("by_key", ["key"]),
 }, {
   schemaValidation: false, // Disables legacy document validation conflicts while maintaining 100% strict TypeScript types
 });
