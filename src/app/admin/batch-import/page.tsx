@@ -14,7 +14,9 @@ import {
   Search,
   Check,
   Loader2,
+  Zap,
 } from "lucide-react";
+import { sanitizeTurkishText } from "@/lib/utils";
 
 interface ProductFileGroup {
   id: string;
@@ -55,6 +57,7 @@ export default function BatchImportPage() {
   const [isPaused, setIsPaused] = useState(false);
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [skipExisting, setSkipExisting] = useState(true);
+  const [concurrency, setConcurrency] = useState<number>(5); // 5x Turbo varsayılan
   const [searchFilter, setSearchFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
@@ -136,8 +139,8 @@ export default function BatchImportPage() {
 
       const segments = key.split("/");
       const shelfCode = segments[segments.length - 1] || "GENEL";
-      const categoryHint = segments.length > 2 ? segments[1] : "Oto Elektronik";
-      const brandHint = segments.length > 3 ? segments[2].replace(/^[0-9.]+\s*/, "") : "Genel";
+      const categoryHint = sanitizeTurkishText(segments.length > 2 ? segments[1] : "Oto Elektronik");
+      const brandHint = sanitizeTurkishText(segments.length > 3 ? segments[2].replace(/^[0-9.]+\s*/, "") : "Genel");
 
       // Görselleri doğal sıraya göre diz (.1_ veya .1. önce gelsin)
       val.files.sort((a, b) => {
@@ -299,23 +302,29 @@ export default function BatchImportPage() {
 
       // 4. Save to Convex (Update existing draft or Create new)
       const isDraft = Boolean(data.isDraft);
-      const baseSlug = slugify(data.title || item.shelfCode);
+      const cleanCatName = matchedCat?.name || sanitizeTurkishText(item.categoryHint);
+      const resolvedTitle = isDraft
+        ? `${data.brand || item.brandHint} ${cleanCatName} - Raf: ${item.shelfCode} (İNCELEME GEREKLİ)`
+        : data.title;
+      const finalTitle = sanitizeTurkishText(resolvedTitle);
+
+      const baseSlug = slugify(finalTitle || item.shelfCode);
       const finalSlug = isDraft
         ? ""
         : `${baseSlug}-${Date.now().toString().slice(-4)}`;
       const payload = {
-        title: data.title,
+        title: finalTitle,
         slug: finalSlug,
         oemNumber: data.oemNumber,
         shelfCode: item.shelfCode,
         categoryId: matchedCat?._id,
-        brand: data.brand || item.brandHint,
-        model: data.model,
+        brand: sanitizeTurkishText(data.brand || item.brandHint),
+        model: sanitizeTurkishText(data.model || ""),
         condition: data.condition || "Orijinal Çıkma",
         inStock: true,
         description: data.description,
         images: existing?.images?.length ? existing.images : data.images,
-        metaTitle: data.metaTitle,
+        metaTitle: isDraft ? "" : sanitizeTurkishText(data.metaTitle || finalTitle.slice(0, 60)),
         metaDescription: data.metaDescription,
         metaKeywords: data.metaKeywords,
         tags: isDraft ? [] : data.tags,
@@ -336,9 +345,9 @@ export default function BatchImportPage() {
               result: {
                 productId: finalProductId,
                 oemNumber: data.oemNumber,
-                title: data.title,
-                brand: data.brand,
-                model: data.model,
+                title: finalTitle,
+                brand: sanitizeTurkishText(data.brand || item.brandHint),
+                model: sanitizeTurkishText(data.model || ""),
                 imageUrl: data.images?.[0],
               },
             }
@@ -361,39 +370,48 @@ export default function BatchImportPage() {
     }
   };
 
-  // Main Loop Handler
+  // Main Concurrency Worker Pool Handler
   const startProcessing = async () => {
     setIsRunning(true);
     setIsPaused(false);
     shouldStopRef.current = false;
 
-    // Start from either current index or first pending item
-    let startIndex = currentIndex >= 0 ? currentIndex : 0;
-    if (productGroups[startIndex]?.status === "success" || productGroups[startIndex]?.status === "skipped") {
-      const nextPending = productGroups.findIndex((g) => g.status === "idle" || g.status === "error");
-      startIndex = nextPending !== -1 ? nextPending : startIndex;
+    // İşlenmeyi bekleyen (idle veya error) parçaların indeks listesi
+    const pendingIndices: number[] = [];
+    productGroups.forEach((g, idx) => {
+      if (g.status === "idle" || g.status === "error") {
+        pendingIndices.push(idx);
+      }
+    });
+
+    if (pendingIndices.length === 0) {
+      setIsRunning(false);
+      return;
     }
 
-    for (let i = startIndex; i < productGroups.length; i++) {
-      if (shouldStopRef.current) {
-        setIsPaused(true);
-        setIsRunning(false);
-        break;
-      }
+    let nextQueueIdx = 0;
+    const workerCount = Math.max(1, Math.min(concurrency, pendingIndices.length));
 
-      // If already done, skip to next
-      if (productGroups[i].status === "success" || productGroups[i].status === "skipped") {
-        continue;
-      }
+    const runWorker = async () => {
+      while (nextQueueIdx < pendingIndices.length) {
+        if (shouldStopRef.current) break;
 
-      setCurrentIndex(i);
-      await processItem(i);
+        const currentItemIndex = pendingIndices[nextQueueIdx++];
+        if (currentItemIndex === undefined) break;
 
-      // Brief delay between calls to preserve rate limits
-      if (i < productGroups.length - 1 && !shouldStopRef.current) {
-        await new Promise((resolve) => setTimeout(resolve, 800));
+        setCurrentIndex(currentItemIndex);
+        await processItem(currentItemIndex);
+
+        if (!shouldStopRef.current && nextQueueIdx < pendingIndices.length) {
+          // UI render ve akıcılık için kısa bekleme
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        }
       }
-    }
+    };
+
+    await Promise.all(
+      Array.from({ length: workerCount }, () => runWorker())
+    );
 
     if (!shouldStopRef.current) {
       setIsRunning(false);
@@ -426,6 +444,7 @@ export default function BatchImportPage() {
 
   // Counts & Progress
   const totalCount = productGroups.length;
+  const processingCount = productGroups.filter((g) => g.status === "processing").length;
   const successCount = productGroups.filter((g) => g.status === "success").length;
   const skippedCount = productGroups.filter((g) => g.status === "skipped").length;
   const errorCount = productGroups.filter((g) => g.status === "error").length;
@@ -582,9 +601,13 @@ export default function BatchImportPage() {
                 <span className="flex items-center gap-2">
                   <span>İlerleme</span>
                   {isRunning && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 animate-pulse">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      <span>Parça {currentIndex + 1} işleniyor...</span>
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-600 animate-pulse">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
+                        <Zap className="h-3 w-3 fill-amber-500 text-amber-500" />
+                        {concurrency}x Turbo
+                      </span>
+                      <span>({processingCount > 0 ? `${processingCount} parça` : "parçalar"} aynı anda taranıyor)</span>
                     </span>
                   )}
                   {isPaused && (
@@ -602,8 +625,8 @@ export default function BatchImportPage() {
               </div>
             </div>
 
-            {/* Yükleme Ayarı */}
-            <div className="mt-5 border-t border-slate-100 pt-4 text-xs">
+            {/* Yükleme & Turbo Mod Ayarları */}
+            <div className="mt-5 border-t border-slate-100 pt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between text-xs">
               <label className="flex w-fit items-center gap-2 cursor-pointer font-medium text-slate-700">
                 <input
                   type="checkbox"
@@ -614,6 +637,36 @@ export default function BatchImportPage() {
                 />
                 <span>Kayıtlı parçaları atla</span>
               </label>
+
+              {/* Çoklu İşlem / Turbo Mod Seçici */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-slate-600 flex items-center gap-1">
+                  <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />
+                  İşlem Hızı:
+                </span>
+                <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+                  {[
+                    { value: 1, label: "1x Sırayla" },
+                    { value: 3, label: "3x Standart" },
+                    { value: 5, label: "5x ⚡ Turbo" },
+                    { value: 8, label: "8x 🚀 Ultra" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      disabled={isRunning}
+                      onClick={() => setConcurrency(opt.value)}
+                      className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all cursor-pointer disabled:cursor-not-allowed ${
+                        concurrency === opt.value
+                          ? "bg-white text-blue-700 shadow-xs font-bold"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
