@@ -192,6 +192,8 @@ export default function AdminLayout({
                 alt="Beyin Deposu"
                 width={160}
                 height={40}
+                priority
+                loading="eager"
                 className="h-8 w-auto object-contain"
               />
               <span className="rounded-full border border-blue-100 bg-blue-50 px-2 py-1 text-[10px] font-medium tracking-wide text-blue-800">

@@ -314,6 +314,7 @@ export function ModernImageZoom({
           fill
           unoptimized
           priority={priority}
+          loading={priority ? "eager" : undefined}
           sizes="(max-width: 1024px) 100vw, 50vw"
           draggable={false}
           className="object-contain pointer-events-none select-none transition-opacity duration-200"

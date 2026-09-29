@@ -40,6 +40,7 @@ export default function Header() {
               width={160}
               height={40}
               priority
+              loading="eager"
               style={{ width: "auto" }}
               className="h-9 w-auto object-contain sm:h-10"
             />
