@@ -142,7 +142,6 @@ export default defineSchema({
     published: v.number(),
     drafts: v.number(),
     outOfStock: v.optional(v.number()),
-    updatedAt: v.number(),
   }).index("by_key", ["key"]),
 }, {
   schemaValidation: false, // Disables legacy document validation conflicts while maintaining 100% strict TypeScript types

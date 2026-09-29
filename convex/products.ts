@@ -197,8 +197,8 @@ async function paginateProducts(
       args.stockStatus === "in_stock" || args.inStockOnly
         ? true
         : args.stockStatus === "out_of_stock"
-        ? false
-        : undefined;
+          ? false
+          : undefined;
 
     if (isShelfSearch) {
       query = ctx.db.query("products").withSearchIndex("search_shelfCode", (q) => {
@@ -481,7 +481,6 @@ async function adjustStats(
     drafts: Math.max(0, stats.drafts + (delta.drafts ?? 0)),
     published: Math.max(0, stats.published + (delta.published ?? 0)),
     outOfStock: Math.max(0, (stats.outOfStock ?? 0) + (delta.outOfStock ?? 0)),
-    updatedAt: Date.now(),
   });
 }
 
@@ -635,21 +634,25 @@ export const update = mutation({
     let deltaPublished = 0;
     let deltaOutOfStock = 0;
 
-    if (existing && args.isDraft !== undefined && existing.isDraft !== args.isDraft) {
-      if (args.isDraft) {
-        deltaDrafts = 1;
-        deltaPublished = -1;
-      } else {
-        deltaDrafts = -1;
-        deltaPublished = 1;
+    if (existing && args.isDraft !== undefined) {
+      const oldIsDraft = Boolean(existing.isDraft);
+      const newIsDraft = Boolean(args.isDraft);
+      if (oldIsDraft !== newIsDraft) {
+        if (newIsDraft) {
+          deltaDrafts = 1;
+          deltaPublished = -1;
+        } else {
+          deltaDrafts = -1;
+          deltaPublished = 1;
+        }
       }
     }
 
-    if (existing && args.inStock !== undefined && existing.inStock !== args.inStock) {
-      if (!args.inStock) {
-        deltaOutOfStock = 1;
-      } else {
-        deltaOutOfStock = -1;
+    if (existing && args.inStock !== undefined) {
+      const oldInStock = Boolean(existing.inStock);
+      const newInStock = Boolean(args.inStock);
+      if (oldInStock !== newInStock) {
+        deltaOutOfStock = newInStock ? -1 : 1;
       }
     }
 
@@ -691,11 +694,13 @@ export const deleteProduct = mutation({
     await requireAdmin(ctx);
     const existing = await ctx.db.get(args.id);
     if (existing) {
+      const isDraft = Boolean(existing.isDraft);
+      const inStock = Boolean(existing.inStock);
       await adjustStats(ctx, {
         total: -1,
-        drafts: existing.isDraft ? -1 : 0,
-        published: !existing.isDraft ? -1 : 0,
-        outOfStock: !existing.inStock ? -1 : 0,
+        drafts: isDraft ? -1 : 0,
+        published: !isDraft ? -1 : 0,
+        outOfStock: !inStock ? -1 : 0,
       });
       await ctx.db.delete(args.id);
     }
@@ -713,48 +718,6 @@ export const getStats = query({
   },
 });
 
-export const syncProductStats = mutation({
-  args: {},
-  handler: async (ctx) => {
-    let total = 0;
-    let drafts = 0;
-    let published = 0;
-    let outOfStock = 0;
 
-    for await (const p of ctx.db.query("products")) {
-      total++;
-      if (p.isDraft === true) {
-        drafts++;
-      } else {
-        published++;
-      }
-      if (!p.inStock) {
-        outOfStock++;
-      }
-    }
 
-    const existing = await ctx.db
-      .query("stats")
-      .withIndex("by_key", (q) => q.eq("key", "products"))
-      .first();
 
-    const data = {
-      total,
-      drafts,
-      published,
-      outOfStock,
-      updatedAt: Date.now(),
-    };
-
-    if (existing) {
-      await ctx.db.patch(existing._id, data);
-    } else {
-      await ctx.db.insert("stats", {
-        key: "products",
-        ...data,
-      });
-    }
-
-    return data;
-  },
-});

@@ -8,14 +8,13 @@ import {
   Search,
   Trash2,
   Cpu,
-  X,
   Eye,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
   Table,
   LayoutList,
-  RotateCw,
+  X,
 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -35,20 +34,17 @@ export default function AdminProductsPage() {
   const [draftStatus, setDraftStatus] = useState<"all" | "draft" | "published">("all");
   const [stockFilter, setStockFilter] = useState<"all" | "in_stock" | "out_of_stock">("all");
   const [pageSize, setPageSize] = useState<number>(25);
-  const [viewMode, setViewMode] = useState<"table" | "list">("table");
-
-  useEffect(() => {
+  const [viewMode, setViewMode] = useState<"table" | "list">(() => {
+    if (typeof window === "undefined") return "table";
     try {
       const saved = localStorage.getItem("admin_products_view_mode");
-      if (saved === "table" || saved === "list") {
-        setViewMode(saved);
-      } else if (typeof window !== "undefined" && window.innerWidth < 768) {
-        setViewMode("list");
-      }
+      if (saved === "table" || saved === "list") return saved;
+      if (window.innerWidth < 768) return "list";
     } catch {
       // ignore localStorage errors
     }
-  }, []);
+    return "table";
+  });
 
   const handleSetViewMode = (mode: "table" | "list") => {
     setViewMode(mode);
@@ -115,19 +111,6 @@ export default function AdminProductsPage() {
   const categories = useQuery(api.categories.list, { onlyActive: false });
   const brands = useQuery(api.brands.list, { onlyActive: false });
   const productStats = useQuery(api.products.getStats);
-  const syncProductStats = useMutation(api.products.syncProductStats);
-  const [isSyncingStats, setIsSyncingStats] = useState(false);
-
-  const handleSyncStats = async () => {
-    try {
-      setIsSyncingStats(true);
-      await syncProductStats({});
-    } catch (err) {
-      console.error("Stats sync error:", err);
-    } finally {
-      setIsSyncingStats(false);
-    }
-  };
 
   const products = pageData?.page;
   const isDone = pageData?.isDone ?? true;
@@ -194,9 +177,8 @@ export default function AdminProductsPage() {
   const renderPaginationBar = (position: "top" | "bottom") => {
     return (
       <div
-        className={`flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 px-3 py-2 bg-slate-50/90 text-xs ${
-          position === "top" ? "border-b border-slate-200" : "border-t border-slate-200"
-        }`}
+        className={`flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 px-3 py-2 bg-slate-50/90 text-xs ${position === "top" ? "border-b border-slate-200" : "border-t border-slate-200"
+          }`}
       >
         {position === "top" ? (
           /* Üst Çubuk - Sol: Yeni Parça, Arama ve Filtre Temizleme */
@@ -238,16 +220,15 @@ export default function AdminProductsPage() {
         ) : (
           /* Alt Çubuk - Sol: Toplam Bilgisi */
           <div className="text-xs text-slate-600 font-medium">
-            {productStats
-              ? `Toplam ${productStats.total.toLocaleString("tr-TR")} parça`
-              : products
-                ? `${products.length} parça listelendi`
-                : "Yükleniyor..."}
+            {products
+              ? `Bu sayfada ${products.length} parça listeleniyor${productStats ? ` (Toplam ${productStats.total.toLocaleString("tr-TR")})` : ""}`
+              : "Yükleniyor..."}
           </div>
         )}
 
         {/* Sağ: Sayfalama & Görünüm */}
-        <div className="flex items-center justify-between md:justify-end gap-1.5 w-full md:w-auto shrink-0 md:ml-auto">
+        <div className="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto shrink-0 md:ml-auto">
+
           <div className="flex items-center gap-1.5">
             <Button
               type="button"
@@ -261,8 +242,8 @@ export default function AdminProductsPage() {
               <ChevronLeft className="w-4 h-4" />
             </Button>
 
-            <span className="px-2 py-1 text-xs font-bold text-white bg-blue-600 rounded-lg select-none min-w-[58px] text-center shadow-2xs">
-              Sayfa {currentPage}
+            <span className="px-2.5 py-1 text-xs font-bold text-white bg-blue-600 rounded-lg select-none text-center shadow-2xs whitespace-nowrap">
+              Sayfa {currentPage} {products !== undefined ? `(${products.length} parça)` : ""}
             </span>
 
             <Button
@@ -298,9 +279,8 @@ export default function AdminProductsPage() {
                 <button
                   type="button"
                   onClick={() => handleSetViewMode("table")}
-                  className={`p-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
-                    viewMode === "table" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
-                  }`}
+                  className={`p-1 rounded text-[11px] font-bold transition-all cursor-pointer ${viewMode === "table" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                    }`}
                   title="Tablo"
                 >
                   <Table className="w-3.5 h-3.5" />
@@ -308,9 +288,8 @@ export default function AdminProductsPage() {
                 <button
                   type="button"
                   onClick={() => handleSetViewMode("list")}
-                  className={`p-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
-                    viewMode === "list" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
-                  }`}
+                  className={`p-1 rounded text-[11px] font-bold transition-all cursor-pointer ${viewMode === "list" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                    }`}
                   title="Liste"
                 >
                   <LayoutList className="w-3.5 h-3.5" />
@@ -350,11 +329,10 @@ export default function AdminProductsPage() {
                         setSelectedBrandFilter(e.target.value);
                         resetPage();
                       }}
-                      className={`h-7 max-w-[105px] text-xs rounded-md px-1.5 border transition-colors cursor-pointer focus:outline-none truncate ${
-                        selectedBrandFilter
-                          ? "bg-blue-50 border-blue-400 text-blue-700 font-bold"
-                          : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 font-medium"
-                      }`}
+                      className={`h-7 max-w-[105px] text-xs rounded-md px-1.5 border transition-colors cursor-pointer focus:outline-none truncate ${selectedBrandFilter
+                        ? "bg-blue-50 border-blue-400 text-blue-700 font-bold"
+                        : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 font-medium"
+                        }`}
                     >
                       <option value="">Tümü</option>
                       {brands?.map((b) => (
@@ -374,11 +352,10 @@ export default function AdminProductsPage() {
                         setSelectedCategoryFilter(e.target.value);
                         resetPage();
                       }}
-                      className={`h-7 max-w-[105px] text-xs rounded-md px-1.5 border transition-colors cursor-pointer focus:outline-none truncate ${
-                        selectedCategoryFilter
-                          ? "bg-blue-50 border-blue-400 text-blue-700 font-bold"
-                          : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 font-medium"
-                      }`}
+                      className={`h-7 max-w-[105px] text-xs rounded-md px-1.5 border transition-colors cursor-pointer focus:outline-none truncate ${selectedCategoryFilter
+                        ? "bg-blue-50 border-blue-400 text-blue-700 font-bold"
+                        : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 font-medium"
+                        }`}
                     >
                       <option value="">Tümü</option>
                       {categories?.map((c) => (
@@ -398,11 +375,10 @@ export default function AdminProductsPage() {
                         setStockFilter(e.target.value as "all" | "in_stock" | "out_of_stock");
                         resetPage();
                       }}
-                      className={`h-7 max-w-[95px] text-xs rounded-md px-1.5 border transition-colors cursor-pointer focus:outline-none truncate ${
-                        stockFilter !== "all"
-                          ? "bg-blue-50 border-blue-400 text-blue-700 font-bold"
-                          : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 font-medium"
-                      }`}
+                      className={`h-7 max-w-[95px] text-xs rounded-md px-1.5 border transition-colors cursor-pointer focus:outline-none truncate ${stockFilter !== "all"
+                        ? "bg-blue-50 border-blue-400 text-blue-700 font-bold"
+                        : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 font-medium"
+                        }`}
                     >
                       <option value="all">Tümü</option>
                       <option value="in_stock">Var {productStats ? `(${(productStats.total - (productStats.outOfStock ?? 0))})` : ""}</option>
@@ -421,25 +397,15 @@ export default function AdminProductsPage() {
                         setDraftStatus(e.target.value as "all" | "draft" | "published");
                         resetPage();
                       }}
-                      className={`h-7 max-w-[115px] text-xs rounded-md px-1.5 border transition-colors cursor-pointer focus:outline-none truncate ${
-                        draftStatus !== "all"
-                          ? "bg-blue-50 border-blue-400 text-blue-700 font-bold"
-                          : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 font-medium"
-                      }`}
+                      className={`h-7 max-w-[115px] text-xs rounded-md px-1.5 border transition-colors cursor-pointer focus:outline-none truncate ${draftStatus !== "all"
+                        ? "bg-blue-50 border-blue-400 text-blue-700 font-bold"
+                        : "bg-white border-slate-200 text-slate-600 hover:border-slate-300 font-medium"
+                        }`}
                     >
                       <option value="all">Tümü {productStats ? `(${productStats.total})` : ""}</option>
                       <option value="published">Yayında {productStats ? `(${productStats.published})` : ""}</option>
                       <option value="draft">Taslak {productStats ? `(${productStats.drafts})` : ""}</option>
                     </select>
-                    <button
-                      type="button"
-                      onClick={handleSyncStats}
-                      disabled={isSyncingStats}
-                      title="İstatistikleri yeniden senkronize et"
-                      className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      <RotateCw className={`w-3.5 h-3.5 ${isSyncingStats ? "animate-spin text-blue-600" : ""}`} />
-                    </button>
                   </div>
                 </th>
 
@@ -528,11 +494,10 @@ export default function AdminProductsPage() {
                           type="button"
                           onClick={() => handleToggleStock(p)}
                           title={p.inStock ? "Stokta Var (Değiştirmek için tıkla)" : "Stokta Yok (Değiştirmek için tıkla)"}
-                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors cursor-pointer ${
-                            p.inStock
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200/60 hover:bg-emerald-100"
-                              : "bg-amber-50 text-amber-700 border-amber-200/60 hover:bg-amber-100"
-                          }`}
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border transition-colors cursor-pointer ${p.inStock
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200/60 hover:bg-emerald-100"
+                            : "bg-amber-50 text-amber-700 border-amber-200/60 hover:bg-amber-100"
+                            }`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full ${p.inStock ? "bg-emerald-500" : "bg-amber-500"}`}></span>
                           {p.inStock ? "Stokta Var" : "Stokta Yok"}
@@ -688,11 +653,10 @@ export default function AdminProductsPage() {
                         </span>
                       )}
 
-                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${
-                        p.inStock
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200/60"
-                          : "bg-amber-50 text-amber-700 border-amber-200/60"
-                      }`}>
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${p.inStock
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200/60"
+                        : "bg-amber-50 text-amber-700 border-amber-200/60"
+                        }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${p.inStock ? "bg-emerald-500" : "bg-amber-500"}`}></span>
                         {p.inStock ? "Stokta Var" : "Stokta Yok"}
                       </span>

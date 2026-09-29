@@ -437,9 +437,8 @@ function ProductFormContent({
               {previewImages.map((img, i) => (
                 <div
                   key={i}
-                  className={`group relative h-16 w-16 shrink-0 overflow-hidden rounded-md border-2 bg-white p-1 transition-colors ${
-                    i === selectedFormImageIndex ? "border-blue-600" : "border-slate-200 hover:border-slate-400"
-                  }`}
+                  className={`group relative h-16 w-16 shrink-0 overflow-hidden rounded-md border-2 bg-white p-1 transition-colors ${i === selectedFormImageIndex ? "border-blue-600" : "border-slate-200 hover:border-slate-400"
+                    }`}
                 >
                   <button
                     type="button"
@@ -534,15 +533,13 @@ function ProductFormContent({
                     role="switch"
                     aria-checked={inStock}
                     onClick={() => setInStock(!inStock)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      inStock ? "bg-emerald-600" : "bg-slate-300"
-                    }`}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${inStock ? "bg-emerald-600" : "bg-slate-300"
+                      }`}
                     title={inStock ? "Stokta (Tıklayarak Tükendi yap)" : "Tükendi (Tıklayarak Stokta yap)"}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                        inStock ? "translate-x-5" : "translate-x-0"
-                      }`}
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${inStock ? "translate-x-5" : "translate-x-0"
+                        }`}
                     />
                   </button>
                 </div>
@@ -559,15 +556,13 @@ function ProductFormContent({
                     role="switch"
                     aria-checked={isDraft}
                     onClick={() => setIsDraft(!isDraft)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      isDraft ? "bg-amber-500" : "bg-emerald-600"
-                    }`}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isDraft ? "bg-amber-500" : "bg-emerald-600"
+                      }`}
                     title={isDraft ? "Taslak (Tıklayarak Yayına al)" : "Yayında (Tıklayarak Taslağa al)"}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
-                        isDraft ? "translate-x-5" : "translate-x-0"
-                      }`}
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${isDraft ? "translate-x-5" : "translate-x-0"
+                        }`}
                     />
                   </button>
                 </div>
