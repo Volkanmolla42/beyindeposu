@@ -19,7 +19,6 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight,
   SlidersHorizontal,
   Car,
   FolderTree,
@@ -58,7 +57,15 @@ export default function AdminProductsPage() {
   const [draftStatus, setDraftStatus] = useState<"all" | "draft" | "published">("all");
   const [pageSize, setPageSize] = useState<number>(25);
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
-  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pagination, setPagination] = useState<{
+    key: string;
+    page: number;
+    cursors: Array<string | null>;
+  } | null>(null);
+
+  const resetPage = () => {
+    setPagination(null);
+  };
 
   // Arama girdisini 300ms gecikmeli sorguya ilet (Convex query optimizasyonu)
   useEffect(() => {
@@ -155,18 +162,25 @@ export default function AdminProductsPage() {
     draftStatus,
   };
 
-  const pageData = useQuery(api.products.listAdminWithPage, {
-    page: currentPage,
-    pageSize,
+  const paginationKey = JSON.stringify({ ...productFilters, pageSize });
+  const currentPagination = pagination?.key === paginationKey
+    ? pagination
+    : { key: paginationKey, page: 1, cursors: [null] };
+  const currentPage = currentPagination.page;
+
+  const pageData = useQuery(api.products.listPaginatedAdmin, {
     ...productFilters,
+    paginationOpts: {
+      numItems: pageSize,
+      cursor: currentPagination.cursors[currentPage - 1] ?? null,
+    },
   });
 
   const categories = useQuery(api.categories.list, { onlyActive: false });
   const brands = useQuery(api.brands.list, { onlyActive: false });
 
-  const products = pageData?.products;
-  const totalCount = pageData?.totalCount ?? 0;
-  const totalPages = pageData?.totalPages ?? 1;
+  const products = pageData?.page;
+  const isDone = pageData?.isDone ?? true;
 
   // Mutations
   const createProduct = useMutation(api.products.create);
@@ -547,40 +561,35 @@ export default function AdminProductsPage() {
     }
   };
 
-  const getPageNumbers = (current: number, total: number) => {
-    if (total <= 7) {
-      return Array.from({ length: total }, (_, i) => i + 1);
-    }
-    const pages: (number | "...")[] = [];
-    if (current <= 4) {
-      pages.push(1, 2, 3, 4, 5, "...", total);
-    } else if (current >= total - 3) {
-      pages.push(1, "...", total - 4, total - 3, total - 2, total - 1, total);
+  const handlePageChange = (direction: "previous" | "next") => {
+    if (direction === "previous" && currentPage > 1) {
+      setPagination({ ...currentPagination, page: currentPage - 1 });
+    } else if (direction === "next" && pageData && !pageData.isDone) {
+      const cursors = currentPagination.cursors.slice(0, currentPage + 1);
+      cursors[currentPage] = pageData.continueCursor;
+      setPagination({ ...currentPagination, page: currentPage + 1, cursors });
     } else {
-      pages.push(1, "...", current - 1, current, current + 1, "...", total);
+      return;
     }
-    return pages;
+    window.scrollTo({ top: 120, behavior: "smooth" });
   };
 
-  const handlePageSelect = (targetPage: number) => {
-    const valid = Math.max(1, Math.min(totalPages, targetPage));
-    setCurrentPage(valid);
+  const handleFirstPage = () => {
+    setPagination({ ...currentPagination, page: 1 });
     window.scrollTo({ top: 120, behavior: "smooth" });
   };
 
   const renderPaginationBar = (position: "top" | "bottom") => {
-    const pageNumbers = getPageNumbers(currentPage, totalPages);
-
     return (
       <div
         className={`flex flex-wrap items-center justify-between gap-2.5 px-3 py-2 bg-slate-50/90 text-xs ${
           position === "top" ? "border-b border-slate-200" : "border-t border-slate-200"
         }`}
       >
-        {/* Sol: Toplam Adet + Renk Kılavuzu */}
+        {/* Sol: Adet Bilgisi + Renk Kılavuzu */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700 border border-blue-200/80">
-            {totalCount.toLocaleString("tr-TR")} parça
+            {products ? `${products.length} parça listelendi` : "Yükleniyor..."}
           </span>
 
           {position === "top" && (
@@ -597,79 +606,46 @@ export default function AdminProductsPage() {
           )}
         </div>
 
-        {/* Sağ: Kompakt Numaralı Sayfalama & Görünüm */}
+        {/* Sağ: Kompakt Cursor Sayfalama & Görünüm */}
         <div className="flex items-center gap-1.5">
           <Button
             type="button"
             variant="outline"
             size="icon"
-            onClick={() => handlePageSelect(1)}
+            onClick={handleFirstPage}
             disabled={currentPage <= 1}
-            title="En baş"
-            className="h-7 w-7 rounded-md p-0 text-slate-600 disabled:opacity-30"
+            title="İlk sayfa"
+            className="h-7 w-7 rounded-md p-0 text-slate-600 disabled:opacity-30 cursor-pointer"
           >
             <ChevronsLeft className="h-3.5 w-3.5" />
           </Button>
+
           <Button
             type="button"
             variant="outline"
             size="icon"
-            onClick={() => handlePageSelect(currentPage - 1)}
+            onClick={() => handlePageChange("previous")}
             disabled={currentPage <= 1}
-            title="Önceki"
-            className="h-7 w-7 rounded-md p-0 text-slate-600 disabled:opacity-30"
+            title="Önceki sayfa"
+            className="h-7 w-7 rounded-md p-0 text-slate-600 disabled:opacity-30 cursor-pointer"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
 
-          <div className="flex items-center gap-1">
-            {pageNumbers.map((p, idx) => {
-              if (p === "...") {
-                return (
-                  <span key={`ellipsis-${idx}`} className="px-1 text-slate-400 font-bold select-none text-xs">
-                    ...
-                  </span>
-                );
-              }
-              const isActive = p === currentPage;
-              return (
-                <button
-                  key={`page-${p}`}
-                  type="button"
-                  onClick={() => handlePageSelect(p)}
-                  className={`h-7 min-w-[28px] px-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
-                    isActive
-                      ? "bg-blue-600 text-white shadow-2xs"
-                      : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300"
-                  }`}
-                >
-                  {p}
-                </button>
-              );
-            })}
-          </div>
+          <span className="h-7 px-2.5 flex items-center justify-center rounded-md bg-blue-600 text-white font-bold text-xs shadow-2xs select-none">
+            Sayfa {currentPage}
+          </span>
 
           <Button
             type="button"
             variant="outline"
             size="icon"
-            onClick={() => handlePageSelect(currentPage + 1)}
-            disabled={currentPage >= totalPages}
-            title="Sonraki"
-            className="h-7 w-7 rounded-md p-0 text-slate-600 disabled:opacity-30"
+            onClick={() => handlePageChange("next")}
+            disabled={isDone}
+            title="Sonraki sayfa"
+            className="h-7 w-7 rounded-md p-0 text-slate-600 disabled:opacity-30 cursor-pointer"
           >
             <ChevronRight className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => handlePageSelect(totalPages)}
-            disabled={currentPage >= totalPages}
-            title="En son"
-            className="h-7 w-7 rounded-md p-0 text-slate-600 disabled:opacity-30"
-          >
-            <ChevronsRight className="h-3.5 w-3.5" />
           </Button>
 
           {/* Sayfa Başına Kayıt */}
@@ -677,7 +653,6 @@ export default function AdminProductsPage() {
             value={pageSize}
             onChange={(e) => {
               setPageSize(Number(e.target.value));
-              setCurrentPage(1);
             }}
             className="h-7 rounded-md border border-slate-200 bg-white px-1 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer ml-1"
           >
@@ -741,7 +716,7 @@ export default function AdminProductsPage() {
               value={searchProduct}
               onChange={(e) => {
                 setSearchProduct(e.target.value);
-                setCurrentPage(1);
+                resetPage();
               }}
               className="h-9 min-w-0 rounded-lg border-slate-200 bg-slate-50/50 pl-9 text-xs text-slate-900 focus:bg-white"
             />
@@ -754,7 +729,7 @@ export default function AdminProductsPage() {
               value={draftStatus}
               onChange={(e) => {
                 setDraftStatus(e.target.value as "all" | "draft" | "published");
-                setCurrentPage(1);
+                resetPage();
               }}
               className="h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white pl-7 pr-2 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
             >
@@ -771,7 +746,7 @@ export default function AdminProductsPage() {
               value={selectedBrandFilter}
               onChange={(e) => {
                 setSelectedBrandFilter(e.target.value);
-                setCurrentPage(1);
+                resetPage();
               }}
               className="h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white pl-7 pr-2 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none truncate"
             >
@@ -791,7 +766,7 @@ export default function AdminProductsPage() {
               value={selectedCategoryFilter}
               onChange={(e) => {
                 setSelectedCategoryFilter(e.target.value);
-                setCurrentPage(1);
+                resetPage();
               }}
               className="h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white pl-7 pr-2 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none truncate"
             >
