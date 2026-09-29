@@ -3,6 +3,7 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 import {
   FolderUp,
   Play,
@@ -54,6 +55,7 @@ export default function BatchImportPage() {
   const [selectedFolderName, setSelectedFolderName] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [runMode, setRunMode] = useState<"ai" | "draft">("ai");
   const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [skipExisting, setSkipExisting] = useState(true);
   const [searchFilter, setSearchFilter] = useState("");
@@ -371,8 +373,129 @@ export default function BatchImportPage() {
     }
   };
 
-  // Main Concurrency Worker Pool Handler
-  const startProcessing = async () => {
+  // Doğrudan Taslak Olarak Kaydeden Tekil İşleyici (AI çalıştırmadan hızlı yükler)
+  const processDraftItem = async (index: number) => {
+    const item = productGroups[index];
+    if (!item) return;
+
+    setProductGroups((prev) =>
+      prev.map((g, i) => (i === index ? { ...g, status: "processing", error: undefined } : g))
+    );
+
+    try {
+      const shelfCode = item.shelfCode.trim();
+      const existing = shelfCode
+        ? await convex.query(api.products.getByShelfCode, { shelfCode })
+        : null;
+
+      if (skipExisting && existing) {
+        setProductGroups((prev) =>
+          prev.map((group, groupIndex) =>
+            groupIndex === index
+              ? {
+                ...group,
+                status: "skipped",
+                result: {
+                  productId: existing._id,
+                  oemNumber: existing.oemNumber,
+                  title: existing.title,
+                  brand: existing.brand,
+                  model: existing.model,
+                  imageUrl: existing.images?.[0],
+                },
+              }
+              : group
+          )
+        );
+        return;
+      }
+
+      // 1. Görselleri yükle
+      const uploadedUrls: string[] = [];
+      const formData = new FormData();
+      for (const file of item.files) {
+        formData.append("files", file, file.name);
+      }
+
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Görseller yüklenemedi.");
+      }
+
+      const uploadData = await uploadRes.json();
+      if (Array.isArray(uploadData.urls)) {
+        uploadedUrls.push(...uploadData.urls);
+      }
+
+      // 2. Kategori eşleştir
+      const matchedCat = matchCategory(item.categoryHint);
+
+      // 3. Taslak Ürünü Kaydet
+      const fallbackTitle = item.shelfCode && item.shelfCode !== "GENEL"
+        ? `${item.shelfCode} Oto Elektronik Parça`
+        : "Taslak Parça";
+      const generatedSlug = slugify(
+        `${item.shelfCode || "taslak"}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`
+      );
+
+      const payload = {
+        title: fallbackTitle,
+        slug: generatedSlug,
+        oemNumber: item.shelfCode && item.shelfCode !== "GENEL" ? item.shelfCode : "",
+        shelfCode: item.shelfCode && item.shelfCode !== "GENEL" ? item.shelfCode : undefined,
+        categoryId: (matchedCat?._id || categories[0]?._id) as Id<"categories">,
+        brand: item.brandHint && item.brandHint !== "Genel" ? item.brandHint : "Genel Uyumlu",
+        condition: "Orijinal Çıkma",
+        inStock: true,
+        isDraft: true,
+        images: uploadedUrls,
+        description: `${fallbackTitle} orijinal çıkma oto elektronik parça.`,
+      };
+
+      const finalProductId = existing
+        ? (await updateProduct({ id: existing._id, ...payload }), existing._id)
+        : await createProduct(payload);
+
+      setProductGroups((prev) =>
+        prev.map((g, i) =>
+          i === index
+            ? {
+              ...g,
+              status: "success",
+              result: {
+                productId: finalProductId,
+                oemNumber: payload.oemNumber,
+                title: payload.title,
+                brand: payload.brand,
+                imageUrl: uploadedUrls[0],
+              },
+            }
+            : g
+        )
+      );
+    } catch (err: unknown) {
+      console.error("Error processing draft item:", err);
+      setProductGroups((prev) =>
+        prev.map((g, i) =>
+          i === index
+            ? {
+              ...g,
+              status: "error",
+              error: err instanceof Error ? err.message : "Bilinmeyen hata",
+            }
+            : g
+        )
+      );
+    }
+  };
+
+  // Main Concurrency Worker Pool Handler (Hem AI hem Taslak modunu destekler)
+  const startProcessing = async (mode: "ai" | "draft" = runMode) => {
+    setRunMode(mode);
     setIsRunning(true);
     setIsPaused(false);
     shouldStopRef.current = false;
@@ -401,11 +524,15 @@ export default function BatchImportPage() {
         if (currentItemIndex === undefined) break;
 
         setCurrentIndex(currentItemIndex);
-        await processItem(currentItemIndex);
+        if (mode === "ai") {
+          await processItem(currentItemIndex);
+        } else {
+          await processDraftItem(currentItemIndex);
+        }
 
         if (!shouldStopRef.current && nextQueueIdx < pendingIndices.length) {
           // UI render ve akıcılık için kısa bekleme
-          await new Promise((resolve) => setTimeout(resolve, 150));
+          await new Promise((resolve) => setTimeout(resolve, mode === "ai" ? 150 : 80));
         }
       }
     };
@@ -508,7 +635,7 @@ export default function BatchImportPage() {
             Parça klasörlerini seçin
           </h3>
           <p className="mx-auto mt-1.5 max-w-md text-xs text-slate-500 leading-relaxed">
-            Parça alt klasörlerini içeren klasörü seçin. Her alt klasör bir parçayı temsil eder.
+            Parça alt klasörlerini içeren ana klasörü seçin. Seçtiğinizde parça listesi önizlenecek; ister yapay zeka ile analiz edebilir, ister doğrudan hızlı taslak olarak aktarabilirsiniz.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
@@ -518,7 +645,7 @@ export default function BatchImportPage() {
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/25 hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
             >
               <FolderUp className="h-4 w-4" />
-              <span>Klasör seç</span>
+              <span>Klasör seç ve önizle</span>
             </button>
           </div>
 
@@ -550,14 +677,27 @@ export default function BatchImportPage() {
               {/* Kontrol Butonları */}
               <div className="flex flex-wrap items-center gap-2">
                 {!isRunning ? (
-                  <button
-                    type="button"
-                    onClick={startProcessing}
-                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/25 hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <Play className="h-4 w-4 fill-current" />
-                    <span>{isPaused ? "Devam et" : "Başlat"}</span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => startProcessing("ai")}
+                      className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/25 hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
+                      title="Yapay zeka ile görselleri tarayıp OEM, başlık ve marka bilgilerini otomatik çıkartır"
+                    >
+                      <Play className="h-4 w-4 fill-current" />
+                      <span>{isPaused && runMode === "ai" ? "Devam et (AI)" : "AI ile Başlat"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => startProcessing("draft")}
+                      className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-500/25 hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
+                      title="AI analizi yapmadan görselleri hızlıca yükleyip doğrudan taslak ürünler oluşturur"
+                    >
+                      <Zap className="h-4 w-4 fill-current" />
+                      <span>{isPaused && runMode === "draft" ? "Devam et (Taslak)" : "Taslak Olarak Başlat"}</span>
+                    </button>
+                  </>
                 ) : (
                   <button
                     type="button"
@@ -593,11 +733,15 @@ export default function BatchImportPage() {
                   {isRunning && (
                     <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-600 animate-pulse">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 border border-blue-200">
-                        <Zap className="h-3 w-3 fill-blue-600 text-blue-600" />
-                        8x Ultra Mod
+                      <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold border ${
+                        runMode === "ai"
+                          ? "bg-blue-50 text-blue-700 border-blue-200"
+                          : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                      }`}>
+                        <Zap className={`h-3 w-3 ${runMode === "ai" ? "fill-blue-600 text-blue-600" : "fill-emerald-600 text-emerald-600"}`} />
+                        {runMode === "ai" ? "8x AI Modu" : "Hızlı Taslak Modu"}
                       </span>
-                      <span>({processingCount > 0 ? `${processingCount} parça` : "parçalar"} aynı anda taranıyor)</span>
+                      <span>({processingCount > 0 ? `${processingCount} parça` : "parçalar"} işleniyor)</span>
                     </span>
                   )}
                   {isPaused && (
@@ -763,12 +907,18 @@ export default function BatchImportPage() {
                           type="button"
                           onClick={() => {
                             const realIdx = productGroups.findIndex((g) => g.id === item.id);
-                            if (realIdx !== -1) processItem(realIdx);
+                            if (realIdx !== -1) {
+                              if (runMode === "draft") {
+                                processDraftItem(realIdx);
+                              } else {
+                                processItem(realIdx);
+                              }
+                            }
                           }}
                           className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
                         >
                           <Play className="h-3 w-3 fill-current" />
-                          <span>Bu parçayı işle</span>
+                          <span>{runMode === "draft" ? "Taslak kaydet" : "AI ile işle"}</span>
                         </button>
                       ) : null}
                     </div>

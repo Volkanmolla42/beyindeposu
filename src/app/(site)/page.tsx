@@ -244,18 +244,18 @@ async function BrandsSection() {
                           key={`${isDuplicate ? "dup" : "orig"}-${rowIndex}-${itemIndex}-${brand._id}`}
                           href={`/markalar/${encodeURIComponent(brand.slug)}`}
                           tabIndex={isDuplicate ? -1 : undefined}
-                          className="group inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
+                          className="group inline-flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
                         >
                           {brand.logoUrl ? (
                             <Image
                               src={brand.logoUrl}
                               alt=""
-                              width={16}
-                              height={16}
-                              className="h-4 w-4 object-contain opacity-80 transition-opacity group-hover:opacity-100"
+                              width={28}
+                              height={28}
+                              className="h-7 w-7 object-contain transition-transform duration-200 group-hover:scale-105"
                             />
                           ) : (
-                            <Layers className="h-4 w-4 text-slate-500" aria-hidden="true" />
+                            <Layers className="h-5 w-5 text-slate-500" aria-hidden="true" />
                           )}
                           {brand.name}
                         </Link>

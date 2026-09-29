@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { AdminHeaderAction } from "../AdminHeaderContext";
 import {
   Plus,
   Search,
@@ -17,6 +18,11 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  SlidersHorizontal,
+  Car,
+  FolderTree,
   Star,
   Sparkles,
   ExternalLink,
@@ -44,148 +50,23 @@ import type { OemAssistantData } from "@/lib/ai/oem-assistant";
 
 type Product = Doc<"products">;
 
-type FolderProductGroup = {
-  key: string;
-  shelfCode?: string;
-  brandHint?: string;
-  categoryId?: Id<"categories">;
-  files: File[];
-  uploadedUrls: string[];
-};
-
-type FolderUploadProgress = {
-  stage: "uploading" | "done" | "error";
-  totalProducts: number;
-  completedProducts: number;
-  totalImages: number;
-  uploadedImages: number;
-  skippedProducts: number;
-  error?: string;
-};
-
-function groupFolderImages(
-  files: File[],
-  brandOptions: Array<{ name: string; slug: string }>,
-  categoryOptions: Array<{ _id: Id<"categories">; name: string; slug: string }>,
-): FolderProductGroup[] {
-  const byDirectory = new Map<string, { file: File; stem: string }[]>();
-
-  for (const file of files) {
-    if (!/\.(jpe?g|png|webp|avif)$/i.test(file.name)) continue;
-
-    const pathParts = (file.webkitRelativePath || file.name).split(/[\\/]/).filter(Boolean);
-    const fileName = pathParts[pathParts.length - 1] || file.name;
-    const directoryParts = pathParts.length > 1 ? pathParts.slice(1, -1) : [];
-    const directory = directoryParts.join("/");
-    let stem = fileName;
-    while (/\.(jpe?g|png|webp|avif)$/i.test(stem)) {
-      stem = stem.replace(/\.(jpe?g|png|webp|avif)$/i, "");
-    }
-    stem = stem.replace(/_resized$/i, "");
-    const siblings = byDirectory.get(directory) || [];
-    siblings.push({ file, stem });
-    byDirectory.set(directory, siblings);
-  }
-
-  const groups = new Map<string, FolderProductGroup>();
-  const collator = new Intl.Collator("tr", { numeric: true, sensitivity: "base" });
-  const categoryFolderAliases: Record<string, string[]> = {
-    "motor-beyinleri-ecu": ["ecu", "ecm"],
-    "abs-esp-beyinleri": ["abs", "esp"],
-    "airbag-beyinleri": ["airbag", "srs"],
-    "bcm-bsi-sam-modulleri": ["bcm", "bsi", "sam"],
-    "uch-sam-modulleri": ["uch", "sam"],
-    "sigorta-kutulari": ["sigorta", "fuse"],
-  };
-  const ignoredCategoryTokens = new Set([
-    "beyin", "beyinleri", "modul", "modulleri", "unitesi", "uniteleri",
-    "kontrol", "kutusu", "kutulari", "paneli", "panelleri",
-  ]);
-  const segmentTokens = (segment: string) => slugify(segment).split("-").filter(Boolean);
-
-  for (const [directory, siblings] of byDirectory) {
-    const directoryParts = directory.split("/").filter(Boolean);
-    const normalizedSegments = directoryParts.map((segment) => slugify(segment));
-    const matchedBrand = [...brandOptions]
-      .sort((a, b) => slugify(b.name).length - slugify(a.name).length)
-      .find((option) => {
-        const brandSlug = slugify(option.name);
-        const brandTokens = brandSlug.split("-").filter(Boolean);
-        return normalizedSegments.some((segment) => {
-          if (segment === brandSlug || segment === option.slug) return true;
-          const tokens = segmentTokens(segment);
-          if (brandTokens.length > 1) {
-            return brandTokens.every((token) => tokens.includes(token));
-          }
-          return tokens.includes(brandSlug);
-        });
-      });
-    const matchedCategory = [...normalizedSegments].reverse().reduce<
-      Array<{ _id: Id<"categories">; name: string; slug: string }>
-    >((matches, segment) => {
-      if (matches.length > 0) return matches;
-      const exact = categoryOptions.find((option) => (
-        segment === slugify(option.name) || segment === option.slug
-      ));
-      if (exact) return [exact];
-      const tokens = segmentTokens(segment);
-      return categoryOptions.filter((option) => {
-        const categoryTokens = segmentTokens(option.name).filter((token) => !ignoredCategoryTokens.has(token));
-        const aliases = categoryFolderAliases[option.slug] || [];
-        return tokens.some((token) => categoryTokens.includes(token) || aliases.includes(token));
-      });
-    }, [])[0];
-    const folderName = directoryParts[directoryParts.length - 1] || "";
-    const isCodeFolder = /^(?=.*\d)[a-z0-9]+(?:[._-][a-z0-9]+)+$/i.test(folderName);
-    const isProductFolder = isCodeFolder && siblings.every(
-      ({ stem }) => stem.replace(/[._ -]\d+$/, "") === folderName
-    );
-    const variantCounts = new Map<string, number>();
-    for (const { stem } of siblings) {
-      const base = stem.replace(/[._ -]\d+$/, "");
-      if (base !== stem) variantCounts.set(base, (variantCounts.get(base) || 0) + 1);
-    }
-
-    for (const { file, stem } of siblings) {
-      const base = stem.replace(/[._ -]\d+$/, "");
-      const productCode = isProductFolder
-        ? folderName
-        : base !== stem && (variantCounts.get(base) || 0) > 1
-          ? base
-          : stem;
-      const key = directory ? `${directory}/${productCode}` : productCode;
-      const group = groups.get(key) || {
-        key,
-        shelfCode: /\d/.test(productCode) ? productCode : undefined,
-        brandHint: matchedBrand?.name,
-        categoryId: matchedCategory?._id,
-        files: [],
-        uploadedUrls: [],
-      };
-      group.files.push(file);
-      groups.set(key, group);
-    }
-  }
-
-  for (const group of groups.values()) {
-    group.files.sort((a, b) => collator.compare(a.name, b.name));
-  }
-
-  return Array.from(groups.values()).sort((a, b) => collator.compare(a.key, b.key));
-}
-
 export default function AdminProductsPage() {
   const [searchProduct, setSearchProduct] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedBrandFilter, setSelectedBrandFilter] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("");
   const [draftStatus, setDraftStatus] = useState<"all" | "draft" | "published">("all");
   const [pageSize, setPageSize] = useState<number>(25);
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
-  const [pagination, setPagination] = useState<{
-    key: string;
-    page: number;
-    cursors: Array<string | null>;
-  } | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // Arama girdisini 300ms gecikmeli sorguya ilet (Convex query optimizasyonu)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchProduct);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchProduct]);
 
   // Product Modals & Form State
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
@@ -266,39 +147,30 @@ export default function AdminProductsPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const folderInputRef = useRef<HTMLInputElement>(null);
-  const [folderUploading, setFolderUploading] = useState(false);
-  const [folderUploadProgress, setFolderUploadProgress] = useState<FolderUploadProgress | null>(null);
 
   const productFilters = {
-    searchTerm: searchProduct || undefined,
+    searchTerm: debouncedSearch.trim() || undefined,
     categorySlug: selectedCategoryFilter || undefined,
     brand: selectedBrandFilter || undefined,
     draftStatus,
   };
-  const paginationKey = JSON.stringify({ ...productFilters, pageSize });
-  const currentPagination = pagination?.key === paginationKey
-    ? pagination
-    : { key: paginationKey, page: 1, cursors: [null] };
-  const currentPage = currentPagination.page;
-  const pageData = useQuery(api.products.listPaginatedAdmin, {
+
+  const pageData = useQuery(api.products.listAdminWithPage, {
+    page: currentPage,
+    pageSize,
     ...productFilters,
-    paginationOpts: {
-      numItems: pageSize,
-      cursor: currentPagination.cursors[currentPage - 1] ?? null,
-    },
   });
 
   const categories = useQuery(api.categories.list, { onlyActive: false });
   const brands = useQuery(api.brands.list, { onlyActive: false });
 
-  const products = pageData?.page;
+  const products = pageData?.products;
+  const totalCount = pageData?.totalCount ?? 0;
+  const totalPages = pageData?.totalPages ?? 1;
 
   // Mutations
   const createProduct = useMutation(api.products.create);
-  const createDraftBatch = useMutation(api.products.createDraftBatch);
   const updateProduct = useMutation(api.products.update);
-  const toggleStock = useMutation(api.products.toggleStock);
   const deleteProduct = useMutation(api.products.deleteProduct);
   const lookupOemAction = useAction(api.oem.lookupOem);
 
@@ -609,122 +481,6 @@ export default function AdminProductsPage() {
     }
   };
 
-  const handleFolderUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files || []);
-    event.target.value = "";
-    if (!brands || !categories) {
-      alert("Marka ve kategori listesi yükleniyor. Yeniden deneyin.");
-      return;
-    }
-    const groups = groupFolderImages(selectedFiles, brands, categories);
-    const totalImages = groups.reduce((total, group) => total + group.files.length, 0);
-
-    if (groups.length === 0) {
-      alert("Seçilen klasörde desteklenen görsel bulunamadı.");
-      return;
-    }
-
-    if (!window.confirm(`${groups.length.toLocaleString("tr-TR")} parça ve ${totalImages.toLocaleString("tr-TR")} görsel taslak olarak yüklenecek. Devam edilsin mi?`)) {
-      return;
-    }
-
-    const initialProgress: FolderUploadProgress = {
-      stage: "uploading",
-      totalProducts: groups.length,
-      completedProducts: 0,
-      totalImages,
-      uploadedImages: 0,
-      skippedProducts: 0,
-    };
-    let uploadedImages = 0;
-    let completedProducts = 0;
-    let skippedProducts = 0;
-    setFolderUploadProgress(initialProgress);
-    setFolderUploading(true);
-
-    try {
-      for (let start = 0; start < groups.length; start += 25) {
-        const productBatch = groups.slice(start, start + 25);
-        const entries = productBatch.flatMap((group) => group.files.map((file) => ({ group, file })));
-        const uploadChunks: typeof entries[] = [];
-        let currentChunk: typeof entries = [];
-        let currentChunkBytes = 0;
-
-        for (const entry of entries) {
-          if (currentChunk.length > 0 && (currentChunk.length >= 20 || currentChunkBytes + entry.file.size > 16 * 1024 * 1024)) {
-            uploadChunks.push(currentChunk);
-            currentChunk = [];
-            currentChunkBytes = 0;
-          }
-          currentChunk.push(entry);
-          currentChunkBytes += entry.file.size;
-        }
-        if (currentChunk.length > 0) uploadChunks.push(currentChunk);
-
-        for (const chunk of uploadChunks) {
-          const formData = new FormData();
-          for (const { file } of chunk) formData.append("files", file, file.name);
-
-          const response = await fetch("/api/upload", { method: "POST", body: formData });
-          const result = await response.json();
-          if (!response.ok || !Array.isArray(result.urls) || result.urls.length !== chunk.length) {
-            throw new Error(result.message || "Görseller yüklenemedi.");
-          }
-
-          chunk.forEach(({ group }, index) => group.uploadedUrls.push(result.urls[index]));
-          uploadedImages += chunk.length;
-          setFolderUploadProgress({
-            stage: "uploading",
-            totalProducts: groups.length,
-            completedProducts,
-            totalImages,
-            uploadedImages,
-            skippedProducts,
-          });
-        }
-
-        const result = await createDraftBatch({
-          products: productBatch.map((group) => ({
-            ...(group.shelfCode ? { shelfCode: group.shelfCode } : {}),
-            ...(group.brandHint ? { brand: group.brandHint } : {}),
-            ...(group.categoryId ? { categoryId: group.categoryId } : {}),
-            images: group.uploadedUrls,
-          })),
-        });
-        completedProducts += productBatch.length;
-        skippedProducts += result.skipped;
-        setFolderUploadProgress({
-          stage: "uploading",
-          totalProducts: groups.length,
-          completedProducts,
-          totalImages,
-          uploadedImages,
-          skippedProducts,
-        });
-      }
-
-      setFolderUploadProgress({
-        stage: "done",
-        totalProducts: groups.length,
-        completedProducts,
-        totalImages,
-        uploadedImages,
-        skippedProducts,
-      });
-    } catch (error) {
-      setFolderUploadProgress({
-        ...initialProgress,
-        stage: "error",
-        completedProducts,
-        uploadedImages,
-        skippedProducts,
-        error: error instanceof Error ? error.message : "Klasör yüklenemedi.",
-      });
-    } finally {
-      setFolderUploading(false);
-    }
-  };
-
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !oemNumber || !brand) {
@@ -791,275 +547,385 @@ export default function AdminProductsPage() {
     }
   };
 
-  const handlePageChange = (direction: "previous" | "next") => {
-    if (direction === "previous" && currentPage > 1) {
-      setPagination({ ...currentPagination, page: currentPage - 1 });
-    } else if (direction === "next" && pageData && !pageData.isDone) {
-      const cursors = currentPagination.cursors.slice(0, currentPage + 1);
-      cursors[currentPage] = pageData.continueCursor;
-      setPagination({ ...currentPagination, page: currentPage + 1, cursors });
-    } else {
-      return;
+  const getPageNumbers = (current: number, total: number) => {
+    if (total <= 7) {
+      return Array.from({ length: total }, (_, i) => i + 1);
     }
-    window.scrollTo({ top: 100, behavior: "smooth" });
+    const pages: (number | "...")[] = [];
+    if (current <= 4) {
+      pages.push(1, 2, 3, 4, 5, "...", total);
+    } else if (current >= total - 3) {
+      pages.push(1, "...", total - 4, total - 3, total - 2, total - 1, total);
+    } else {
+      pages.push(1, "...", current - 1, current, current + 1, "...", total);
+    }
+    return pages;
+  };
+
+  const handlePageSelect = (targetPage: number) => {
+    const valid = Math.max(1, Math.min(totalPages, targetPage));
+    setCurrentPage(valid);
+    window.scrollTo({ top: 120, behavior: "smooth" });
+  };
+
+  const renderPaginationBar = (position: "top" | "bottom") => {
+    const pageNumbers = getPageNumbers(currentPage, totalPages);
+
+    return (
+      <div
+        className={`flex flex-wrap items-center justify-between gap-2.5 px-3 py-2 bg-slate-50/90 text-xs ${
+          position === "top" ? "border-b border-slate-200" : "border-t border-slate-200"
+        }`}
+      >
+        {/* Sol: Toplam Adet + Renk Kılavuzu */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700 border border-blue-200/80">
+            {totalCount.toLocaleString("tr-TR")} parça
+          </span>
+
+          {position === "top" && (
+            <div className="hidden lg:flex items-center gap-2 text-[11px] text-slate-500 pl-1 border-l border-slate-200">
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                Taslak
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                Stokta Yok
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Sağ: Kompakt Numaralı Sayfalama & Görünüm */}
+        <div className="flex items-center gap-1.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => handlePageSelect(1)}
+            disabled={currentPage <= 1}
+            title="En baş"
+            className="h-7 w-7 rounded-md p-0 text-slate-600 disabled:opacity-30"
+          >
+            <ChevronsLeft className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => handlePageSelect(currentPage - 1)}
+            disabled={currentPage <= 1}
+            title="Önceki"
+            className="h-7 w-7 rounded-md p-0 text-slate-600 disabled:opacity-30"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </Button>
+
+          <div className="flex items-center gap-1">
+            {pageNumbers.map((p, idx) => {
+              if (p === "...") {
+                return (
+                  <span key={`ellipsis-${idx}`} className="px-1 text-slate-400 font-bold select-none text-xs">
+                    ...
+                  </span>
+                );
+              }
+              const isActive = p === currentPage;
+              return (
+                <button
+                  key={`page-${p}`}
+                  type="button"
+                  onClick={() => handlePageSelect(p)}
+                  className={`h-7 min-w-[28px] px-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-2xs"
+                      : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-slate-300"
+                  }`}
+                >
+                  {p}
+                </button>
+              );
+            })}
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => handlePageSelect(currentPage + 1)}
+            disabled={currentPage >= totalPages}
+            title="Sonraki"
+            className="h-7 w-7 rounded-md p-0 text-slate-600 disabled:opacity-30"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => handlePageSelect(totalPages)}
+            disabled={currentPage >= totalPages}
+            title="En son"
+            className="h-7 w-7 rounded-md p-0 text-slate-600 disabled:opacity-30"
+          >
+            <ChevronsRight className="h-3.5 w-3.5" />
+          </Button>
+
+          {/* Sayfa Başına Kayıt */}
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            className="h-7 rounded-md border border-slate-200 bg-white px-1 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer ml-1"
+          >
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+            <option value={250}>250</option>
+          </select>
+
+          {/* Görünüm Geçişi (yalnızca üst barda) */}
+          {position === "top" && (
+            <div className="flex items-center bg-white border border-slate-200 rounded-md p-0.5 shadow-2xs ml-1">
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                className={`p-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                  viewMode === "table" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                }`}
+                title="Tablo"
+              >
+                <Table className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`p-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                  viewMode === "list" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                }`}
+                title="Liste"
+              >
+                <LayoutList className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="space-y-4 w-full min-w-0">
-      {/* Page Header */}
-      <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
-          <input
-            ref={(element) => {
-              folderInputRef.current = element;
-              element?.setAttribute("webkitdirectory", "");
-            }}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFolderUpload}
-            className="hidden"
-          />
-          <Link
-            href="/admin/batch-import"
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-700 shadow-xs transition-colors hover:bg-indigo-100 sm:w-auto"
-          >
-            <Sparkles className="w-4 h-4 text-indigo-600" />
-            <span>Toplu parça aktarımı</span>
-          </Link>
-          <Button
-            type="button"
-            onClick={() => folderInputRef.current?.click()}
-            disabled={folderUploading}
-            variant="outline"
-            className="h-9 w-full justify-center rounded-lg text-xs font-semibold sm:w-auto"
-          >
-            {folderUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            <span>{folderUploading ? "Yükleniyor" : "Klasör yükle"}</span>
-          </Button>
-          <Button
-            onClick={handleOpenAddProduct}
-            className="h-10 sm:h-9 w-full justify-center gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 sm:w-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Yeni parça ekle</span>
-          </Button>
-        </div>
-      </div>
-
-      {folderUploadProgress && (
-        <div className={`rounded-lg border px-3 py-2 text-xs ${folderUploadProgress.stage === "error" ? "border-red-200 bg-red-50 text-red-700" : "border-slate-200 bg-white text-slate-700"}`} aria-live="polite">
-          {folderUploadProgress.stage === "error" ? (
-            <span>Yükleme durdu: {folderUploadProgress.error} ({folderUploadProgress.completedProducts}/{folderUploadProgress.totalProducts} parça)</span>
-          ) : folderUploadProgress.stage === "done" ? (
-            <span>{(folderUploadProgress.totalProducts - folderUploadProgress.skippedProducts).toLocaleString("tr-TR")} taslak eklendi{folderUploadProgress.skippedProducts > 0 ? ` · ${folderUploadProgress.skippedProducts.toLocaleString("tr-TR")} parça atlandı` : ""}</span>
-          ) : (
-            <span>{folderUploadProgress.completedProducts.toLocaleString("tr-TR")}/{folderUploadProgress.totalProducts.toLocaleString("tr-TR")} parça · {folderUploadProgress.uploadedImages.toLocaleString("tr-TR")}/{folderUploadProgress.totalImages.toLocaleString("tr-TR")} görsel</span>
-          )}
-        </div>
-      )}
-
-      {/* Filters Toolbar */}
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-5 sm:gap-3">
-        <div className="relative min-w-0 sm:col-span-2">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-          <Input
-            placeholder="OEM, parça adı veya raf kodu ara"
-            value={searchProduct}
-            onChange={(e) => setSearchProduct(e.target.value)}
-            className="h-10 min-w-0 rounded-lg border-slate-200 bg-white pl-9 text-xs text-slate-900 sm:h-9"
-          />
-        </div>
-
-        <select
-          value={draftStatus}
-          onChange={(e) => setDraftStatus(e.target.value as "all" | "draft" | "published")}
-          className="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none sm:h-9"
+    <div className="space-y-2.5 w-full min-w-0">
+      <AdminHeaderAction>
+        <Button
+          onClick={handleOpenAddProduct}
+          size="sm"
+          className="h-8 md:h-9 justify-center gap-1.5 rounded-lg bg-blue-600 text-xs font-semibold text-white shadow-2xs hover:bg-blue-700 px-3 md:px-3.5 transition-colors cursor-pointer"
         >
-          <option value="all">Tüm durumlar</option>
-          <option value="draft">Taslak</option>
-          <option value="published">Yayında</option>
-        </select>
+          <Plus className="h-4 w-4" />
+          <span>Yeni parça</span>
+        </Button>
+      </AdminHeaderAction>
 
-        <select
-          value={selectedBrandFilter}
-          onChange={(e) => setSelectedBrandFilter(e.target.value)}
-          className="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none sm:h-9"
-        >
-          <option value="">Tüm markalar</option>
-          {brands?.map((b) => (
-            <option key={b._id} value={b.name}>
-              {b.name}
-            </option>
-          ))}
-        </select>
+      {/* 1. Satır: Arama ve Filtreler Tek Satır */}
+      <div className="bg-white p-2.5 sm:p-3 rounded-xl border border-slate-200 shadow-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+          {/* Arama Input: 5 kolon */}
+          <div className="relative min-w-0 sm:col-span-5">
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400 pointer-events-none" />
+            <Input
+              placeholder="OEM, parça adı veya raf kodu ara..."
+              value={searchProduct}
+              onChange={(e) => {
+                setSearchProduct(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-9 min-w-0 rounded-lg border-slate-200 bg-slate-50/50 pl-9 text-xs text-slate-900 focus:bg-white"
+            />
+          </div>
 
-        <select
-          value={selectedCategoryFilter}
-          onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-          className="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none sm:h-9"
-        >
-          <option value="">Tüm kategoriler</option>
-          {categories?.map((c) => (
-            <option key={c._id} value={c.slug}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+          {/* Durum: 2 kolon */}
+          <div className="relative min-w-0 sm:col-span-2">
+            <SlidersHorizontal className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
+            <select
+              value={draftStatus}
+              onChange={(e) => {
+                setDraftStatus(e.target.value as "all" | "draft" | "published");
+                setCurrentPage(1);
+              }}
+              className="h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white pl-7 pr-2 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="all">Tüm durumlar</option>
+              <option value="draft">Taslak</option>
+              <option value="published">Yayında</option>
+            </select>
+          </div>
+
+          {/* Marka: 3 kolon */}
+          <div className="relative min-w-0 sm:col-span-3">
+            <Car className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
+            <select
+              value={selectedBrandFilter}
+              onChange={(e) => {
+                setSelectedBrandFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white pl-7 pr-2 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none truncate"
+            >
+              <option value="">Tüm markalar</option>
+              {brands?.map((b) => (
+                <option key={b._id} value={b.name}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Kategori: 2 kolon */}
+          <div className="relative min-w-0 sm:col-span-2">
+            <FolderTree className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
+            <select
+              value={selectedCategoryFilter}
+              onChange={(e) => {
+                setSelectedCategoryFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-9 w-full min-w-0 rounded-lg border border-slate-200 bg-white pl-7 pr-2 text-xs font-medium text-slate-700 focus:border-blue-500 focus:outline-none truncate"
+            >
+              <option value="">Tüm kategoriler</option>
+              {categories?.map((c) => (
+                <option key={c._id} value={c.slug}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Products Table Card */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs w-full min-w-0">
-        {/* View Mode Header */}
-        <div className="flex items-center justify-between px-3.5 py-2.5 bg-slate-50/80 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-800 text-xs">Parça Listesi</span>
-          </div>
+        {/* 3. Satır: Kompakt Sayfalama, Durum Lejantı & Görünüm Seçimi */}
+        {renderPaginationBar("top")}
 
-          <div className="flex items-center bg-white border border-slate-200 rounded-lg p-0.5 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setViewMode("table")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${viewMode === "table"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-                }`}
-            >
-              <Table className="w-3.5 h-3.5" />
-              <span>Tablo</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("list")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${viewMode === "list"
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-                }`}
-            >
-              <LayoutList className="w-3.5 h-3.5" />
-              <span>Liste</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tablo Görünümü (Mobilde ve Masaüstünde Gerçek Veri Tablosu) */}
+        {/* Tablo Görünümü */}
         <div className={`overflow-x-auto ${viewMode === "table" ? "block" : "hidden"}`}>
-          <table className="w-full min-w-[760px] text-left text-xs text-slate-700">
+          <table className="w-full min-w-[700px] text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-slate-500 font-semibold text-[11px] tracking-wider border-b border-slate-200">
               <tr>
-                <th className="p-3.5">Görsel</th>
-                <th className="p-3.5">OEM no</th>
-                <th className="p-3.5">Raf kodu</th>
+                <th className="p-3.5 w-24">Görsel</th>
+                <th className="p-3.5 w-48">OEM no</th>
                 <th className="p-3.5">Parça başlığı</th>
-                <th className="p-3.5">Durum</th>
-                <th className="p-3.5">Stok</th>
-                <th className="p-3.5 text-right">İşlem</th>
+                <th className="p-3.5 w-32">Raf kodu</th>
+                <th className="p-3.5 text-right w-28">İşlem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {products && products.length > 0 ? (
-                products.map((p) => (
-                  <tr key={p._id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="p-3.5">
-                      <div className="relative w-10 h-10 rounded-md bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center p-1">
-                        {p.images?.[0] ? (
-                          <button
-                            type="button"
-                            onClick={() => openLightbox(p.images!, 0)}
-                            onMouseEnter={(e) => setHoverPreview({ src: p.images![0], x: e.clientX, y: e.clientY })}
-                            onMouseMove={(e) => setHoverPreview((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)}
-                            onMouseLeave={() => setHoverPreview(null)}
-                            className="w-full h-full cursor-zoom-in"
-                            title="Görseli büyüt"
-                          >
-                            <Image
-                              src={p.images[0]}
-                              alt={p.title}
-                              width={40}
-                              height={40}
-                              unoptimized
-                              className="w-full h-full object-contain"
-                            />
-                          </button>
+                products.map((p) => {
+                  const isDraft = p.isDraft === true;
+                  const isOutOfStock = !p.inStock;
+
+                  const rowClass = isDraft
+                    ? "bg-red-50/70 hover:bg-red-100/70 border-l-4 border-l-red-500"
+                    : isOutOfStock
+                    ? "bg-amber-50/70 hover:bg-amber-100/70 border-l-4 border-l-amber-500"
+                    : "bg-white hover:bg-slate-50/70 border-l-4 border-l-transparent";
+
+                  return (
+                    <tr key={p._id} className={`${rowClass} transition-colors`}>
+                      <td className="p-3">
+                        <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center p-1 shadow-2xs">
+                          {p.images?.[0] ? (
+                            <button
+                              type="button"
+                              onClick={() => openLightbox(p.images!, 0)}
+                              onMouseEnter={(e) => setHoverPreview({ src: p.images![0], x: e.clientX, y: e.clientY })}
+                              onMouseMove={(e) => setHoverPreview((prev) => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)}
+                              onMouseLeave={() => setHoverPreview(null)}
+                              className="w-full h-full cursor-zoom-in flex items-center justify-center"
+                              title="Görseli büyüt"
+                            >
+                              <Image
+                                src={p.images[0]}
+                                alt={p.title}
+                                width={80}
+                                height={80}
+                                unoptimized
+                                className="w-full h-full object-contain"
+                              />
+                            </button>
+                          ) : (
+                            <Cpu className="w-6 h-6 text-slate-300" />
+                          )}
+                          {p.images && p.images.length > 1 && (
+                            <span className="absolute bottom-1 right-1 rounded bg-slate-900/75 px-1 py-0.5 text-[9px] font-bold text-white leading-none">
+                              +{p.images.length - 1}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 font-mono font-bold text-slate-900 text-sm">
+                        {p.oemNumber || "—"}
+                      </td>
+                      <td className="p-3 max-w-md">
+                        <div className="font-semibold text-slate-900 text-sm line-clamp-1">{p.title || "Taslak parça"}</div>
+                        <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                          {[p.brand, p.model].filter(Boolean).join(" · ") || ""}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        {p.shelfCode ? (
+                          <span className="inline-flex items-center rounded-md bg-white border border-slate-200 px-2 py-1 font-mono text-[11px] font-bold text-slate-800 shadow-2xs">
+                            {p.shelfCode}
+                          </span>
                         ) : (
-                          <Cpu className="w-4 h-4 text-slate-400" />
+                          <span className="text-slate-400">—</span>
                         )}
-                      </div>
-                    </td>
-                    <td className="p-3.5 font-mono font-bold text-slate-900">
-                      {p.oemNumber || "—"}
-                    </td>
-                    <td className="p-3.5">
-                      {p.shelfCode ? (
-                        <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-bold text-slate-700">
-                          {p.shelfCode}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">—</span>
-                      )}
-                    </td>
-                    <td className="p-3.5 max-w-xs">
-                      <div className="font-semibold text-slate-900 truncate">{p.title || "Taslak parça"}</div>
-                      <div className="text-[11px] text-slate-500 truncate">
-                        {[p.brand, p.model].filter(Boolean).join(" · ") || ""}
-                      </div>
-                    </td>
-                    <td className="p-3.5">
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${p.isDraft === true ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
-                        {p.isDraft === true ? "Taslak" : "Yayında"}
-                      </span>
-                    </td>
-                    <td className="p-3.5">
-                      <button
-                        onClick={() => toggleStock({ id: p._id, inStock: !p.inStock })}
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold cursor-pointer transition-colors ${p.inStock
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-                          : "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
-                          }`}
-                      >
-                        {p.inStock ? "Stokta" : "Tükendi"}
-                      </button>
-                    </td>
-                    <td className="p-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {p.isDraft !== true && (
-                          <Link
-                            href={`/parcalar/${p.slug}`}
-                            target="_blank"
-                            className="p-1.5 text-slate-400 hover:text-slate-700 rounded hover:bg-slate-100 transition-colors"
-                            title="Görüntüle"
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {p.isDraft !== true && (
+                            <Link
+                              href={`/parcalar/${p.slug}`}
+                              target="_blank"
+                              className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200/60 transition-colors"
+                              title="Görüntüle"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Link>
+                          )}
+                          <button
+                            onClick={() => handleOpenEditProduct(p)}
+                            className="p-1.5 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
+                            title="Düzenle"
                           >
-                            <Eye className="w-3.5 h-3.5" />
-                          </Link>
-                        )}
-                        <button
-                          onClick={() => handleOpenEditProduct(p)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 rounded hover:bg-slate-100 transition-colors cursor-pointer"
-                          title="Düzenle"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(p)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 rounded hover:bg-slate-100 transition-colors cursor-pointer"
-                          title="Sil"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(p)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-slate-200/60 transition-colors cursor-pointer"
+                            title="Sil"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : pageData === undefined ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400 text-xs">
+                  <td colSpan={5} className="p-8 text-center text-slate-400 text-xs">
                     Yükleniyor...
                   </td>
                 </tr>
               ) : (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400 text-xs">
+                  <td colSpan={5} className="p-8 text-center text-slate-400 text-xs">
                     Kayıtlı parça bulunamadı.
                   </td>
                 </tr>
@@ -1068,134 +934,121 @@ export default function AdminProductsPage() {
           </table>
         </div>
 
+        {/* Liste / Kart Görünümü */}
         <div className={`p-3 sm:p-4 bg-slate-50/50 ${viewMode === "list" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-3.5" : "hidden"}`}>
           {products && products.length > 0 ? (
-            products.map((p) => (
-              <article
-                key={p._id}
-                onClick={() => handleOpenEditProduct(p)}
-                className="group relative flex flex-col justify-between rounded-xl border border-slate-200/90 bg-white p-3 sm:p-3.5 shadow-2xs hover:border-blue-300 hover:shadow-xs transition-all duration-150 cursor-pointer"
-              >
-                {/* Ana İçerik: Görsel + Bilgi Sütunu */}
-                <div className="flex items-start gap-3">
-                  {/* Parça Görseli / Önizleme */}
-                  <div className="relative h-15 w-15 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-1 flex items-center justify-center">
-                    {p.images?.[0] ? (
+            products.map((p) => {
+              const isDraft = p.isDraft === true;
+              const isOutOfStock = !p.inStock;
+
+              const cardBorderClass = isDraft
+                ? "border-red-300 bg-red-50/40 ring-1 ring-red-400/40 hover:border-red-400"
+                : isOutOfStock
+                ? "border-amber-300 bg-amber-50/40 ring-1 ring-amber-400/40 hover:border-amber-400"
+                : "border-slate-200 bg-white hover:border-blue-300";
+
+              return (
+                <article
+                  key={p._id}
+                  onClick={() => handleOpenEditProduct(p)}
+                  className={`group relative flex flex-col justify-between rounded-xl border p-3 sm:p-3.5 shadow-2xs hover:shadow-xs transition-all duration-150 cursor-pointer ${cardBorderClass}`}
+                >
+                  {/* Kart İçeriği */}
+                  <div className="flex items-start gap-3">
+                    <div className="relative h-18 w-18 sm:h-20 sm:w-20 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-white p-1 flex items-center justify-center">
+                      {p.images?.[0] ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openLightbox(p.images!, 0);
+                          }}
+                          aria-label={`${p.title || "Parça"} görselini büyüt`}
+                          className="h-full w-full cursor-zoom-in flex items-center justify-center"
+                        >
+                          <Image
+                            src={p.images[0]}
+                            alt={p.title || "Parça"}
+                            width={80}
+                            height={80}
+                            unoptimized
+                            className="h-full w-full object-contain"
+                          />
+                        </button>
+                      ) : (
+                        <Cpu className="h-6 w-6 text-slate-300" />
+                      )}
+                      {p.images && p.images.length > 1 && (
+                        <span className="absolute bottom-1 right-1 rounded bg-slate-900/75 px-1 py-0.5 text-[9px] font-bold text-white leading-none">
+                          +{p.images.length - 1}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                          {p.oemNumber ? (
+                            <span className="font-mono text-xs font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                              {p.oemNumber}
+                            </span>
+                          ) : (
+                            <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                              OEM Yok
+                            </span>
+                          )}
+
+                          {p.shelfCode && (
+                            <span className="font-mono text-[10px] font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                              Raf: {p.shelfCode}
+                            </span>
+                          )}
+                        </div>
+
+                        {p.isDraft !== true && (
+                          <Link
+                            href={`/parcalar/${p.slug}`}
+                            target="_blank"
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`${p.title || "Parça"} sayfasını sitede görüntüle`}
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-2xs hover:bg-slate-50 hover:text-slate-900 transition-all"
+                            title="Sitede Görüntüle"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Link>
+                        )}
+                      </div>
+
+                      <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-slate-900 leading-snug break-words pt-0.5">
+                        {p.title || "İsimsiz parça"}
+                      </h3>
+                    </div>
+                  </div>
+
+                  {/* Alt Çubuk */}
+                  <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
+                    <div className="text-[11px] text-slate-500">
+                      {[p.brand, p.model].filter(Boolean).join(" · ") || ""}
+                    </div>
+
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          openLightbox(p.images!, 0);
+                          handleDeleteProduct(p);
                         }}
-                        aria-label={`${p.title || "Parça"} görselini büyüt`}
-                        className="h-full w-full cursor-zoom-in flex items-center justify-center"
+                        aria-label={p.title ? `${p.title} parçasını sil` : "Parçayı sil"}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-2xs hover:border-red-400 hover:bg-red-50 hover:text-red-600 transition-all cursor-pointer"
+                        title="Sil"
                       >
-                        <Image
-                          src={p.images[0]}
-                          alt={p.title || "Parça"}
-                          width={60}
-                          height={60}
-                          unoptimized
-                          className="h-full w-full object-contain"
-                        />
+                        <Trash2 className="h-4 w-4" />
                       </button>
-                    ) : (
-                      <Cpu className="h-6 w-6 text-slate-300" />
-                    )}
-                    {p.images && p.images.length > 1 && (
-                      <span className="absolute bottom-1 right-1 rounded bg-slate-900/70 px-1 py-0.5 text-[9px] font-bold text-white leading-none">
-                        +{p.images.length - 1}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Parça Bilgileri */}
-                  <div className="min-w-0 flex-1 space-y-1">
-                    {/* Üst Sıra: OEM Kodu ve En Sağda Sitede Görüntüle (ExternalLink) Butonu */}
-                    <div className="flex items-center justify-between gap-1.5">
-                      <div className="flex flex-wrap items-center gap-1.5 min-w-0">
-                        {p.oemNumber ? (
-                          <span className="font-mono text-[11px] font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                            {p.oemNumber}
-                          </span>
-                        ) : (
-                          <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
-                            OEM Yok
-                          </span>
-                        )}
-
-                        {p.shelfCode && (
-                          <span className="font-mono text-[10px] font-medium text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                            Raf: {p.shelfCode}
-                          </span>
-                        )}
-                      </div>
-
-                      {p.isDraft !== true && (
-                        <Link
-                          href={`/parcalar/${p.slug}`}
-                          target="_blank"
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`${p.title || "Parça"} sayfasını sitede görüntüle`}
-                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-600 shadow-2xs hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 active:scale-95 transition-all"
-                          title="Sitede Görüntüle"
-                        >
-                          <ExternalLink className="h-4.5 w-4.5" />
-                        </Link>
-                      )}
                     </div>
-
-                    {/* Başlık */}
-                    <h3 className="line-clamp-2 text-xs sm:text-sm font-semibold text-slate-900 leading-snug break-words pt-0.5">
-                      {p.title || "İsimsiz parça"}
-                    </h3>
                   </div>
-                </div>
-
-                {/* Alt Çubuk: Durum Rozeti (Yayında/Taslak & Stokta/Tükendi) & Silme Düğmesi */}
-                <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2 text-xs">
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${p.isDraft === true
-                          ? "bg-amber-50 text-amber-700 border-amber-200/80"
-                          : "bg-emerald-50 text-emerald-700 border-emerald-200/80"
-                        }`}
-                    >
-                      {p.isDraft === true ? "Taslak" : "Yayında"}
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleStock({ id: p._id, inStock: !p.inStock });
-                      }}
-                      className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-semibold border cursor-pointer ${p.inStock
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200/80"
-                          : "bg-amber-50 text-amber-700 border-amber-200/80"
-                        }`}
-                    >
-                      {p.inStock ? "Stokta" : "Tükendi"}
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteProduct(p);
-                      }}
-                      aria-label={p.title ? `${p.title} parçasını sil` : "Parçayı sil"}
-                      className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-500 shadow-2xs hover:border-red-400 hover:bg-red-50 hover:text-red-600 active:scale-95 transition-all cursor-pointer"
-                      title="Sil"
-                    >
-                      <Trash2 className="h-4.5 w-4.5" />
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))
+                </article>
+              );
+            })
           ) : pageData === undefined ? (
             <div className="col-span-full rounded-xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
               Yükleniyor...
@@ -1207,57 +1060,8 @@ export default function AdminProductsPage() {
           )}
         </div>
 
-        {/* Admin Pagination Controls */}
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 border-t border-slate-200 bg-slate-50/80 p-3 text-xs sm:flex sm:items-center sm:justify-between sm:gap-4 sm:p-4">
-          <div className="min-w-0 text-slate-500 font-medium leading-5">
-            Sayfa <span className="font-bold text-slate-900">{currentPage}</span> · {products?.length ?? 0} kayıt gösteriliyor
-          </div>
-
-          <div className="contents sm:flex sm:items-center sm:gap-3">
-            <div className="col-span-2 row-start-2 flex items-center justify-between border-t border-slate-200/70 pt-2 sm:col-span-1 sm:row-auto sm:justify-start sm:gap-1.5 sm:border-0 sm:pt-0">
-              <span className="text-slate-500 text-[11px]">Sayfa başına:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => setPageSize(Number(e.target.value))}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-              >
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-                <option value={250}>250</option>
-              </select>
-            </div>
-
-            {(currentPage > 1 || !pageData?.isDone) && (
-              <div className="col-start-2 row-start-1 flex items-center gap-1.5 sm:col-auto sm:row-auto">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handlePageChange("previous")}
-                  disabled={currentPage === 1}
-                  aria-label="Önceki sayfa"
-                  className="h-9 w-9 rounded-lg p-0 sm:h-8 sm:w-auto sm:gap-1.5 sm:px-2.5"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                  <span className="hidden text-xs sm:inline">Önceki</span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handlePageChange("next")}
-                  disabled={!pageData || pageData.isDone}
-                  aria-label="Sonraki sayfa"
-                  className="h-9 w-9 rounded-lg p-0 sm:h-8 sm:w-auto sm:gap-1.5 sm:px-2.5"
-                >
-                  <span className="hidden text-xs sm:inline">Sonraki</span>
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Alt Sayfalama Çubuğu */}
+        {renderPaginationBar("bottom")}
       </div>
 
       {/* Add / Edit Product Modal */}
