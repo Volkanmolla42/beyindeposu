@@ -9,7 +9,7 @@ import { MapPin, Mail, Phone } from "lucide-react";
 import { SITE_CONTACT } from "@/config/site";
 
 export default function Footer() {
-  const phone = SITE_CONTACT.phone;
+  const phone = SITE_CONTACT.phoneNumber;
   const email = SITE_CONTACT.email;
   const address = SITE_CONTACT.address;
   const router = useRouter();

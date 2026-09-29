@@ -50,7 +50,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
       : "skip"
   );
 
-  const displayPhone = SITE_CONTACT.phone;
+  const displayPhone = SITE_CONTACT.phoneNumber;
 
   // Resolve brand logo
   const brands = useQuery(api.brands.list, {});

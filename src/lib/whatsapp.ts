@@ -50,7 +50,7 @@ export function formatPhoneNumber(phoneNumber?: string): string {
  */
 export function getWhatsAppUrl(
   target?: WhatsAppTarget,
-  phoneNumber: string = SITE_CONTACT.whatsappNumber
+  phoneNumber: string = SITE_CONTACT.phoneNumber
 ): string {
   const clean = cleanPhoneNumber(phoneNumber);
   let message = "";

@@ -1,9 +1,8 @@
 export const SITE_CONTACT = {
-  whatsappNumber: "0534 065 32 22",
-  phone: "0534 065 32 22",
-  email: "info@beyindeposu.com",
-  workingHours: "Pazartesi - Cumartesi: 09:00 - 18:30",
-  address: "İkitelli OSB, Dolapdere Sanayi Sitesi, Başakşehir / İstanbul",
+  phoneNumber: "0530 906 70 34",
+  email: "beyindeposu34@gmail.com",
+  workingHours: "Her gün: 08:30 - 18:00",
+  address: "Maltepe, Yedikule Çırpıcı Yolu Topkapı Ticaret Merkezi D:1st Section B Blok,126, 34010 Zeytinburnu/İstanbul",
 } as const;
 
 export const SITE_CONFIG = {

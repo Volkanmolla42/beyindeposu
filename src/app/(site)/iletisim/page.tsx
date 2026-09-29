@@ -26,7 +26,7 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default function IletisimPage() {
-  const displayPhone = SITE_CONTACT.phone;
+  const displayPhone = SITE_CONTACT.phoneNumber;
   const displayEmail = SITE_CONTACT.email;
   const displayAddress = SITE_CONTACT.address;
   const workingHours = SITE_CONTACT.workingHours;
@@ -44,11 +44,12 @@ export default function IletisimPage() {
     address: {
       "@type": "PostalAddress",
       streetAddress: displayAddress,
-      addressLocality: "Başakşehir",
+      addressLocality: "Zeytinburnu",
       addressRegion: "İstanbul",
+      postalCode: "34010",
       addressCountry: "TR",
     },
-    openingHours: "Mo-Sa 09:00-18:30",
+    openingHours: "Mo-Su 08:30-18:00",
   };
 
   return (
