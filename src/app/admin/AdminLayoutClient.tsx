@@ -340,8 +340,8 @@ export default function AdminLayout({
         <main
           className={`flex-1 w-full min-w-0 mx-auto max-w-8xl flex flex-col ${
             isChatsPage
-              ? "p-4 sm:p-6 lg:p-8 overflow-hidden min-h-0"
-              : "p-4 sm:p-6 lg:p-8 pb-20 overflow-x-hidden"
+              ? "p-3 sm:p-6 lg:p-8 overflow-hidden min-h-0"
+              : "p-3 sm:p-6 lg:p-8 pb-20 overflow-x-hidden"
           }`}
         >
           {children}

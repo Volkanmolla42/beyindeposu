@@ -36,6 +36,29 @@ export default function AdminProductsPage() {
   const [stockFilter, setStockFilter] = useState<"all" | "in_stock" | "out_of_stock">("all");
   const [pageSize, setPageSize] = useState<number>(25);
   const [viewMode, setViewMode] = useState<"table" | "list">("table");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("admin_products_view_mode");
+      if (saved === "table" || saved === "list") {
+        setViewMode(saved);
+      } else if (typeof window !== "undefined" && window.innerWidth < 768) {
+        setViewMode("list");
+      }
+    } catch {
+      // ignore localStorage errors
+    }
+  }, []);
+
+  const handleSetViewMode = (mode: "table" | "list") => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("admin_products_view_mode", mode);
+    } catch {
+      // ignore
+    }
+  };
+
   const [pagination, setPagination] = useState<{
     key: string;
     page: number;
@@ -171,13 +194,13 @@ export default function AdminProductsPage() {
   const renderPaginationBar = (position: "top" | "bottom") => {
     return (
       <div
-        className={`flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-slate-50/90 text-xs ${
+        className={`flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2 px-3 py-2 bg-slate-50/90 text-xs ${
           position === "top" ? "border-b border-slate-200" : "border-t border-slate-200"
         }`}
       >
         {position === "top" ? (
           /* Üst Çubuk - Sol: Yeni Parça, Arama ve Filtre Temizleme */
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0 w-full md:w-auto md:flex-1">
             <Button
               type="button"
               onClick={handleOpenAddProduct}
@@ -188,7 +211,7 @@ export default function AdminProductsPage() {
               <span>Yeni parça</span>
             </Button>
 
-            <div className="relative w-72 sm:w-80 md:w-96">
+            <div className="relative flex-1 md:w-72 lg:w-80 xl:w-96 md:flex-none min-w-0">
               <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
               <Input
                 placeholder="OEM, parça adı veya raf kodu ara..."
@@ -224,73 +247,77 @@ export default function AdminProductsPage() {
         )}
 
         {/* Sağ: Sayfalama & Görünüm */}
-        <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => handlePageChange("previous")}
-            disabled={currentPage <= 1}
-            title="Önceki sayfa"
-            className="h-8 w-8 rounded-lg border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
+        <div className="flex items-center justify-between md:justify-end gap-1.5 w-full md:w-auto shrink-0 md:ml-auto">
+          <div className="flex items-center gap-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange("previous")}
+              disabled={currentPage <= 1}
+              title="Önceki sayfa"
+              className="h-8 w-8 rounded-lg border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
 
-          <span className="px-2 py-1 text-xs font-bold text-white bg-blue-600 rounded-lg select-none min-w-[58px] text-center shadow-2xs">
-            Sayfa {currentPage}
-          </span>
+            <span className="px-2 py-1 text-xs font-bold text-white bg-blue-600 rounded-lg select-none min-w-[58px] text-center shadow-2xs">
+              Sayfa {currentPage}
+            </span>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={() => handlePageChange("next")}
-            disabled={isDone}
-            title="Sonraki sayfa"
-            className="h-8 w-8 rounded-lg border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => handlePageChange("next")}
+              disabled={isDone}
+              title="Sonraki sayfa"
+              className="h-8 w-8 rounded-lg border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
 
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              setPageSize(Number(e.target.value));
-              resetPage();
-            }}
-            className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 focus:outline-none cursor-pointer"
-            title="Sayfa başına kayıt"
-          >
-            <option value={25}>25</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
+          <div className="flex items-center gap-1.5">
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                resetPage();
+              }}
+              className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 focus:outline-none cursor-pointer"
+              title="Sayfa başına kayıt"
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
 
-          {position === "top" && (
-            <div className="flex items-center border border-slate-200 rounded-lg p-0.5 bg-white shrink-0 ml-1">
-              <button
-                type="button"
-                onClick={() => setViewMode("table")}
-                className={`p-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
-                  viewMode === "table" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
-                }`}
-                title="Tablo"
-              >
-                <Table className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode("list")}
-                className={`p-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
-                  viewMode === "list" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
-                }`}
-                title="Liste"
-              >
-                <LayoutList className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+            {position === "top" && (
+              <div className="flex items-center border border-slate-200 rounded-lg p-0.5 bg-white shrink-0 ml-1">
+                <button
+                  type="button"
+                  onClick={() => handleSetViewMode("table")}
+                  className={`p-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                    viewMode === "table" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                  title="Tablo"
+                >
+                  <Table className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetViewMode("list")}
+                  className={`p-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                    viewMode === "list" ? "bg-blue-600 text-white shadow-xs" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                  title="Liste"
+                >
+                  <LayoutList className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
