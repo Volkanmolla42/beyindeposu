@@ -11,7 +11,6 @@ import {
   Car,
   Menu,
   X,
-  ChevronRight,
   LogOut,
   User,
   Loader2,
@@ -158,7 +157,7 @@ export default function AdminLayout({
   }
 
   return (
-    <div ref={shellRef} className="group/admin h-[100dvh] w-full bg-slate-50/70 text-slate-900 flex flex-col md:flex-row antialiased font-sans overflow-hidden">
+    <div ref={shellRef} className="group/admin fixed inset-0 h-[100dvh] w-full bg-slate-50/70 text-slate-900 flex flex-col md:flex-row antialiased font-sans overflow-hidden">
       {/* Mobile Header Bar */}
       <header className="md:hidden group-has-[[data-chat-open=true]]/admin:hidden flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 text-slate-900 z-40">
         <div className="flex items-center gap-2.5 min-w-0">
@@ -336,34 +335,11 @@ export default function AdminLayout({
         className={`flex-1 flex flex-col min-w-0 min-h-0 ${isChatsPage ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"
           }`}
       >
-        {/* Desktop Breadcrumb Header */}
-        <header className="sticky top-0 z-20 hidden h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-8 md:flex">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <Link href="/admin/products" className="hover:text-slate-800 transition-colors">
-              Yönetim Paneli
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-slate-900 font-bold">{currentItem.label}</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {unreadChatsCount > 0 && (
-              <Link
-                href="/admin/chats"
-                className="px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-xs font-semibold flex items-center gap-2 hover:bg-blue-100 transition-colors"
-              >
-                <span className="w-2 h-2 rounded-full bg-blue-600" />
-                <span>{unreadChatsCount} okunmamış mesaj</span>
-              </Link>
-            )}
-          </div>
-        </header>
-
         {/* Canvas Body */}
         <main
           className={`flex-1 w-full min-w-0 mx-auto max-w-8xl flex flex-col ${isChatsPage
               ? "p-0 lg:p-8 overflow-hidden min-h-0"
-              : "p-3 sm:p-6 lg:p-8 pb-20 overflow-x-hidden"
+              : "min-h-0 p-3 sm:p-6 lg:p-8 pb-20"
             }`}
         >
           {children}

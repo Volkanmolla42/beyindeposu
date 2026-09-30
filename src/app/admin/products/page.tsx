@@ -266,18 +266,20 @@ export default function AdminProductsPage() {
     <nav
       aria-label={position === "top" ? "Üst sayfalama" : "Alt sayfalama"}
       className={
-        (position === "top" ? "hidden lg:flex border-b" : "flex border-t") +
-        " flex-wrap items-center justify-between gap-3 border-slate-200 bg-white px-4 py-3"
+        position === "top"
+          ? "flex w-full basis-full items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-2 lg:ml-auto lg:w-auto lg:basis-auto lg:rounded-none lg:border-0 lg:bg-transparent lg:px-0 lg:py-0"
+          : "flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-4 py-3"
       }
     >
-      <span aria-live="polite" className="text-sm text-slate-500">
+      <span
+        aria-live="polite"
+        className="whitespace-nowrap text-sm text-slate-500"
+      >
         {products
-          ? products.length.toLocaleString("tr-TR") +
-            " parça · Sayfa " +
-            currentPage
+          ? products.length.toLocaleString("tr-TR") + " parça"
           : "Yükleniyor…"}
       </span>
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <select
           aria-label="Sayfa başına parça"
           value={pageSize}
@@ -301,6 +303,14 @@ export default function AdminProductsPage() {
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
+        <span
+          aria-current="page"
+          aria-live="polite"
+          className="whitespace-nowrap text-sm font-medium text-slate-700"
+        >
+          <span className="sr-only">Sayfa </span>
+          {currentPage}
+        </span>
         <Button
           variant="outline"
           size="icon"
@@ -317,13 +327,15 @@ export default function AdminProductsPage() {
   return (
     <div ref={contentRef} className="w-full min-w-0 space-y-4">
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {productStats && (
-            <p className="order-last basis-full text-sm text-slate-500 lg:order-first lg:basis-auto">
-              {productStats.total.toLocaleString("tr-TR")} parça
-            </p>
-          )}
-          <div className="relative min-w-0 w-full flex-1 basis-full lg:w-auto lg:basis-auto">
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
+          <Button
+            onClick={handleOpenAddProduct}
+            className="h-11 w-full shrink-0 basis-full justify-center gap-2 px-4 lg:w-auto lg:basis-auto"
+          >
+            <Plus className="h-4 w-4" />
+            Yeni parça
+          </Button>
+          <div className="relative min-w-0 w-full flex-1 basis-0 lg:w-auto lg:basis-0">
             <Search
               aria-hidden="true"
               className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500 pointer-events-none"
@@ -331,7 +343,11 @@ export default function AdminProductsPage() {
             <Input
               type="search"
               aria-label="OEM, parça adı veya raf kodu ara"
-              placeholder="OEM, ad veya raf ara"
+              placeholder={
+                productStats
+                  ? `${productStats.total.toLocaleString("tr-TR")} parça · OEM, ad veya raf ara`
+                  : "OEM, ad veya raf ara"
+              }
               value={searchProduct}
               onChange={(event) => {
                 setSearchProduct(event.target.value);
@@ -398,13 +414,7 @@ export default function AdminProductsPage() {
               <LayoutList className="h-4 w-4" />
             </Button>
           </div>
-          <Button
-            onClick={handleOpenAddProduct}
-            className="ml-auto h-11 shrink-0 gap-2 px-4"
-          >
-            <Plus className="h-4 w-4" />
-            Yeni parça
-          </Button>
+          {renderPaginationBar("top")}
         </div>
         {activeFilterChips.length > 0 && (
           <div className="flex flex-wrap gap-2">
@@ -430,9 +440,6 @@ export default function AdminProductsPage() {
       </div>
       {/* Products Table Card with Integrated Toolbar */}
       <div className="space-y-3 lg:space-y-0 lg:bg-white lg:rounded-2xl lg:border lg:border-slate-200 lg:overflow-hidden lg:shadow-xs w-full min-w-0">
-        {/* Üst Sayfalama & Araç Çubuğu */}
-        {renderPaginationBar("top")}
-
         <ProductViews
           products={products}
           viewMode={viewMode}
