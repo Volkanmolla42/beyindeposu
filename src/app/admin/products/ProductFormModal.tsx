@@ -11,9 +11,7 @@ import {
   Scan,
   AlertTriangle,
   CheckCircle2,
-  ImageIcon,
   ChevronDown,
-  Package,
   Globe,
   FileText,
   Check,
@@ -91,7 +89,6 @@ function ProductFormContent({
   const [tagsInput, setTagsInput] = useState(
     product?.tags ? product.tags.join(", ") : "",
   );
-  const [activeTab, setActiveTab] = useState<"details" | "images">("details");
   const pendingTask = useRef<"save" | "upload" | "ai" | null>(null);
   const [saveError, setSaveError] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
@@ -116,7 +113,6 @@ function ProductFormContent({
   const lookupOemAction = useAction(api.oem.lookupOem);
 
   const populateProductForm = (data: OemAssistantData) => {
-    setActiveTab("details");
     const detectedOem = data.detectedOem || data.cleanOem;
     if (detectedOem) setOemNumber(detectedOem);
     if (data.title) {
@@ -328,7 +324,6 @@ function ProductFormContent({
     e.preventDefault();
     if (pendingTask.current) return;
     if (!title.trim() || !oemNumber.trim() || !brand.trim()) {
-      setActiveTab("details");
       setSaveError("Parça adı, OEM kodu ve marka alanlarını doldurun.");
       requestAnimationFrame(() =>
         formRef.current
@@ -348,7 +343,6 @@ function ProductFormContent({
       (item) => item._id === selectedCategoryId,
     );
     if (!category) {
-      setActiveTab("details");
       setSaveError("Bir kategori seçin.");
       requestAnimationFrame(() =>
         formRef.current
@@ -370,7 +364,6 @@ function ProductFormContent({
           .replace(/[^a-z0-9-]/g, "-")
       : slugify(title);
     if (!generatedSlug || !/[a-z0-9]/.test(generatedSlug)) {
-      setActiveTab("details");
       setSaveError("Geçerli bir sayfa adresi girin.");
       return;
     }
@@ -422,489 +415,479 @@ function ProductFormContent({
       className="flex min-h-0 flex-1 flex-col text-sm"
     >
       <fieldset disabled={saving} className="contents">
-        <div className="grid shrink-0 grid-cols-2 gap-2 border-b border-slate-200 bg-white px-4 py-3 lg:hidden">
-          <button
-            type="button"
-            aria-pressed={activeTab === "details"}
-            aria-controls="product-details-panel"
-            onClick={() => setActiveTab("details")}
-            className={
-              "flex h-11 items-center justify-center gap-2 rounded-full font-medium focus-visible:outline-2 focus-visible:outline-blue-600 " +
-              (activeTab === "details"
-                ? "bg-blue-50 text-blue-800"
-                : "text-slate-500 hover:bg-slate-100")
-            }
-          >
-            <Package className="h-4 w-4" />
-            Bilgiler
-          </button>
-          <button
-            type="button"
-            aria-pressed={activeTab === "images"}
-            aria-controls="product-images-panel"
-            onClick={() => setActiveTab("images")}
-            className={
-              "flex h-11 items-center justify-center gap-2 rounded-full font-medium focus-visible:outline-2 focus-visible:outline-blue-600 " +
-              (activeTab === "images"
-                ? "bg-blue-50 text-blue-800"
-                : "text-slate-500 hover:bg-slate-100")
-            }
-          >
-            <ImageIcon className="h-4 w-4" />
-            Görseller
-            {previewImages.length > 0 && (
-              <span className="text-xs">({previewImages.length})</span>
-            )}
-          </button>
-        </div>
-        <div className="flex min-h-0 flex-1 bg-slate-50 px-4 py-4 sm:px-6">
-          <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
-            <section
-              id="product-details-panel"
-              aria-label="Parça bilgileri"
-              className={
-                "min-h-0 min-w-0 space-y-4 overflow-y-auto overscroll-contain px-0.5 pb-1 " +
-                (activeTab === "details" ? "" : "hidden lg:block")
-              }
-            >
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  role="switch"
-                  aria-label="Stokta"
-                  aria-checked={inStock}
-                  onClick={() => setInStock(!inStock)}
-                  className={
-                    "flex min-h-20 min-w-0 items-center justify-between gap-2 rounded-2xl border p-3 text-left focus-visible:outline-2 focus-visible:outline-blue-600 " +
-                    (inStock
-                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                      : "border-slate-200 bg-white text-slate-600")
-                  }
-                >
-                  <span>
-                    <span className="block text-xs">Stok</span>
-                    <span className="mt-1 block font-semibold">
-                      {inStock ? "Stokta" : "Stokta yok"}
-                    </span>
-                  </span>
-                  <span
-                    className={
-                      "flex h-6 w-10 shrink-0 items-center rounded-full p-0.5 " +
-                      (inStock ? "bg-emerald-700" : "bg-slate-300")
-                    }
-                  >
-                    <span
-                      className={
-                        "h-5 w-5 rounded-full bg-white shadow-xs " +
-                        (inStock ? "translate-x-4" : "")
-                      }
-                    />
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-label="Yayında"
-                  aria-checked={!isDraft}
-                  onClick={() => setIsDraft(!isDraft)}
-                  className={
-                    "flex min-h-20 min-w-0 items-center justify-between gap-2 rounded-2xl border p-3 text-left focus-visible:outline-2 focus-visible:outline-blue-600 " +
-                    (!isDraft
-                      ? "border-blue-200 bg-blue-50 text-blue-800"
-                      : "border-slate-200 bg-white text-slate-600")
-                  }
-                >
-                  <span>
-                    <span className="block text-xs">Yayın</span>
-                    <span className="mt-1 block font-semibold">
-                      {isDraft ? "Taslak" : "Yayında"}
-                    </span>
-                  </span>
-                  <span
-                    className={
-                      "flex h-6 w-10 shrink-0 items-center rounded-full p-0.5 " +
-                      (!isDraft ? "bg-blue-600" : "bg-slate-300")
-                    }
-                  >
-                    <span
-                      className={
-                        "h-5 w-5 rounded-full bg-white shadow-xs " +
-                        (!isDraft ? "translate-x-4" : "")
-                      }
-                    />
-                  </span>
-                </button>
-              </div>
-              <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="product-oem"
-                    className="font-medium text-slate-700"
-                  >
-                    OEM kodu <span className="text-red-600">*</span>
-                  </label>
-                  <Input
-                    id="product-oem"
-                    aria-required="true"
-                    autoComplete="off"
-                    placeholder="0281001781"
-                    value={oemNumber}
-                    onChange={(event) => {
-                      setOemNumber(event.target.value);
-                      setAiError(null);
-                    }}
-                    className={fieldClass + " font-mono"}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleSmartAutoFill}
-                    disabled={
-                      saving ||
-                      uploadingImage ||
-                      aiLoading ||
-                      scanImageLoading ||
-                      (!oemNumber.trim() &&
-                        !previewImages[selectedFormImageIndex])
-                    }
-                    className="h-11 w-full gap-2"
-                  >
-                    {aiLoading || scanImageLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : oemNumber.trim() ? (
-                      <Sparkles className="h-4 w-4" />
-                    ) : (
-                      <Scan className="h-4 w-4" />
-                    )}
-                    {aiLoading
-                      ? "OEM araştırılıyor…"
-                      : scanImageLoading
-                        ? "Etiket okunuyor…"
-                        : oemNumber.trim()
-                          ? "OEM ile doldur"
-                          : previewImages[selectedFormImageIndex]
-                            ? "Etiketten doldur"
-                            : "Otomatik doldur"}
-                  </Button>
-                </div>
-                {aiError && (
-                  <div
-                    role="alert"
-                    className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700"
-                  >
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <p className="min-w-0 flex-1 wrap-anywhere">{aiError}</p>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Uyarıyı kapat"
-                      onClick={() => setAiError(null)}
-                      className="h-11 w-11 shrink-0"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-                {aiSuccessMessage && (
-                  <div
-                    role="status"
-                    className="space-y-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800"
-                  >
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 shrink-0" />
-                      <p className="min-w-0 flex-1">{aiSuccessMessage}</p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Bildirimi kapat"
-                        onClick={() => setAiSuccessMessage(null)}
-                        className="h-11 w-11 shrink-0"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    {aiSources.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {aiSources.slice(0, 3).map((source, index) => (
-                          <a
-                            key={index}
-                            href={source.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="max-w-full truncate text-xs text-blue-700 underline"
-                          >
-                            {source.title || "Kaynak"}
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <label
-                    htmlFor="product-title"
-                    className="font-medium text-slate-700"
-                  >
-                    Parça adı <span className="text-red-600">*</span>
-                  </label>
-                  <Input
-                    id="product-title"
-                    aria-required="true"
-                    placeholder="Renault Megane motor beyni"
-                    value={title}
-                    onChange={(event) => {
-                      setTitle(event.target.value);
-                      if (!slugManuallyEdited)
-                        setSlug(slugify(event.target.value));
-                    }}
-                    className={fieldClass}
-                  />
-                </div>
-                <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="min-w-0 space-y-2">
-                    <label
-                      htmlFor="product-brand"
-                      className="font-medium text-slate-700"
-                    >
-                      Marka <span className="text-red-600">*</span>
-                    </label>
-                    <select
-                      id="product-brand"
-                      aria-required="true"
-                      value={brand}
-                      onChange={(event) => setBrand(event.target.value)}
-                      className={
-                        fieldClass +
-                        " w-full min-w-0 border px-3 text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600"
-                      }
-                    >
-                      <option value="Genel Uyumlu">Genel Uyumlu</option>
-                      {brand !== "Genel Uyumlu" &&
-                        !brands?.some((item) => item.name === brand) && (
-                          <option value={brand}>{brand}</option>
-                        )}
-                      {brands?.map((item) => (
-                        <option key={item._id} value={item.name}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="min-w-0 space-y-2">
-                    <label
-                      htmlFor="product-category"
-                      className="font-medium text-slate-700"
-                    >
-                      Kategori <span className="text-red-600">*</span>
-                    </label>
-                    <select
-                      id="product-category"
-                      aria-required="true"
-                      value={selectedCategoryId}
-                      onChange={(event) =>
-                        setSelectedCategoryId(event.target.value)
-                      }
-                      className={
-                        fieldClass +
-                        " w-full min-w-0 border px-3 text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600"
-                      }
-                    >
-                      <option value="">Kategori seçin</option>
-                      {categories?.map((item) => (
-                        <option key={item._id} value={item._id}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="min-w-0 space-y-2">
-                    <label
-                      htmlFor="product-model"
-                      className="font-medium text-slate-700"
-                    >
-                      Model / seri
-                    </label>
-                    <Input
-                      id="product-model"
-                      placeholder="Megane 2, Clio 3"
-                      value={model}
-                      onChange={(event) => setModel(event.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                  <div className="min-w-0 space-y-2">
-                    <label
-                      htmlFor="product-shelf"
-                      className="font-medium text-slate-700"
-                    >
-                      Raf kodu
-                    </label>
-                    <Input
-                      id="product-shelf"
-                      placeholder="A12-04"
-                      value={shelfCode}
-                      onChange={(event) => setShelfCode(event.target.value)}
-                      className={fieldClass + " font-mono"}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label
-                    htmlFor="product-condition"
-                    className="font-medium text-slate-700"
-                  >
-                    Parça durumu
-                  </label>
-                  <select
-                    id="product-condition"
-                    value={condition}
-                    onChange={(event) => setCondition(event.target.value)}
-                    className={
-                      fieldClass +
-                      " w-full border px-3 text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600"
-                    }
-                  >
-                    <option value="Orijinal Çıkma">Orijinal Çıkma</option>
-                    <option value="Sıfır - Orijinal">Sıfır - Orijinal</option>
-                    <option value="Revizyonlu">Revizyonlu</option>
-                    <option value="Sıfırlanmış - Virgin">
-                      Sıfırlanmış - Virgin
-                    </option>
-                  </select>
-                </div>
-              </div>
-              <details className="group rounded-2xl border border-slate-200 bg-white">
-                <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-2xl px-4 font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
-                  <FileText className="h-4 w-4 text-slate-500" />
-                  <span className="flex-1">Açıklama ve etiketler</span>
-                  <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
-                </summary>
-                <div className="space-y-4 border-t border-slate-100 p-4">
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="product-description"
-                      className="font-medium text-slate-700"
-                    >
-                      Açıklama
-                    </label>
-                    <Textarea
-                      id="product-description"
-                      rows={4}
-                      value={description}
-                      onChange={(event) => setDescription(event.target.value)}
-                      className="min-h-32 rounded-xl border-slate-300 text-base! md:text-sm!"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="product-tags"
-                      className="font-medium text-slate-700"
-                    >
-                      Etiketler
-                    </label>
-                    <Input
-                      id="product-tags"
-                      placeholder="Megane 2, ECU"
-                      value={tagsInput}
-                      onChange={(event) => setTagsInput(event.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                </div>
-              </details>
-              <details className="group rounded-2xl border border-slate-200 bg-white">
-                <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-2xl px-4 font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
-                  <Globe className="h-4 w-4 text-slate-500" />
-                  <span className="flex-1">Arama motorları</span>
-                  <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
-                </summary>
-                <div className="space-y-4 border-t border-slate-100 p-4">
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="product-slug"
-                      className="font-medium text-slate-700"
-                    >
-                      Sayfa adresi
-                    </label>
-                    <Input
-                      id="product-slug"
-                      value={slug}
-                      onChange={(event) => {
-                        setSlug(slugify(event.target.value));
-                        setSlugManuallyEdited(true);
-                      }}
-                      className={fieldClass + " font-mono"}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="product-meta-title"
-                      className="font-medium text-slate-700"
-                    >
-                      Meta başlık
-                    </label>
-                    <Input
-                      id="product-meta-title"
-                      value={metaTitle}
-                      onChange={(event) => setMetaTitle(event.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="product-meta-description"
-                      className="font-medium text-slate-700"
-                    >
-                      Meta açıklama
-                    </label>
-                    <Textarea
-                      id="product-meta-description"
-                      rows={3}
-                      value={metaDescription}
-                      onChange={(event) =>
-                        setMetaDescription(event.target.value)
-                      }
-                      className="min-h-24 rounded-xl border-slate-300 text-base! md:text-sm!"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label
-                      htmlFor="product-meta-keywords"
-                      className="font-medium text-slate-700"
-                    >
-                      Anahtar kelimeler
-                    </label>
-                    <Input
-                      id="product-meta-keywords"
-                      value={metaKeywords}
-                      onChange={(event) => setMetaKeywords(event.target.value)}
-                      className={fieldClass}
-                    />
-                  </div>
-                </div>
-              </details>
-            </section>
+        <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 gap-5 overflow-y-auto overscroll-contain bg-slate-50 px-4 py-4 sm:px-6 lg:grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)] lg:overflow-hidden">
+          <div className="contents lg:col-start-2 lg:row-start-1 lg:flex lg:min-h-0 lg:flex-col">
             <ProductImagePanel
               previewImages={previewImages}
               selectedFormImageIndex={selectedFormImageIndex}
               setPreviewImages={setPreviewImages}
               setSelectedFormImageIndex={setSelectedFormImageIndex}
               title={title}
-              visible={activeTab === "images"}
               uploadingImage={uploadingImage}
               disabled={
                 saving || uploadingImage || aiLoading || scanImageLoading
               }
-              canScan={!oemNumber.trim()}
-              scanning={aiLoading || scanImageLoading}
               handleImageUpload={handleImageUpload}
-              onScan={handleSmartAutoFill}
             />
+            <div className="hidden shrink-0 border-t border-slate-200 bg-white px-4 pt-3 pb-1 lg:flex lg:flex-col">
+              {saveError && (
+                <p role="alert" className="mb-3 text-sm text-red-600">
+                  {saveError}
+                </p>
+              )}
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={saving}
+                  onClick={onClose}
+                  className="h-12 text-sm"
+                >
+                  Vazgeç
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={
+                    saving || uploadingImage || aiLoading || scanImageLoading
+                  }
+                  className="h-12 gap-2 px-6 text-sm"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                  {saving ? "Kaydediliyor…" : "Kaydet"}
+                </Button>
+              </div>
+            </div>
           </div>
+          <section
+            id="product-details-panel"
+            aria-label="Parça bilgileri"
+            className="min-w-0 space-y-4 px-0.5 pb-1 lg:col-start-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                role="switch"
+                aria-label="Stokta"
+                aria-checked={inStock}
+                onClick={() => setInStock(!inStock)}
+                className={
+                  "flex min-h-16 min-w-0 items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-left focus-visible:outline-2 focus-visible:outline-blue-600 " +
+                  (inStock
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                    : "border-slate-200 bg-white text-slate-600")
+                }
+              >
+                <span>
+                  <span className="block text-xs">Stok</span>
+                  <span className="mt-1 block font-semibold">
+                    {inStock ? "Stokta" : "Stokta yok"}
+                  </span>
+                </span>
+                <span
+                  className={
+                    "flex h-6 w-10 shrink-0 items-center rounded-full p-0.5 " +
+                    (inStock ? "bg-emerald-700" : "bg-slate-300")
+                  }
+                >
+                  <span
+                    className={
+                      "h-5 w-5 rounded-full bg-white shadow-xs " +
+                      (inStock ? "translate-x-4" : "")
+                    }
+                  />
+                </span>
+              </button>
+              <button
+                type="button"
+                role="switch"
+                aria-label="Yayında"
+                aria-checked={!isDraft}
+                onClick={() => setIsDraft(!isDraft)}
+                className={
+                  "flex min-h-16 min-w-0 items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-left focus-visible:outline-2 focus-visible:outline-blue-600 " +
+                  (!isDraft
+                    ? "border-blue-200 bg-blue-50 text-blue-800"
+                    : "border-slate-200 bg-white text-slate-600")
+                }
+              >
+                <span>
+                  <span className="block text-xs">Yayın</span>
+                  <span className="mt-1 block font-semibold">
+                    {isDraft ? "Taslak" : "Yayında"}
+                  </span>
+                </span>
+                <span
+                  className={
+                    "flex h-6 w-10 shrink-0 items-center rounded-full p-0.5 " +
+                    (!isDraft ? "bg-blue-600" : "bg-slate-300")
+                  }
+                >
+                  <span
+                    className={
+                      "h-5 w-5 rounded-full bg-white shadow-xs " +
+                      (!isDraft ? "translate-x-4" : "")
+                    }
+                  />
+                </span>
+              </button>
+            </div>
+            <>
+              <div className="space-y-2">
+                <label
+                  htmlFor="product-oem"
+                  className="font-medium text-slate-700"
+                >
+                  OEM kodu <span className="text-red-600">*</span>
+                </label>
+                <Input
+                  id="product-oem"
+                  aria-required="true"
+                  autoComplete="off"
+                  placeholder="0281001781"
+                  value={oemNumber}
+                  onChange={(event) => {
+                    setOemNumber(event.target.value);
+                    setAiError(null);
+                  }}
+                  className={fieldClass + " font-mono"}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleSmartAutoFill}
+                  disabled={
+                    saving ||
+                    uploadingImage ||
+                    aiLoading ||
+                    scanImageLoading ||
+                    (!oemNumber.trim() &&
+                      !previewImages[selectedFormImageIndex])
+                  }
+                  className="h-11 w-full gap-2"
+                >
+                  {aiLoading || scanImageLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : oemNumber.trim() ? (
+                    <Sparkles className="h-4 w-4" />
+                  ) : (
+                    <Scan className="h-4 w-4" />
+                  )}
+                  {aiLoading
+                    ? "OEM araştırılıyor…"
+                    : scanImageLoading
+                      ? "Etiket okunuyor…"
+                      : oemNumber.trim()
+                        ? "OEM ile doldur"
+                        : previewImages[selectedFormImageIndex]
+                          ? "Etiketten doldur"
+                          : "Otomatik doldur"}
+                </Button>
+              </div>
+              {aiError && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-sm text-red-700"
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p className="min-w-0 flex-1 wrap-anywhere">{aiError}</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Uyarıyı kapat"
+                    onClick={() => setAiError(null)}
+                    className="h-11 w-11 shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+              {aiSuccessMessage && (
+                <div
+                  role="status"
+                  className="space-y-2 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800"
+                >
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    <p className="min-w-0 flex-1">{aiSuccessMessage}</p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Bildirimi kapat"
+                      onClick={() => setAiSuccessMessage(null)}
+                      className="h-11 w-11 shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {aiSources.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {aiSources.slice(0, 3).map((source, index) => (
+                        <a
+                          key={index}
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="max-w-full truncate text-xs text-blue-700 underline"
+                        >
+                          {source.title || "Kaynak"}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="space-y-2">
+                <label
+                  htmlFor="product-title"
+                  className="font-medium text-slate-700"
+                >
+                  Parça adı <span className="text-red-600">*</span>
+                </label>
+                <Input
+                  id="product-title"
+                  aria-required="true"
+                  placeholder="Renault Megane motor beyni"
+                  value={title}
+                  onChange={(event) => {
+                    setTitle(event.target.value);
+                    if (!slugManuallyEdited)
+                      setSlug(slugify(event.target.value));
+                  }}
+                  className={fieldClass}
+                />
+              </div>
+              <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="min-w-0 space-y-2">
+                  <label
+                    htmlFor="product-brand"
+                    className="font-medium text-slate-700"
+                  >
+                    Marka <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    id="product-brand"
+                    aria-required="true"
+                    value={brand}
+                    onChange={(event) => setBrand(event.target.value)}
+                    className={
+                      fieldClass +
+                      " w-full min-w-0 border px-3 text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600"
+                    }
+                  >
+                    <option value="Genel Uyumlu">Genel Uyumlu</option>
+                    {brand !== "Genel Uyumlu" &&
+                      !brands?.some((item) => item.name === brand) && (
+                        <option value={brand}>{brand}</option>
+                      )}
+                    {brands?.map((item) => (
+                      <option key={item._id} value={item.name}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="min-w-0 space-y-2">
+                  <label
+                    htmlFor="product-category"
+                    className="font-medium text-slate-700"
+                  >
+                    Kategori <span className="text-red-600">*</span>
+                  </label>
+                  <select
+                    id="product-category"
+                    aria-required="true"
+                    value={selectedCategoryId}
+                    onChange={(event) =>
+                      setSelectedCategoryId(event.target.value)
+                    }
+                    className={
+                      fieldClass +
+                      " w-full min-w-0 border px-3 text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600"
+                    }
+                  >
+                    <option value="">Kategori seçin</option>
+                    {categories?.map((item) => (
+                      <option key={item._id} value={item._id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="min-w-0 space-y-2">
+                  <label
+                    htmlFor="product-model"
+                    className="font-medium text-slate-700"
+                  >
+                    Model / seri
+                  </label>
+                  <Input
+                    id="product-model"
+                    placeholder="Megane 2, Clio 3"
+                    value={model}
+                    onChange={(event) => setModel(event.target.value)}
+                    className={fieldClass}
+                  />
+                </div>
+                <div className="min-w-0 space-y-2">
+                  <label
+                    htmlFor="product-shelf"
+                    className="font-medium text-slate-700"
+                  >
+                    Raf kodu
+                  </label>
+                  <Input
+                    id="product-shelf"
+                    placeholder="A12-04"
+                    value={shelfCode}
+                    onChange={(event) => setShelfCode(event.target.value)}
+                    className={fieldClass + " font-mono"}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label
+                  htmlFor="product-condition"
+                  className="font-medium text-slate-700"
+                >
+                  Parça durumu
+                </label>
+                <select
+                  id="product-condition"
+                  value={condition}
+                  onChange={(event) => setCondition(event.target.value)}
+                  className={
+                    fieldClass +
+                    " w-full border px-3 text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600"
+                  }
+                >
+                  <option value="Orijinal Çıkma">Orijinal Çıkma</option>
+                  <option value="Sıfır - Orijinal">Sıfır - Orijinal</option>
+                  <option value="Revizyonlu">Revizyonlu</option>
+                  <option value="Sıfırlanmış - Virgin">
+                    Sıfırlanmış - Virgin
+                  </option>
+                </select>
+              </div>
+            </>
+            <details className="group rounded-2xl border border-slate-200 bg-white">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-2xl px-4 font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
+                <FileText className="h-4 w-4 text-slate-500" />
+                <span className="flex-1">Açıklama ve etiketler</span>
+                <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+              </summary>
+              <div className="space-y-4 border-t border-slate-100 p-4">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="product-description"
+                    className="font-medium text-slate-700"
+                  >
+                    Açıklama
+                  </label>
+                  <Textarea
+                    id="product-description"
+                    rows={4}
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    className="min-h-32 rounded-xl border-slate-300 text-base! md:text-sm!"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="product-tags"
+                    className="font-medium text-slate-700"
+                  >
+                    Etiketler
+                  </label>
+                  <Input
+                    id="product-tags"
+                    placeholder="Megane 2, ECU"
+                    value={tagsInput}
+                    onChange={(event) => setTagsInput(event.target.value)}
+                    className={fieldClass}
+                  />
+                </div>
+              </div>
+            </details>
+            <details className="group rounded-2xl border border-slate-200 bg-white">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-2xl px-4 font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
+                <Globe className="h-4 w-4 text-slate-500" />
+                <span className="flex-1">Arama motorları</span>
+                <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
+              </summary>
+              <div className="space-y-4 border-t border-slate-100 p-4">
+                <div className="space-y-2">
+                  <label
+                    htmlFor="product-slug"
+                    className="font-medium text-slate-700"
+                  >
+                    Sayfa adresi
+                  </label>
+                  <Input
+                    id="product-slug"
+                    value={slug}
+                    onChange={(event) => {
+                      setSlug(slugify(event.target.value));
+                      setSlugManuallyEdited(true);
+                    }}
+                    className={fieldClass + " font-mono"}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="product-meta-title"
+                    className="font-medium text-slate-700"
+                  >
+                    Meta başlık
+                  </label>
+                  <Input
+                    id="product-meta-title"
+                    value={metaTitle}
+                    onChange={(event) => setMetaTitle(event.target.value)}
+                    className={fieldClass}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="product-meta-description"
+                    className="font-medium text-slate-700"
+                  >
+                    Meta açıklama
+                  </label>
+                  <Textarea
+                    id="product-meta-description"
+                    rows={3}
+                    value={metaDescription}
+                    onChange={(event) =>
+                      setMetaDescription(event.target.value)
+                    }
+                    className="min-h-24 rounded-xl border-slate-300 text-base! md:text-sm!"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="product-meta-keywords"
+                    className="font-medium text-slate-700"
+                  >
+                    Anahtar kelimeler
+                  </label>
+                  <Input
+                    id="product-meta-keywords"
+                    value={metaKeywords}
+                    onChange={(event) => setMetaKeywords(event.target.value)}
+                    className={fieldClass}
+                  />
+                </div>
+              </div>
+            </details>
+          </section>
         </div>
-        <div className="shrink-0 border-t border-slate-200 bg-white px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
+        <div className="shrink-0 border-t border-slate-200 bg-white px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6 lg:hidden">
           {saveError && (
             <p role="alert" className="mb-3 text-sm text-red-600">
               {saveError}

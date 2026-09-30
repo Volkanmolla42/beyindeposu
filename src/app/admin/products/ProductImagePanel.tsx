@@ -15,7 +15,6 @@ import {
   Check,
   ImageIcon,
   Loader2,
-  Scan,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModernImageZoom } from "@/components/ModernImageZoom";
@@ -26,13 +25,9 @@ interface ProductImagePanelProps {
   setPreviewImages: Dispatch<SetStateAction<string[]>>;
   setSelectedFormImageIndex: Dispatch<SetStateAction<number>>;
   title: string;
-  visible: boolean;
   uploadingImage: boolean;
   disabled: boolean;
-  canScan: boolean;
-  scanning: boolean;
   handleImageUpload: ChangeEventHandler<HTMLInputElement>;
-  onScan: () => void;
 }
 
 export function ProductImagePanel({
@@ -41,13 +36,9 @@ export function ProductImagePanel({
   setPreviewImages,
   setSelectedFormImageIndex,
   title,
-  visible,
   uploadingImage,
   disabled,
-  canScan,
-  scanning,
   handleImageUpload,
-  onScan,
 }: ProductImagePanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -63,10 +54,7 @@ export function ProductImagePanel({
     <section
       id="product-images-panel"
       aria-label="Parça görselleri"
-      className={
-        "min-h-0 min-w-0 space-y-4 overflow-y-auto overscroll-contain px-0.5 pb-1 " +
-        (visible ? "" : "hidden lg:block")
-      }
+      className="-mx-4 -mt-4 min-w-0 space-y-4 px-0.5 pb-1 sm:-mx-6 lg:mx-0 lg:mt-0 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain"
     >
       <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
         <div className="flex items-center justify-between text-xs text-slate-500">
@@ -203,22 +191,6 @@ export function ProductImagePanel({
         onChange={handleImageUpload}
         className="hidden"
       />
-      {previewImages[selectedFormImageIndex] && canScan && (
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={onScan}
-          disabled={disabled}
-          className="h-12 w-full gap-2 lg:hidden"
-        >
-          {scanning ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Scan className="h-4 w-4" />
-          )}
-          Etiketten doldur
-        </Button>
-      )}
     </section>
   );
 }
