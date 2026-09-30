@@ -1,14 +1,16 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAdmin } from "./authz";
+import schema from "./schema";
 
 function normalizeBrandLogoUrl(url?: string | null): string | undefined {
-  if (!url) return undefined;
+  if (url === undefined || url === null) return undefined;
   return url.replace(/\.webp$/i, ".svg");
 }
 
 export const list = query({
   args: { onlyActive: v.optional(v.boolean()) },
+  returns: v.array(schema.doc("brands")),
   handler: async (ctx, args) => {
     if (args.onlyActive === false) {
       await requireAdmin(ctx);
@@ -26,6 +28,7 @@ export const list = query({
 
 export const getPopular = query({
   args: {},
+  returns: v.array(schema.doc("brands")),
   handler: async (ctx) => {
     const brands = await ctx.db
       .query("brands")

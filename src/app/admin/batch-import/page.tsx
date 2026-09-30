@@ -3,7 +3,6 @@
 import React, { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
 import {
   FolderUp,
   Play,
@@ -16,26 +15,12 @@ import {
   Loader2,
   Zap,
 } from "lucide-react";
+import {
+  importSlug,
+  groupProductFiles,
+  type ProductFileGroup,
+} from "./import-files";
 import { sanitizeTurkishText } from "@/lib/utils";
-
-interface ProductFileGroup {
-  id: string;
-  shelfCode: string;
-  categoryHint: string;
-  brandHint: string;
-  folderPath: string;
-  files: File[];
-  status: "idle" | "processing" | "success" | "skipped" | "error";
-  error?: string;
-  result?: {
-    productId?: string;
-    oemNumber?: string;
-    title?: string;
-    brand?: string;
-    model?: string;
-    imageUrl?: string;
-  };
-}
 
 type StatusFilter = "all" | "success" | "skipped" | "error" | "pending";
 
@@ -52,11 +37,15 @@ export default function BatchImportPage() {
 
   // State
   const [productGroups, setProductGroups] = useState<ProductFileGroup[]>([]);
-  const [selectedFolderName, setSelectedFolderName] = useState<string | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+  const [selectedFolderName, setSelectedFolderName] = useState<string | null>(
+    null,
+  );
+  const [phase, setPhase] = useState<"idle" | "running" | "pausing" | "paused">(
+    "idle",
+  );
+  const isRunning = phase === "running" || phase === "pausing";
+  const isPaused = phase === "paused";
   const [runMode, setRunMode] = useState<"ai" | "draft">("ai");
-  const [currentIndex, setCurrentIndex] = useState<number>(-1);
   const [skipExisting, setSkipExisting] = useState(true);
   const [searchFilter, setSearchFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -66,6 +55,14 @@ export default function BatchImportPage() {
 
   // Keep a ref to isRunning / isPaused to break out of processing loops instantly
   const shouldStopRef = useRef(false);
+  const poolActiveRef = useRef(false);
+
+  useEffect(
+    () => () => {
+      shouldStopRef.current = true;
+    },
+    [],
+  );
 
   // Toplu yükleme devam ederken sayfadan ayrılma / yenileme uyarısı
   useEffect(() => {
@@ -81,7 +78,7 @@ export default function BatchImportPage() {
       const target = (e.target as HTMLElement).closest("a");
       if (target && target.href && !target.href.startsWith("javascript:")) {
         const confirmLeave = window.confirm(
-          "Toplu yükleme sürüyor. Ayrılırsanız işlem durur. Çıkılsın mı?"
+          "Toplu yükleme sürüyor. Ayrılırsanız işlem durur. Çıkılsın mı?",
         );
         if (!confirmLeave) {
           e.preventDefault();
@@ -101,97 +98,24 @@ export default function BatchImportPage() {
 
   // Handle Directory Selection
   const handleDirectorySelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (poolActiveRef.current) return;
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
 
     const files = Array.from(fileList);
-    const groupsMap = new Map<string, { files: File[]; relPath: string }>();
-
-    let rootName = "Seçilen Klasör";
-
-    for (const file of files) {
-      const relPath = file.webkitRelativePath || file.name;
-      const parts = relPath.split("/");
-
-      if (parts.length > 1) {
-        rootName = parts[0];
-        // Dosyanın bulunduğu klasör ve raf kodu tespiti
-        const dirParts = parts.slice(0, parts.length - 1);
-        const shelfMatch = file.name.match(/^(\d{3}(?:\.\d{2})?\.\d{3,4})/);
-        const isShelfFolder = shelfMatch && dirParts[dirParts.length - 1] === shelfMatch[1];
-        const effectiveParts = !isShelfFolder && shelfMatch ? [...dirParts, shelfMatch[1]] : dirParts;
-        const folderKey = effectiveParts.join("/");
-
-        // Sadece görsel dosyalarını al
-        if (/\.(webp|jpg|jpeg|png)$/i.test(file.name)) {
-          if (!groupsMap.has(folderKey)) {
-            groupsMap.set(folderKey, { files: [], relPath: folderKey });
-          }
-          groupsMap.get(folderKey)!.files.push(file);
-        }
-      }
-    }
-
+    const { rootName, groups: newGroups } = groupProductFiles(files);
     setSelectedFolderName(rootName);
 
-    // Grupları ProductFileGroup array'ine çevir
-    const newGroups: ProductFileGroup[] = [];
-
-    groupsMap.forEach((val, key) => {
-      if (val.files.length === 0) return;
-
-      const segments = key.split("/");
-      const shelfCode = segments[segments.length - 1] || "GENEL";
-      const categoryHint = sanitizeTurkishText(segments.length > 2 ? segments[1] : "Oto Elektronik");
-      const brandHint = sanitizeTurkishText(segments.length > 3 ? segments[2].replace(/^[0-9.]+\s*/, "") : "Genel");
-
-      // Görselleri doğal sıraya göre diz (.1_ veya .1. önce gelsin)
-      val.files.sort((a, b) => {
-        const aFirst = a.name.includes(".1.") || a.name.includes(".1_");
-        const bFirst = b.name.includes(".1.") || b.name.includes(".1_");
-        if (aFirst && !bFirst) return -1;
-        if (!aFirst && bFirst) return 1;
-        return a.name.localeCompare(b.name, undefined, { numeric: true });
-      });
-
-      newGroups.push({
-        id: key,
-        shelfCode,
-        categoryHint,
-        brandHint,
-        folderPath: key,
-        files: val.files,
-        status: "idle",
-      });
-    });
-
     setProductGroups(newGroups);
-    setCurrentIndex(-1);
-    setIsRunning(false);
-    setIsPaused(false);
+    setPhase("idle");
     shouldStopRef.current = false;
-  };
-
-  // Helper: Slugify
-  const slugify = (text: string) => {
-    const trMap: Record<string, string> = {
-      ç: "c", Ç: "c", ğ: "g", Ğ: "g", ı: "i", İ: "i",
-      ö: "o", Ö: "o", ş: "s", Ş: "s", ü: "u", Ü: "u",
-    };
-    return text
-      .toLowerCase()
-      .split("")
-      .map((c) => trMap[c] || c)
-      .join("")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "");
   };
 
   // Helper: Category Matching
   const matchCategory = (
     categoryHint: string,
     aiCategoryId?: string,
-    aiCategoryName?: string
+    aiCategoryName?: string,
   ) => {
     if (aiCategoryId) {
       const found = categories.find((c) => c._id === aiCategoryId);
@@ -199,25 +123,40 @@ export default function BatchImportPage() {
     }
     if (aiCategoryName) {
       const cleanAiName = aiCategoryName.toLowerCase();
-      const found = categories.find((c) =>
-        c.name.toLowerCase().includes(cleanAiName) || cleanAiName.includes(c.name.toLowerCase())
+      const found = categories.find(
+        (c) =>
+          c.name.toLowerCase().includes(cleanAiName) ||
+          cleanAiName.includes(c.name.toLowerCase()),
       );
       if (found) return found;
     }
     const hint = categoryHint.toLowerCase();
     if (hint.includes("ecu") || hint.includes("motor")) {
-      return categories.find((c) => c.slug === "motor-beyinleri-ecu") || categories[0];
+      return (
+        categories.find((c) => c.slug === "motor-beyinleri-ecu") ||
+        categories[0]
+      );
     }
     if (hint.includes("abs") || hint.includes("esp")) {
-      return categories.find((c) => c.slug === "abs-esp-beyinleri") || categories[0];
+      return (
+        categories.find((c) => c.slug === "abs-esp-beyinleri") || categories[0]
+      );
     }
     if (hint.includes("airbag") || hint.includes("srs")) {
-      return categories.find((c) => c.slug === "airbag-beyinleri") || categories[0];
+      return (
+        categories.find((c) => c.slug === "airbag-beyinleri") || categories[0]
+      );
     }
     if (hint.includes("sigorta")) {
-      return categories.find((c) => c.slug === "sigorta-kutulari") || categories[0];
+      return (
+        categories.find((c) => c.slug === "sigorta-kutulari") || categories[0]
+      );
     }
-    if (hint.includes("modül") || hint.includes("bcm") || hint.includes("bsi")) {
+    if (
+      hint.includes("modül") ||
+      hint.includes("bcm") ||
+      hint.includes("bsi")
+    ) {
       return (
         categories.find((c) => c.slug === "bcm-bsi-sam-modulleri") ||
         categories.find((c) => c.slug === "konfor-modulleri") ||
@@ -234,7 +173,9 @@ export default function BatchImportPage() {
 
     // Set processing state
     setProductGroups((prev) =>
-      prev.map((g, i) => (i === index ? { ...g, status: "processing", error: undefined } : g))
+      prev.map((g, i) =>
+        i === index ? { ...g, status: "processing", error: undefined } : g,
+      ),
     );
 
     try {
@@ -251,17 +192,17 @@ export default function BatchImportPage() {
           prev.map((group, groupIndex) =>
             groupIndex === index
               ? {
-                ...group,
-                status: "skipped",
-                result: {
-                  productId: existing._id,
-                  oemNumber: existing.oemNumber,
-                  title: existing.title,
-                  brand: existing.brand,
-                  model: existing.model,
-                  imageUrl: existing.images?.[0],
-                },
-              }
+                  ...group,
+                  status: "skipped",
+                  result: {
+                    productId: existing._id,
+                    oemNumber: existing.oemNumber,
+                    title: existing.title,
+                    brand: existing.brand,
+                    model: existing.model,
+                    imageUrl: existing.images?.[0],
+                  },
+                }
               : group,
           ),
         );
@@ -300,18 +241,19 @@ export default function BatchImportPage() {
       const matchedCat = matchCategory(
         item.categoryHint,
         data.matchedCategoryId,
-        data.suggestedCategoryName
+        data.suggestedCategoryName,
       );
+      if (!matchedCat) throw new Error("Aktarım için bir kategori ekleyin.");
 
       // 4. Save to Convex (Update existing draft or Create new)
       const isDraft = Boolean(data.isDraft);
-      const cleanCatName = matchedCat?.name || sanitizeTurkishText(item.categoryHint);
+      const cleanCatName = matchedCat.name;
       const resolvedTitle = isDraft
         ? `${data.brand || item.brandHint} ${cleanCatName} - Raf: ${item.shelfCode} (İNCELEME GEREKLİ)`
         : data.title;
       const finalTitle = sanitizeTurkishText(resolvedTitle);
 
-      const baseSlug = slugify(finalTitle || item.shelfCode);
+      const baseSlug = importSlug(finalTitle || item.shelfCode);
       const finalSlug = isDraft
         ? ""
         : `${baseSlug}-${Date.now().toString().slice(-4)}`;
@@ -320,14 +262,16 @@ export default function BatchImportPage() {
         slug: finalSlug,
         oemNumber: data.oemNumber,
         shelfCode: item.shelfCode,
-        categoryId: matchedCat?._id,
+        categoryId: matchedCat._id,
         brand: sanitizeTurkishText(data.brand || item.brandHint),
         model: sanitizeTurkishText(data.model || ""),
         condition: data.condition || "Orijinal Çıkma",
         inStock: true,
         description: data.description,
         images: existing?.images?.length ? existing.images : data.images,
-        metaTitle: isDraft ? "" : sanitizeTurkishText(data.metaTitle || finalTitle.slice(0, 60)),
+        metaTitle: isDraft
+          ? ""
+          : sanitizeTurkishText(data.metaTitle || finalTitle.slice(0, 60)),
         metaDescription: data.metaDescription,
         metaKeywords: data.metaKeywords,
         tags: isDraft ? [] : data.tags,
@@ -343,19 +287,19 @@ export default function BatchImportPage() {
         prev.map((g, i) =>
           i === index
             ? {
-              ...g,
-              status: "success",
-              result: {
-                productId: finalProductId,
-                oemNumber: data.oemNumber,
-                title: finalTitle,
-                brand: sanitizeTurkishText(data.brand || item.brandHint),
-                model: sanitizeTurkishText(data.model || ""),
-                imageUrl: data.images?.[0],
-              },
-            }
-            : g
-        )
+                ...g,
+                status: "success",
+                result: {
+                  productId: finalProductId,
+                  oemNumber: data.oemNumber,
+                  title: finalTitle,
+                  brand: sanitizeTurkishText(data.brand || item.brandHint),
+                  model: sanitizeTurkishText(data.model || ""),
+                  imageUrl: data.images?.[0],
+                },
+              }
+            : g,
+        ),
       );
     } catch (err: unknown) {
       console.error("Error processing item:", err);
@@ -363,12 +307,12 @@ export default function BatchImportPage() {
         prev.map((g, i) =>
           i === index
             ? {
-              ...g,
-              status: "error",
-              error: err instanceof Error ? err.message : "Bilinmeyen hata",
-            }
-            : g
-        )
+                ...g,
+                status: "error",
+                error: err instanceof Error ? err.message : "Bilinmeyen hata",
+              }
+            : g,
+        ),
       );
     }
   };
@@ -379,7 +323,9 @@ export default function BatchImportPage() {
     if (!item) return;
 
     setProductGroups((prev) =>
-      prev.map((g, i) => (i === index ? { ...g, status: "processing", error: undefined } : g))
+      prev.map((g, i) =>
+        i === index ? { ...g, status: "processing", error: undefined } : g,
+      ),
     );
 
     try {
@@ -393,19 +339,19 @@ export default function BatchImportPage() {
           prev.map((group, groupIndex) =>
             groupIndex === index
               ? {
-                ...group,
-                status: "skipped",
-                result: {
-                  productId: existing._id,
-                  oemNumber: existing.oemNumber,
-                  title: existing.title,
-                  brand: existing.brand,
-                  model: existing.model,
-                  imageUrl: existing.images?.[0],
-                },
-              }
-              : group
-          )
+                  ...group,
+                  status: "skipped",
+                  result: {
+                    productId: existing._id,
+                    oemNumber: existing.oemNumber,
+                    title: existing.title,
+                    brand: existing.brand,
+                    model: existing.model,
+                    imageUrl: existing.images?.[0],
+                  },
+                }
+              : group,
+          ),
         );
         return;
       }
@@ -433,22 +379,31 @@ export default function BatchImportPage() {
 
       // 2. Kategori eşleştir
       const matchedCat = matchCategory(item.categoryHint);
+      if (!matchedCat) throw new Error("Aktarım için bir kategori ekleyin.");
 
       // 3. Taslak Ürünü Kaydet
-      const fallbackTitle = item.shelfCode && item.shelfCode !== "GENEL"
-        ? `${item.shelfCode} Oto Elektronik Parça`
-        : "Taslak Parça";
-      const generatedSlug = slugify(
-        `${item.shelfCode || "taslak"}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`
+      const fallbackTitle =
+        item.shelfCode && item.shelfCode !== "GENEL"
+          ? `${item.shelfCode} Oto Elektronik Parça`
+          : "Taslak Parça";
+      const generatedSlug = importSlug(
+        `${item.shelfCode || "taslak"}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`,
       );
 
       const payload = {
         title: fallbackTitle,
         slug: generatedSlug,
-        oemNumber: item.shelfCode && item.shelfCode !== "GENEL" ? item.shelfCode : "",
-        shelfCode: item.shelfCode && item.shelfCode !== "GENEL" ? item.shelfCode : undefined,
-        categoryId: (matchedCat?._id || categories[0]?._id) as Id<"categories">,
-        brand: item.brandHint && item.brandHint !== "Genel" ? item.brandHint : "Genel Uyumlu",
+        oemNumber:
+          item.shelfCode && item.shelfCode !== "GENEL" ? item.shelfCode : "",
+        shelfCode:
+          item.shelfCode && item.shelfCode !== "GENEL"
+            ? item.shelfCode
+            : undefined,
+        categoryId: matchedCat._id,
+        brand:
+          item.brandHint && item.brandHint !== "Genel"
+            ? item.brandHint
+            : "Genel Uyumlu",
         condition: "Orijinal Çıkma",
         inStock: true,
         isDraft: true,
@@ -464,18 +419,18 @@ export default function BatchImportPage() {
         prev.map((g, i) =>
           i === index
             ? {
-              ...g,
-              status: "success",
-              result: {
-                productId: finalProductId,
-                oemNumber: payload.oemNumber,
-                title: payload.title,
-                brand: payload.brand,
-                imageUrl: uploadedUrls[0],
-              },
-            }
-            : g
-        )
+                ...g,
+                status: "success",
+                result: {
+                  productId: finalProductId,
+                  oemNumber: payload.oemNumber,
+                  title: payload.title,
+                  brand: payload.brand,
+                  imageUrl: uploadedUrls[0],
+                },
+              }
+            : g,
+        ),
       );
     } catch (err: unknown) {
       console.error("Error processing draft item:", err);
@@ -483,38 +438,47 @@ export default function BatchImportPage() {
         prev.map((g, i) =>
           i === index
             ? {
-              ...g,
-              status: "error",
-              error: err instanceof Error ? err.message : "Bilinmeyen hata",
-            }
-            : g
-        )
+                ...g,
+                status: "error",
+                error: err instanceof Error ? err.message : "Bilinmeyen hata",
+              }
+            : g,
+        ),
       );
     }
   };
 
   // Main Concurrency Worker Pool Handler (Hem AI hem Taslak modunu destekler)
-  const startProcessing = async (mode: "ai" | "draft" = runMode) => {
+  const startProcessing = async (
+    mode: "ai" | "draft" = runMode,
+    onlyIndex?: number,
+  ) => {
+    if (poolActiveRef.current || categories.length === 0) return;
     setRunMode(mode);
-    setIsRunning(true);
-    setIsPaused(false);
     shouldStopRef.current = false;
 
     // İşlenmeyi bekleyen (idle veya error) parçaların indeks listesi
     const pendingIndices: number[] = [];
     productGroups.forEach((g, idx) => {
-      if (g.status === "idle" || g.status === "error") {
+      if (
+        (onlyIndex === undefined || idx === onlyIndex) &&
+        (g.status === "idle" || g.status === "error")
+      ) {
         pendingIndices.push(idx);
       }
     });
 
     if (pendingIndices.length === 0) {
-      setIsRunning(false);
       return;
     }
+    poolActiveRef.current = true;
+    setPhase("running");
 
     let nextQueueIdx = 0;
-    const workerCount = Math.max(1, Math.min(ULTRA_CONCURRENCY, pendingIndices.length));
+    const workerCount = Math.max(
+      1,
+      Math.min(ULTRA_CONCURRENCY, pendingIndices.length),
+    );
 
     const runWorker = async () => {
       while (nextQueueIdx < pendingIndices.length) {
@@ -523,7 +487,6 @@ export default function BatchImportPage() {
         const currentItemIndex = pendingIndices[nextQueueIdx++];
         if (currentItemIndex === undefined) break;
 
-        setCurrentIndex(currentItemIndex);
         if (mode === "ai") {
           await processItem(currentItemIndex);
         } else {
@@ -532,54 +495,63 @@ export default function BatchImportPage() {
 
         if (!shouldStopRef.current && nextQueueIdx < pendingIndices.length) {
           // UI render ve akıcılık için kısa bekleme
-          await new Promise((resolve) => setTimeout(resolve, mode === "ai" ? 150 : 80));
+          await new Promise((resolve) =>
+            setTimeout(resolve, mode === "ai" ? 150 : 80),
+          );
         }
       }
     };
 
-    await Promise.all(
-      Array.from({ length: workerCount }, () => runWorker())
-    );
-
-    if (!shouldStopRef.current) {
-      setIsRunning(false);
-      setIsPaused(false);
+    try {
+      await Promise.all(Array.from({ length: workerCount }, () => runWorker()));
+    } finally {
+      poolActiveRef.current = false;
+      setPhase(shouldStopRef.current ? "paused" : "idle");
     }
   };
 
   // Pause Handler
   const handlePause = () => {
     shouldStopRef.current = true;
-    setIsPaused(true);
-    setIsRunning(false);
+    setPhase("pausing");
   };
 
   // Reset Handler
   const handleReset = () => {
+    if (poolActiveRef.current) return;
     shouldStopRef.current = true;
-    setIsRunning(false);
-    setIsPaused(false);
-    setCurrentIndex(-1);
+    setPhase("idle");
     setProductGroups((prev) =>
       prev.map((g) => ({
         ...g,
         status: "idle",
         error: undefined,
         result: undefined,
-      }))
+      })),
     );
   };
 
   // Counts & Progress
   const totalCount = productGroups.length;
-  const processingCount = productGroups.filter((g) => g.status === "processing").length;
-  const successCount = productGroups.filter((g) => g.status === "success").length;
-  const skippedCount = productGroups.filter((g) => g.status === "skipped").length;
+  const processingCount = productGroups.filter(
+    (g) => g.status === "processing",
+  ).length;
+  const successCount = productGroups.filter(
+    (g) => g.status === "success",
+  ).length;
+  const skippedCount = productGroups.filter(
+    (g) => g.status === "skipped",
+  ).length;
   const errorCount = productGroups.filter((g) => g.status === "error").length;
   const completedCount = successCount + skippedCount + errorCount;
   const pendingCount = totalCount - completedCount;
-  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-  const statusFilters: { value: StatusFilter; label: string; count?: number }[] = [
+  const progressPercent =
+    totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const statusFilters: {
+    value: StatusFilter;
+    label: string;
+    count?: number;
+  }[] = [
     { value: "all", label: "Tümü" },
     { value: "success", label: "Başarılı", count: successCount },
     { value: "skipped", label: "Atlandı", count: skippedCount },
@@ -596,26 +568,42 @@ export default function BatchImportPage() {
       if (statusFilter === "success" && item.status !== "success") return false;
       if (statusFilter === "skipped" && item.status !== "skipped") return false;
       if (statusFilter === "error" && item.status !== "error") return false;
-      if (statusFilter === "pending" && item.status !== "idle" && item.status !== "processing") return false;
+      if (
+        statusFilter === "pending" &&
+        item.status !== "idle" &&
+        item.status !== "processing"
+      )
+        return false;
 
       // Search term
       if (searchFilter.trim()) {
-        const term = searchFilter.toLowerCase();
-        const matchesShelf = item.shelfCode.toLowerCase().includes(term);
-        const matchesOem = item.result?.oemNumber?.toLowerCase().includes(term);
-        const matchesTitle = item.result?.title?.toLowerCase().includes(term);
-        const matchesBrand = item.brandHint.toLowerCase().includes(term);
-        return matchesShelf || matchesOem || matchesTitle || matchesBrand;
+        const term = searchFilter.trim().toLocaleLowerCase("tr-TR");
+        return [
+          item.shelfCode,
+          item.result?.oemNumber,
+          item.result?.title,
+          item.brandHint,
+          item.result?.brand,
+          item.result?.model,
+        ].some((value) => value?.toLocaleLowerCase("tr-TR").includes(term));
       }
       return true;
     });
   }, [productGroups, statusFilter, searchFilter]);
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-5 sm:space-y-6">
+      <div>
+        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+          Toplu aktarım
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">
+          Parça görsellerini klasör yapısıyla önizleyip içe aktarın.
+        </p>
+      </div>
       {/* 2. Klasör Seçim Kutusu (Dropzone) */}
       {productGroups.length === 0 ? (
-        <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-white p-10 text-center transition-all hover:border-blue-500 hover:bg-blue-50/20">
+        <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-white p-6 text-center transition-colors hover:border-blue-500 hover:bg-blue-50/20 sm:p-10">
           <input
             ref={fileInputRef}
             type="file"
@@ -627,85 +615,102 @@ export default function BatchImportPage() {
             className="hidden"
           />
 
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 shadow-inner">
-            <FolderUp className="h-8 w-8" />
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 sm:h-16 sm:w-16">
+            <FolderUp className="h-7 w-7 sm:h-8 sm:w-8" />
           </div>
 
-          <h3 className="mt-4 text-base font-bold text-slate-900">
+          <h2 className="mt-4 text-lg font-semibold text-slate-900 sm:text-xl">
             Parça klasörlerini seçin
-          </h3>
-          <p className="mx-auto mt-1.5 max-w-md text-xs text-slate-500 leading-relaxed">
-            Parça alt klasörlerini içeren ana klasörü seçin. Seçtiğinizde parça listesi önizlenecek; ister yapay zeka ile analiz edebilir, ister doğrudan hızlı taslak olarak aktarabilirsiniz.
+          </h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-500">
+            Parça alt klasörlerini içeren ana klasörü seçin. Seçtiğinizde parça
+            listesi önizlenecek; ister yapay zeka ile analiz edebilir, ister
+            doğrudan hızlı taslak olarak aktarabilirsiniz.
           </p>
 
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-6 flex items-center justify-center gap-3">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/25 hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-blue-700 sm:w-auto"
             >
               <FolderUp className="h-4 w-4" />
               <span>Klasör seç ve önizle</span>
             </button>
           </div>
-
         </div>
       ) : (
         /* 3. Aktif Klasör & Kontrol Paneli */
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-5 sm:space-y-6">
           {/* Dashboard Bar */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs sm:p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               {/* Klasör Bilgisi */}
-              <div className="flex items-center gap-3">
+              <div className="min-w-0 flex items-center gap-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
                   <File className="h-6 w-6" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm font-bold text-slate-900">{selectedFolderName}</span>
-                    <span className="rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="max-w-full truncate font-mono text-sm font-semibold text-slate-900">
+                      {selectedFolderName}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
                       {totalCount} parça
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {productGroups.reduce((acc, g) => acc + g.files.length, 0)} görsel
+                    {productGroups.reduce((acc, g) => acc + g.files.length, 0)}{" "}
+                    görsel
                   </p>
                 </div>
               </div>
 
               {/* Kontrol Butonları */}
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
                 {!isRunning ? (
                   <>
                     <button
                       type="button"
                       onClick={() => startProcessing("ai")}
-                      className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/25 hover:bg-blue-700 active:scale-95 transition-all cursor-pointer"
+                      disabled={categories.length === 0}
+                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-4 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-blue-700 sm:w-auto"
                       title="Yapay zeka ile görselleri tarayıp OEM, başlık ve marka bilgilerini otomatik çıkartır"
                     >
                       <Play className="h-4 w-4 fill-current" />
-                      <span>{isPaused && runMode === "ai" ? "Devam et (AI)" : "AI ile Başlat"}</span>
+                      <span>
+                        {isPaused && runMode === "ai"
+                          ? "Devam et (AI)"
+                          : "AI ile Başlat"}
+                      </span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => startProcessing("draft")}
-                      className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-500/25 hover:bg-emerald-700 active:scale-95 transition-all cursor-pointer"
+                      disabled={categories.length === 0}
+                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-4 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-emerald-800 sm:w-auto"
                       title="AI analizi yapmadan görselleri hızlıca yükleyip doğrudan taslak ürünler oluşturur"
                     >
                       <Zap className="h-4 w-4 fill-current" />
-                      <span>{isPaused && runMode === "draft" ? "Devam et (Taslak)" : "Taslak Olarak Başlat"}</span>
+                      <span>
+                        {isPaused && runMode === "draft"
+                          ? "Devam et (Taslak)"
+                          : "Taslak Olarak Başlat"}
+                      </span>
                     </button>
                   </>
                 ) : (
                   <button
                     type="button"
                     onClick={handlePause}
-                    className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-amber-500/25 hover:bg-amber-600 active:scale-95 transition-all cursor-pointer"
+                    disabled={phase === "pausing"}
+                    className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-amber-600 px-4 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-amber-700 sm:w-auto"
                   >
                     <Pause className="h-4 w-4 fill-current" />
-                    <span>Duraklat</span>
+                    <span>
+                      {phase === "pausing" ? "Duraklatılıyor…" : "Duraklat"}
+                    </span>
                   </button>
                 )}
 
@@ -717,7 +722,7 @@ export default function BatchImportPage() {
                     setSelectedFolderName(null);
                   }}
                   disabled={isRunning}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 disabled:opacity-50 sm:w-auto"
                 >
                   <FolderUp className="h-4 w-4" />
                   <span>Klasör değiştir</span>
@@ -726,29 +731,43 @@ export default function BatchImportPage() {
             </div>
 
             {/* İlerleme Çubuğu */}
-            <div className="mt-6 border-t border-slate-100 pt-5">
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-2">
-                <span className="flex items-center gap-2">
+            <div className="mt-5 border-t border-slate-100 pt-4 sm:mt-6 sm:pt-5">
+              <div className="mb-3 flex flex-col gap-2 text-sm font-medium text-slate-700 sm:flex-row sm:items-center sm:justify-between">
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span>İlerleme</span>
                   {isRunning && (
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-blue-600 animate-pulse">
+                    <span className="inline-flex flex-wrap items-center gap-1.5 text-xs font-medium text-blue-700">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold border ${
-                        runMode === "ai"
-                          ? "bg-blue-50 text-blue-700 border-blue-200"
-                          : "bg-emerald-50 text-emerald-700 border-emerald-200"
-                      }`}>
-                        <Zap className={`h-3 w-3 ${runMode === "ai" ? "fill-blue-600 text-blue-600" : "fill-emerald-600 text-emerald-600"}`} />
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold border ${
+                          runMode === "ai"
+                            ? "bg-blue-50 text-blue-700 border-blue-200"
+                            : "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        }`}
+                      >
+                        <Zap
+                          className={`h-3 w-3 ${runMode === "ai" ? "fill-blue-600 text-blue-600" : "fill-emerald-600 text-emerald-600"}`}
+                        />
                         {runMode === "ai" ? "8x AI Modu" : "Hızlı Taslak Modu"}
                       </span>
-                      <span>({processingCount > 0 ? `${processingCount} parça` : "parçalar"} işleniyor)</span>
+                      <span>
+                        (
+                        {processingCount > 0
+                          ? `${processingCount} parça`
+                          : "parçalar"}{" "}
+                        işleniyor)
+                      </span>
                     </span>
                   )}
                   {isPaused && (
-                    <span className="text-[11px] font-medium text-amber-600">Duraklatıldı</span>
+                    <span className="text-[11px] font-medium text-amber-600">
+                      Duraklatıldı
+                    </span>
                   )}
                 </span>
-                <span className="font-mono">{completedCount} / {totalCount} (%{progressPercent})</span>
+                <span className="font-mono text-xs text-slate-600 sm:text-right">
+                  {completedCount} / {totalCount} (%{progressPercent})
+                </span>
               </div>
 
               <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
@@ -760,44 +779,52 @@ export default function BatchImportPage() {
             </div>
 
             {/* Yükleme Ayarı & Ultra Mod Göstergesi */}
-            <div className="mt-5 border-t border-slate-100 pt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-xs">
+            <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 text-sm sm:flex-row sm:items-center sm:justify-between">
               <label className="flex w-fit items-center gap-2 cursor-pointer font-medium text-slate-700">
                 <input
                   type="checkbox"
                   checked={skipExisting}
                   onChange={(e) => setSkipExisting(e.target.checked)}
                   disabled={isRunning}
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600 accent-blue-600"
+                  className="h-5 w-5 rounded border-slate-300 text-blue-600 accent-blue-600"
                 />
                 <span>Kayıtlı parçaları atla</span>
               </label>
 
               {/* Sabit Ultra Mod Rozeti */}
-              <div className="inline-flex items-center gap-1.5 rounded-lg border border-blue-100 bg-blue-50/70 px-2.5 py-1 text-[11px] font-semibold text-blue-700">
-                <Zap className="h-3.5 w-3.5 fill-blue-600 text-blue-600" />
+              <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700">
+                <Zap className="h-4 w-4 shrink-0 fill-blue-600 text-blue-600" />
                 <span>Ultra Mod Aktif (8x Eşzamanlı Tarama)</span>
               </div>
             </div>
           </div>
 
           {/* 4. Canlı Parça Listesi ve Arama */}
-          <div className="space-y-3">
-            <div className="flex flex-col gap-3 sm:flex-row-reverse sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-900">İşlem listesi</h3>
-                <span className="text-xs text-slate-500 font-mono">({filteredGroups.length} kayıt)</span>
+          <div className="min-w-0 space-y-3">
+            <div className="flex flex-col gap-3 lg:flex-row-reverse lg:items-center lg:justify-between">
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
+                <h3 className="text-sm font-bold text-slate-900">
+                  İşlem listesi
+                </h3>
+                <span className="text-xs text-slate-500 font-mono">
+                  ({filteredGroups.length} kayıt)
+                </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 {/* Arama Input */}
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                <div className="relative w-full sm:w-64">
+                  <Search
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
+                  />
                   <input
                     type="text"
+                    aria-label="Toplu aktarım kayıtlarında ara"
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
                     placeholder="OEM, raf kodu veya model ara"
-                    className="h-8 w-56 rounded-lg border border-slate-300 pl-8 pr-3 text-xs placeholder:text-slate-400 focus:border-blue-500 focus:outline-none"
+                    className="h-12 w-full rounded-full border border-slate-300 bg-white pl-11 pr-4 text-base! text-slate-900 placeholder:text-slate-500 focus:border-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 sm:text-sm!"
                   />
                 </div>
 
@@ -805,7 +832,7 @@ export default function BatchImportPage() {
                 <div
                   role="group"
                   aria-label="Duruma göre filtrele"
-                  className="flex max-w-full overflow-x-auto rounded-lg border border-slate-300 bg-white p-0.5 text-xs"
+                  className="flex max-w-full overflow-x-auto rounded-full border border-slate-200 bg-white p-1 text-sm"
                 >
                   {statusFilters.map((filter) => (
                     <button
@@ -813,14 +840,17 @@ export default function BatchImportPage() {
                       type="button"
                       aria-pressed={statusFilter === filter.value}
                       onClick={() => setStatusFilter(filter.value)}
-                      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${statusFilter === filter.value
-                        ? "bg-slate-900 text-white"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                        }`}
+                      className={`inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
+                        statusFilter === filter.value
+                          ? "bg-blue-50 text-blue-800"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                      }`}
                     >
                       <span>{filter.label}</span>
                       {filter.count !== undefined && (
-                        <span className="font-mono text-[10px] opacity-70">{filter.count}</span>
+                        <span className="font-mono text-[10px] opacity-70">
+                          {filter.count}
+                        </span>
                       )}
                     </button>
                   ))}
@@ -829,25 +859,26 @@ export default function BatchImportPage() {
             </div>
 
             {/* Liste Kartları */}
-            <div className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs">
+            <div className="divide-y divide-slate-200 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs">
               {filteredGroups.map((item, idx) => {
-                const isCurrent = currentIndex === productGroups.findIndex((g) => g.id === item.id);
+                const isCurrent = item.status === "processing";
 
                 return (
                   <div
                     key={item.id}
-                    className={`flex items-center justify-between gap-4 p-4 transition-colors ${isCurrent
+                    className={`flex flex-col gap-3 p-3 transition-colors sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4 ${
+                      isCurrent
                         ? "bg-blue-50/50"
                         : item.status === "success"
                           ? "hover:bg-slate-50"
                           : item.status === "error"
                             ? "bg-rose-50/20"
                             : "hover:bg-slate-50"
-                      }`}
+                    }`}
                   >
-                    <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="flex min-w-0 items-start gap-3">
                       {/* Sıra & Durum İkonu */}
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 font-mono text-xs font-bold text-slate-700">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 font-mono text-xs font-bold text-slate-700">
                         {item.status === "processing" ? (
                           <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                         ) : item.status === "success" ? (
@@ -862,25 +893,25 @@ export default function BatchImportPage() {
                       </div>
 
                       {/* Parça & OEM Detayları */}
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-slate-900">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="font-mono text-xs font-semibold text-slate-900 [overflow-wrap:anywhere]">
                             {item.shelfCode}
                           </span>
                           {item.result?.oemNumber && (
-                            <span className="rounded-md bg-blue-100 px-2 py-0.5 font-mono text-[11px] font-bold text-blue-800">
+                            <span className="max-w-full rounded-full bg-blue-50 px-2.5 py-1 font-mono text-xs font-medium text-blue-800 [overflow-wrap:anywhere]">
                               OEM: {item.result.oemNumber}
                             </span>
                           )}
-                          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600">
+                          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
                             {item.files.length} Görsel
                           </span>
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-xs text-slate-500">
                             {item.categoryHint} &bull; {item.brandHint}
                           </span>
                         </div>
 
-                        <p className="mt-0.5 truncate text-xs text-slate-600">
+                        <p className="mt-1 truncate text-sm text-slate-700">
                           {item.result?.title ? (
                             item.result.title
                           ) : (
@@ -893,7 +924,7 @@ export default function BatchImportPage() {
                         </p>
 
                         {item.error && (
-                          <p className="mt-1 text-[11px] font-medium text-rose-600">
+                          <p className="mt-1 text-xs font-medium text-rose-700 [overflow-wrap:anywhere]">
                             Hata: {item.error}
                           </p>
                         )}
@@ -901,30 +932,37 @@ export default function BatchImportPage() {
                     </div>
 
                     {/* Sağ Taraf: Aksiyon */}
-                    <div className="flex shrink-0 items-center gap-3">
+                    <div className="ml-13 flex shrink-0 items-center justify-end gap-2 sm:ml-0">
                       {item.status === "idle" && !isRunning ? (
                         <button
                           type="button"
                           onClick={() => {
-                            const realIdx = productGroups.findIndex((g) => g.id === item.id);
+                            const realIdx = productGroups.findIndex(
+                              (g) => g.id === item.id,
+                            );
                             if (realIdx !== -1) {
-                              if (runMode === "draft") {
-                                processDraftItem(realIdx);
-                              } else {
-                                processItem(realIdx);
-                              }
+                              void startProcessing(runMode, realIdx);
                             }
                           }}
-                          className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-blue-600 hover:text-white transition-colors cursor-pointer"
+                          className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-slate-100 px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-800"
                         >
                           <Play className="h-3 w-3 fill-current" />
-                          <span>{runMode === "draft" ? "Taslak kaydet" : "AI ile işle"}</span>
+                          <span>
+                            {runMode === "draft"
+                              ? "Taslak kaydet"
+                              : "AI ile işle"}
+                          </span>
                         </button>
                       ) : null}
                     </div>
                   </div>
                 );
               })}
+              {filteredGroups.length === 0 && (
+                <div className="p-8 text-center text-sm text-slate-500">
+                  Filtreye uygun kayıt bulunamadı.
+                </div>
+              )}
             </div>
           </div>
         </div>
