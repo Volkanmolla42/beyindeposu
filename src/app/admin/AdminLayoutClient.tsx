@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -123,6 +123,29 @@ export default function AdminLayout({
       item.exact ? pathname === item.href : pathname.startsWith(item.href)
     ) || allItems[0];
   const isChatsPage = pathname.startsWith("/admin/chats");
+  const shellRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const shell = shellRef.current;
+    if (!isChatsPage || !viewport || !shell) return;
+
+    const resize = () => {
+      if (window.innerWidth < 1024 && viewport.scale === 1) {
+        shell.style.height = `${viewport.height}px`;
+      } else {
+        shell.style.removeProperty("height");
+      }
+    };
+    resize();
+    viewport.addEventListener("resize", resize);
+    window.addEventListener("resize", resize);
+    return () => {
+      viewport.removeEventListener("resize", resize);
+      window.removeEventListener("resize", resize);
+      shell.style.removeProperty("height");
+    };
+  }, [isChatsPage, authLoading, isAuthenticated, isAdmin]);
 
   // Auth Loading Screen
   if (authLoading || !isAuthenticated || isAdmin !== true) {
@@ -135,9 +158,9 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="h-[100dvh] w-full bg-slate-50/70 text-slate-900 flex flex-col md:flex-row antialiased font-sans overflow-hidden">
+    <div ref={shellRef} className="group/admin h-[100dvh] w-full bg-slate-50/70 text-slate-900 flex flex-col md:flex-row antialiased font-sans overflow-hidden">
       {/* Mobile Header Bar */}
-      <header className="md:hidden flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 text-slate-900 z-40">
+      <header className="md:hidden group-has-[[data-chat-open=true]]/admin:hidden flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 text-slate-900 z-40">
         <div className="flex items-center gap-2.5 min-w-0">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -310,7 +333,7 @@ export default function AdminLayout({
 
       {/* Main Content Area (Independent Scroll) */}
       <div
-        className={`flex-1 flex flex-col min-w-0 h-full ${isChatsPage ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"
+        className={`flex-1 flex flex-col min-w-0 min-h-0 ${isChatsPage ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"
           }`}
       >
         {/* Desktop Breadcrumb Header */}
@@ -338,11 +361,10 @@ export default function AdminLayout({
 
         {/* Canvas Body */}
         <main
-          className={`flex-1 w-full min-w-0 mx-auto max-w-8xl flex flex-col ${
-            isChatsPage
-              ? "p-3 sm:p-6 lg:p-8 overflow-hidden min-h-0"
+          className={`flex-1 w-full min-w-0 mx-auto max-w-8xl flex flex-col ${isChatsPage
+              ? "p-0 lg:p-8 overflow-hidden min-h-0"
               : "p-3 sm:p-6 lg:p-8 pb-20 overflow-x-hidden"
-          }`}
+            }`}
         >
           {children}
         </main>
