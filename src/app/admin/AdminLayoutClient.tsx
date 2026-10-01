@@ -15,6 +15,7 @@ import {
   User,
   Loader2,
   Sparkles,
+  ChartNoAxesCombined,
 } from "lucide-react";
 import { useQuery, useConvexAuth } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -35,6 +36,10 @@ interface NavGroup {
 }
 
 const NAV_GROUPS: NavGroup[] = [
+  {
+    title: "İstatistikler",
+    items: [{ href: "/admin/analytics", label: "Analitik", icon: ChartNoAxesCombined }],
+  },
   {
     title: "Katalog ve stok",
     items: [

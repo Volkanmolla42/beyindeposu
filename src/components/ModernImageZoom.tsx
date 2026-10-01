@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { trackAnalytics } from "@/lib/analytics";
 
 interface ModernImageZoomProps {
   src: string;
@@ -31,6 +32,11 @@ export function ModernImageZoom({
 
   // Zoom & Pan state
   const [zoom, setZoom] = useState(1);
+  const zoomTracked = useRef(false);
+  useEffect(() => {
+    if (zoom > 1 && !zoomTracked.current) trackAnalytics("image_zoom");
+    zoomTracked.current = zoom > 1;
+  }, [zoom]);
   const [isHovering, setIsHovering] = useState(false);
   const [hoverOrigin, setHoverOrigin] = useState({ x: 50, y: 50 });
   const [panPosition, setPanPosition] = useState({ x: 0, y: 0 });

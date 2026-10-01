@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, useEffect, useRef, useSyncExternalStore } from "react";
+import { trackAnalytics } from "@/lib/analytics";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import {
@@ -194,6 +195,8 @@ export default function LiveChatWidget() {
         initialMessage: inputMessage.trim() || undefined,
       });
 
+      trackAnalytics("chat_start");
+
       setInputMessage("");
     } catch (err) {
       console.error("Start chat error:", err);
@@ -217,6 +220,7 @@ export default function LiveChatWidget() {
         visitorId,
         text,
       });
+      trackAnalytics("chat_message");
     } catch (err) {
       console.error("Send message error:", err);
     }
@@ -234,19 +238,19 @@ export default function LiveChatWidget() {
       {/* Floating Chat Trigger Button (when closed) */}
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
-          className="group relative flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-4 py-3.5 rounded-full shadow-2xl hover:shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer"
+          onClick={() => { trackAnalytics("chat_open"); setIsOpen(true); }}
+          className="group relative flex items-center gap-2.5 h-11 sm:h-12 px-3.5 sm:px-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm shadow-lg shadow-slate-900/15 hover:shadow-xl hover:shadow-slate-900/20 border border-blue-500/40 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-pointer"
           aria-label="Canlı destek"
           aria-haspopup="dialog"
           aria-expanded={false}
         >
-          <div className="flex items-center gap-2">
-            <Headphones className="w-5 h-5" />
-            <span className="text-sm tracking-tight font-extrabold hidden sm:inline">Canlı destek</span>
+          <div className="relative flex items-center justify-center">
+            <Headphones className="w-5 h-5 shrink-0" />
           </div>
+          <span className="text-sm font-semibold tracking-tight hidden sm:inline">Canlı destek</span>
 
           {unreadCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[11px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-white animate-bounce shadow-md">
+            <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold text-white shadow-sm ring-2 ring-white">
               {unreadCount}
             </span>
           )}
@@ -270,7 +274,7 @@ export default function LiveChatWidget() {
                 </div>
               </div>
               <div>
-                <h2 className="font-black text-sm text-white">Canlı destek</h2>
+                <h2 className="font-semibold text-sm text-white">Canlı destek</h2>
               </div>
             </div>
 
@@ -381,7 +385,7 @@ export default function LiveChatWidget() {
                   form="start-chat-form"
                   type="submit"
                   disabled={isStarting}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs h-10 rounded-xl shadow-md shadow-blue-600/20 cursor-pointer"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-10 rounded-xl shadow-md shadow-blue-600/20 cursor-pointer"
                 >
                   {isStarting ? (
                     <>

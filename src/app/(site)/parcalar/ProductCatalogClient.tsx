@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useMemo } from "react";
+import { Suspense, useState, useMemo, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { SearchableCombobox, ComboboxOption } from "@/components/ui/searchable-combobox";
+import { trackAnalytics, useAnalyticsConsent } from "@/lib/analytics";
 
 function ProductCatalogContent() {
   const searchParams = useSearchParams();
@@ -93,8 +94,28 @@ function ProductCatalogView({
   });
 
   const brands = useQuery(api.brands.list, {});
+  const productStats = useQuery(api.products.getStats, {});
 
   const products = pageData?.page;
+  const consent = useAnalyticsConsent();
+  const analyticsEnabled = consent.enabled && consent.choice === "granted" && !consent.privacySignal;
+  const lastSearch = useRef("");
+  const previousFilters = useRef<Record<string, string> | null>(null);
+  useEffect(() => {
+    if (!analyticsEnabled || !activeSearch) { lastSearch.current = ""; return; }
+    if (!products || currentPage !== 1) return;
+    const key = `${activeSearch}:${selectedCategory}:${selectedBrand}:${selectedCondition}:${selectedStock}`;
+    if (lastSearch.current === key) return;
+    lastSearch.current = key;
+    trackAnalytics("search", { value: activeSearch, resultCount: products.length });
+  }, [activeSearch, products, currentPage, selectedCategory, selectedBrand, selectedCondition, selectedStock, analyticsEnabled]);
+  useEffect(() => {
+    const filters = { category: selectedCategory, brand: selectedBrand, condition: selectedCondition, stock: selectedStock, sort: sortBy };
+    if (previousFilters.current) {
+      for (const [key, value] of Object.entries(filters)) if (previousFilters.current[key] !== value) trackAnalytics("filter_change", { value: `${key}:${value}` });
+    }
+    previousFilters.current = filters;
+  }, [selectedCategory, selectedBrand, selectedCondition, selectedStock, sortBy]);
 
   // Searchable Brand Options
   const brandOptions: ComboboxOption[] = useMemo(() => {
@@ -162,6 +183,7 @@ function ProductCatalogView({
     } else {
       return;
     }
+    trackAnalytics("catalog_page", { number: currentPage + (direction === "next" ? 1 : -1) });
     window.scrollTo({ top: 200, behavior: "smooth" });
   };
 
@@ -172,6 +194,23 @@ function ProductCatalogView({
     selectedStock !== "Tümü" ||
     activeSearch
   );
+
+  const totalCatalogCount = productStats
+    ? (productStats.published ?? productStats.total)
+    : null;
+
+  const partCountLabel = useMemo(() => {
+    if (!hasActiveFilters && totalCatalogCount !== null) {
+      return `${totalCatalogCount.toLocaleString("tr-TR")} Parça`;
+    }
+    if (products) {
+      if (pageData?.isDone && currentPage === 1) {
+        return `${products.length} Parça`;
+      }
+      return `Bu sayfada ${products.length} Parça`;
+    }
+    return "Parçalar";
+  }, [hasActiveFilters, totalCatalogCount, products, pageData, currentPage]);
 
   return (
     <>
@@ -199,7 +238,7 @@ function ProductCatalogView({
                 {activeCategoryTitle}
               </h1>
               <Badge variant="secondary" className="font-mono text-xs">
-                {products ? `${products.length} Parça` : "Parçalar"}
+                {partCountLabel}
               </Badge>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 max-w-2xl leading-relaxed">

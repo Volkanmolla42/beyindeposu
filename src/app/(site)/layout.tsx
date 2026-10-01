@@ -2,6 +2,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import LiveChatWidget from "@/components/LiveChatWidget";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
+import { Suspense } from "react";
+import AnalyticsProvider from "@/components/AnalyticsProvider";
 
 export default function SiteLayout({
   children,
@@ -23,6 +25,7 @@ export default function SiteLayout({
       <Footer />
       <LiveChatWidget />
       <FloatingWhatsApp />
+      <Suspense fallback={null}><AnalyticsProvider /></Suspense>
     </div>
   );
 }

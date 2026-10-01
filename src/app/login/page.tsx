@@ -33,7 +33,7 @@ export default function LoginPage() {
         password,
         flow: "signIn",
       });
-      router.push("/admin/products");
+      router.push("/admin");
       router.refresh();
     } catch (err) {
       console.error("Giriş hatası:", err);

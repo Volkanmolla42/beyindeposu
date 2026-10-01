@@ -8,6 +8,7 @@ import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import Link from "next/link";
 import Image from "next/image";
+import { trackAnalytics, useAnalyticsConsent } from "@/lib/analytics";
 
 interface OemSearchBarProps {
   className?: string;
@@ -23,6 +24,9 @@ export default function OemSearchBar({
   const [debouncedTerm, setDebouncedTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const consent = useAnalyticsConsent();
+  const analyticsEnabled = consent.enabled && consent.choice === "granted" && !consent.privacySignal;
+  const lastSearch = useRef("");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -37,6 +41,17 @@ export default function OemSearchBar({
       ? { query: debouncedTerm, limit: 6 }
       : "skip"
   );
+
+  useEffect(() => {
+    if (!analyticsEnabled || debouncedTerm.length < 2) { lastSearch.current = ""; return; }
+    if (!isOpen || !searchResults || searchTerm.trim() !== debouncedTerm) return;
+    const timer = setTimeout(() => {
+      if (lastSearch.current === debouncedTerm) return;
+      lastSearch.current = debouncedTerm;
+      trackAnalytics("search", { value: debouncedTerm, resultCount: searchResults.length });
+    }, 750);
+    return () => clearTimeout(timer);
+  }, [debouncedTerm, searchTerm, searchResults, isOpen, analyticsEnabled]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,7 +146,7 @@ export default function OemSearchBar({
                 <Link
                   key={product._id}
                   href={`/parcalar/${product.slug}`}
-                  onClick={() => setIsOpen(false)}
+                  onClick={() => { trackAnalytics("search_result_click", { path: `/parcalar/${product.slug}` }); setIsOpen(false); }}
                   className="flex items-center gap-4 p-3.5 hover:bg-blue-50/60 transition-colors group"
                 >
                   <div className="w-14 h-14 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative flex items-center justify-center">

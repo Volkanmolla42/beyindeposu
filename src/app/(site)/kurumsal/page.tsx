@@ -106,6 +106,7 @@ export default function KurumsalPage() {
           <p>
             Web sitesi üzerinden paylaşılan kişisel veriler 6698 sayılı KVKK kapsamında işlenir.
           </p>
+          <Link href="/gizlilik" className="inline-block text-blue-700 underline">Analitik ve gizlilik aydınlatması</Link>
         </div>
       </div>
     </>

@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import Image from "next/image";
+import Image, { getImageProps } from "next/image";
 import Link from "next/link";
 import { ArrowRight, Cpu, Layers } from "lucide-react";
 import OemSearchBar from "@/components/OemSearchBar";
@@ -51,28 +51,41 @@ function getRepeatedBrands<T>(items: T[], minCount = 28): T[] {
 }
 
 function HeroSection() {
+  const imageProps = {
+    alt: "",
+    sizes: "100vw",
+    quality: 75,
+    fetchPriority: "high" as const,
+  };
+  const {
+    props: { srcSet: desktopSrcSet },
+  } = getImageProps({
+    ...imageProps,
+    src: "/images/home-hero.webp",
+    width: 1672,
+    height: 941,
+  });
+  const {
+    props: { srcSet: mobileSrcSet, ...mobileImageProps },
+  } = getImageProps({
+    ...imageProps,
+    src: "/images/home-hero-mobile.webp",
+    width: 941,
+    height: 1672,
+  });
+
   return (
     <section className="relative isolate flex min-h-[calc(100svh-76px)] flex-col overflow-hidden bg-slate-100 text-slate-900">
-      <div className="absolute inset-0 z-0 hidden sm:block">
-        <Image
-          src="/images/home-hero.webp"
-          alt="Beyin Deposu oto elektronik parça merkezi"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover object-center sm:object-[65%_center]"
+      <picture className="absolute inset-0 z-0 block">
+        <source media="(min-width: 640px)" srcSet={desktopSrcSet} sizes="100vw" />
+        <source media="(max-width: 639px)" srcSet={mobileSrcSet} sizes="100vw" />
+        <img
+          {...mobileImageProps}
+          alt=""
+          loading="eager"
+          className="absolute inset-0 h-full w-full object-cover object-right sm:object-[65%_center]"
         />
-      </div>
-
-      <div className="absolute inset-0 z-0 sm:hidden">
-        <Image
-          src="/images/home-hero-mobile.webp"
-          alt="Beyin Deposu oto elektronik parça merkezi"
-          fill
-          sizes="100vw"
-          className="object-cover object-center"
-        />
-      </div>
+      </picture>
 
       <div className="relative z-20 mx-auto flex w-full max-w-[1680px] flex-col justify-start px-4 py-8 sm:flex-1 sm:justify-center sm:px-6 sm:py-12 lg:px-8">
         <div className="max-w-xl">

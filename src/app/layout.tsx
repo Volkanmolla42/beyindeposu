@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Roboto, Roboto_Mono } from "next/font/google";
-import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { ConvexClientProvider } from "./ConvexClientProvider";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
@@ -13,8 +12,6 @@ import {
   SITE_URL,
   serializeJsonLd,
 } from "@/lib/seo";
-
-const GA_MEASUREMENT_ID = "G-K1QH76J0XM";
 
 const roboto = Roboto({
   variable: "--font-roboto",
@@ -97,7 +94,6 @@ export default function RootLayout({
             {children}
           </ConvexClientProvider>
         </ConvexAuthNextjsServerProvider>
-        <GoogleAnalytics gaId={GA_MEASUREMENT_ID} />
       </body>
     </html>
   );

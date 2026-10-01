@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import RoutartLogo from "./RoutartLogo";
 import { MapPin, Mail, Phone } from "lucide-react";
 import { SITE_CONTACT } from "@/config/site";
+import { openAnalyticsPreferences } from "@/lib/analytics";
 
 export default function Footer() {
   const phone = SITE_CONTACT.phoneNumber;
@@ -90,7 +91,8 @@ export default function Footer() {
         <div className="container flex flex-col items-center justify-between gap-3 py-4 text-xs text-slate-600 sm:flex-row sm:pr-44">
           <p>© {new Date().getFullYear()} Beyin Deposu</p>
           <div className="flex items-center gap-4">
-            <Link href="/kurumsal#kvkk" className="hover:text-blue-700">KVKK</Link>
+            <Link href="/gizlilik" className="hover:text-blue-700">KVKK ve gizlilik</Link>
+            <button type="button" onClick={openAnalyticsPreferences} className="hover:text-blue-700">Çerez tercihleri</button>
           </div>
           <div className="flex items-center gap-1.5">
             <span>Tasarım ve yazılım</span>

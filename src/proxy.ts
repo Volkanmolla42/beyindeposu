@@ -12,7 +12,7 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
 
   // If already authenticated and visits login, redirect to admin panel
   if (isSignInPage(request) && authenticated) {
-    return nextjsMiddlewareRedirect(request, "/admin/products");
+    return nextjsMiddlewareRedirect(request, "/admin/analytics");
   }
 
   // If not authenticated and tries to visit admin routes, redirect to login

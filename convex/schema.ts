@@ -1,9 +1,35 @@
 import { defineSchema, defineTable } from "convex/server";
 import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
+import { analyticsEvent, breakdownKind, deviceValidator, metricsValidator } from "./analyticsModel";
 
 export default defineSchema({
   ...authTables,
+
+  analyticsTotals: defineTable({ bucket: v.string(), metrics: metricsValidator, expiresAt: v.number() })
+    .index("by_bucket", ["bucket"])
+    .index("by_expiresAt", ["expiresAt"]),
+  analyticsBreakdowns: defineTable({ bucket: v.string(), kind: breakdownKind, key: v.string(), count: v.number(), expiresAt: v.number() })
+    .index("by_bucket_and_kind_and_key", ["bucket", "kind", "key"])
+    .index("by_bucket_and_kind_and_count", ["bucket", "kind", "count"])
+    .index("by_expiresAt", ["expiresAt"]),
+  analyticsVisitors: defineTable({ bucket: v.string(), visitorId: v.string(), expiresAt: v.number() })
+    .index("by_bucket_and_visitorId", ["bucket", "visitorId"])
+    .index("by_visitorId", ["visitorId"])
+    .index("by_expiresAt", ["expiresAt"]),
+  analyticsSessions: defineTable({ sessionId: v.string(), visitorId: v.string(), consentVersion: v.string(), consentAt: v.number(), startedAt: v.number(), lastAt: v.number(), entryPath: v.string(), lastPath: v.string(), device: deviceValidator, source: v.string(), pageViews: v.number(), events: v.number(), activeMs: v.number(), rateWindow: v.number(), rateCount: v.number(), expiresAt: v.number() })
+    .index("by_sessionId", ["sessionId"])
+    .index("by_visitorId", ["visitorId"])
+    .index("by_startedAt", ["startedAt"])
+    .index("by_expiresAt", ["expiresAt"]),
+  analyticsEvents: defineTable({ sessionId: v.string(), visitorId: v.string(), at: v.number(), event: analyticsEvent, expiresAt: v.number() })
+    .index("by_sessionId_and_at", ["sessionId", "at"])
+    .index("by_visitorId_and_eventId", ["visitorId", "event.id"])
+    .index("by_visitorId", ["visitorId"])
+    .index("by_expiresAt", ["expiresAt"]),
+  analyticsErasure: defineTable({ visitorId: v.string(), expiresAt: v.number() })
+    .index("by_visitorId", ["visitorId"])
+    .index("by_expiresAt", ["expiresAt"]),
 
   // 1. Kategoriler Tablosu
   categories: defineTable({

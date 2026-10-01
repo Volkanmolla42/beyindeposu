@@ -8,11 +8,14 @@
  * @module
  */
 
+import type * as analytics from "../analytics.js";
+import type * as analyticsModel from "../analyticsModel.js";
 import type * as auth from "../auth.js";
 import type * as authz from "../authz.js";
 import type * as brands from "../brands.js";
 import type * as categories from "../categories.js";
 import type * as chats from "../chats.js";
+import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as oem from "../oem.js";
 import type * as products from "../products.js";
@@ -25,11 +28,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  analytics: typeof analytics;
+  analyticsModel: typeof analyticsModel;
   auth: typeof auth;
   authz: typeof authz;
   brands: typeof brands;
   categories: typeof categories;
   chats: typeof chats;
+  crons: typeof crons;
   http: typeof http;
   oem: typeof oem;
   products: typeof products;

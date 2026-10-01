@@ -26,6 +26,7 @@ import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Badge } from "@/components/ui/badge";
 import { ModernImageZoom } from "@/components/ModernImageZoom";
 import { slugify, LOCAL_BRAND_LOGOS } from "@/app/admin/admin-utils";
+import { trackAnalytics } from "@/lib/analytics";
 
 interface PageProps {
   slug: string;
@@ -82,6 +83,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
   const handleCopyOem = () => {
     if (!product?.oemNumber) return;
     navigator.clipboard.writeText(product.oemNumber);
+    trackAnalytics("oem_copy");
     setCopiedOem(true);
     if (copyOemTimerRef.current) clearTimeout(copyOemTimerRef.current);
     copyOemTimerRef.current = setTimeout(() => {
@@ -93,6 +95,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
   const handleShareLink = () => {
     if (typeof window !== "undefined") {
       navigator.clipboard.writeText(window.location.href);
+      trackAnalytics("product_share");
       setCopiedLink(true);
       if (copyLinkTimerRef.current) clearTimeout(copyLinkTimerRef.current);
       copyLinkTimerRef.current = setTimeout(() => {
@@ -167,7 +170,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => setActiveImageIndex(idx)}
+                        onClick={() => { setActiveImageIndex(idx); trackAnalytics("image_view", { number: idx + 1 }); }}
                         aria-label={`Parça görseli ${idx + 1}`}
                         className={`relative w-16 h-14 sm:w-20 sm:h-16 rounded-xl overflow-hidden border-2 bg-slate-50 transition-all cursor-pointer shrink-0 ${activeImageIndex === idx ? "border-blue-600 ring-2 ring-blue-100" : "border-slate-200 opacity-70 hover:opacity-100"}`}
                       >
