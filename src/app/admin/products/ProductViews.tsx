@@ -3,10 +3,9 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@convex/_generated/api";
-import Image from "next/image";
 import Link from "next/link";
+import { ProductImage } from "@/components/ProductImage";
 import {
-  Cpu,
   Pencil,
   MoreVertical,
   ExternalLink,
@@ -20,6 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { getProductImageAlt, getProductImageSource } from "@/lib/product-images";
 
 type Product = FunctionReturnType<
   typeof api.products.listPaginatedAdmin
@@ -129,7 +129,7 @@ export function ProductViews({
                             onMouseLeave={() => setHoverPreview(null)}
                             className="h-full w-full cursor-zoom-in p-1 focus-visible:outline-2 focus-visible:outline-blue-600 focus-visible:outline-offset-[-2px]"
                           >
-                            <Image
+                            <ProductImage
                               src={product.images[0]}
                               alt={product.title || "Parça"}
                               width={80}
@@ -139,7 +139,17 @@ export function ProductViews({
                             />
                           </button>
                         ) : (
-                          <Cpu className="h-6 w-6 text-slate-300" />
+                          <ProductImage
+                            src={getProductImageSource(product.images)}
+                            alt={getProductImageAlt(
+                              product.title || "Parça",
+                              product.images,
+                            )}
+                            width={80}
+                            height={64}
+                            unoptimized
+                            className="h-full w-full object-contain"
+                          />
                         )}
                         {product.images && product.images.length > 1 && (
                           <span className="pointer-events-none absolute bottom-1 right-1 rounded-md bg-slate-900/75 px-1.5 py-0.5 text-[10px] text-white">
@@ -278,7 +288,7 @@ export function ProductViews({
                       }
                       className="flex h-full w-full items-center justify-center rounded-lg focus-visible:outline-2 focus-visible:outline-blue-600"
                     >
-                      <Image
+                      <ProductImage
                         src={product.images[0]}
                         alt={product.title || "Parça"}
                         width={96}
@@ -288,7 +298,17 @@ export function ProductViews({
                       />
                     </button>
                   ) : (
-                    <Cpu className="h-7 w-7 text-slate-300" />
+                    <ProductImage
+                      src={getProductImageSource(product.images)}
+                      alt={getProductImageAlt(
+                        product.title || "Parça",
+                        product.images,
+                      )}
+                      width={96}
+                      height={72}
+                      unoptimized
+                      className="h-full w-full object-contain"
+                    />
                   )}
                   {product.images && product.images.length > 1 && (
                     <span className="pointer-events-none absolute bottom-1 right-1 rounded-lg bg-slate-900/80 px-1.5 py-0.5 text-xs text-white">

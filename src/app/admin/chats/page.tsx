@@ -2,14 +2,13 @@
 
 import { Fragment, Suspense, useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { ProductImage } from "@/components/ProductImage";
 import { useSearchParams } from "next/navigation";
 import {
   MessageSquare,
   Search,
   Send,
   User,
-  ShoppingBag,
   CheckCheck,
   Phone,
   PowerOff,
@@ -33,6 +32,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { playAdminNotificationSound } from "../admin-utils";
+import { getProductImageSource } from "@/lib/product-images";
 
 function formatMessageDay(timestamp: number) {
   const date = new Date(timestamp);
@@ -463,18 +463,14 @@ function AdminChatsContent() {
               {selectedConversation.productCard && (
                 <div className="px-4 py-2.5 shrink-0 bg-white border-b border-slate-200 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-md bg-white border border-slate-200 overflow-hidden flex items-center justify-center p-1 shrink-0">
-                    {selectedConversation.productCard.image ? (
-                      <Image
-                        src={selectedConversation.productCard.image}
-                        alt={selectedConversation.productCard.title}
-                        width={40}
-                        height={40}
-                        unoptimized
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      <ShoppingBag className="w-4 h-4 text-slate-400" />
-                    )}
+                    <ProductImage
+                      src={selectedConversation.productCard.image || getProductImageSource()}
+                      alt={selectedConversation.productCard.image ? selectedConversation.productCard.title : "Ürün görseli hazırlanıyor"}
+                      width={40}
+                      height={40}
+                      unoptimized
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                   <div className="min-w-0 flex-1 text-xs">
                     <div className="text-sm font-medium text-slate-900 truncate">

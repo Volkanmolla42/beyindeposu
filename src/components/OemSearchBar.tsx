@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import Link from "next/link";
-import Image from "next/image";
+import { ProductImage } from "@/components/ProductImage";
 import { trackAnalytics, useAnalyticsConsent } from "@/lib/analytics";
+import { getProductImageAlt, getProductImageSource } from "@/lib/product-images";
 
 interface OemSearchBarProps {
   className?: string;
@@ -150,18 +151,14 @@ export default function OemSearchBar({
                   className="flex items-center gap-4 p-3.5 hover:bg-blue-50/60 transition-colors group"
                 >
                   <div className="w-14 h-14 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative flex items-center justify-center">
-                    {product.images?.[0] ? (
-                      <Image
-                        src={product.images[0]}
-                        alt={product.title}
-                        fill
-                        unoptimized
-                        sizes="56px"
-                        className="object-cover group-hover:scale-105 transition-transform"
-                      />
-                    ) : (
-                      <Cpu className="w-6 h-6 text-slate-400" />
-                    )}
+                    <ProductImage
+                      src={getProductImageSource(product.images)}
+                      alt={getProductImageAlt(product.title, product.images)}
+                      fill
+                      unoptimized
+                      sizes="56px"
+                      className="object-contain group-hover:scale-105 transition-transform"
+                    />
                   </div>
 
                   <div className="flex-1 min-w-0">

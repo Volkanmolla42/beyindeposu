@@ -183,11 +183,23 @@ export default function BatchImportPage() {
       const existing = shelfCode
         ? await convex.query(api.products.getByShelfCode, { shelfCode })
         : null;
-      const isAlreadyFull = Boolean(
-        existing?.oemNumber && existing.title && existing.oemNumber.trim(),
+      // Disk üzerindeki görsel dosyasının gerçekten var olup olmadığını (silinip silinmediğini) kontrol et
+      let hasValidImages = false;
+      if (existing?.images && existing.images.length > 0) {
+        try {
+          const checkRes = await fetch(existing.images[0], { method: "HEAD" });
+          hasValidImages = checkRes.ok;
+        } catch {
+          hasValidImages = false;
+        }
+      }
+
+      const isAlreadyComplete = Boolean(
+        existing?.oemNumber && existing.title && existing.oemNumber.trim() && hasValidImages,
       );
 
-      if (skipExisting && isAlreadyFull && existing) {
+      // Eğer ürünün her şeyi tamsa ve görselleri de diskte gerçekten mevcutsa AI çalıştırmadan atla
+      if (skipExisting && isAlreadyComplete && existing) {
         setProductGroups((prev) =>
           prev.map((group, groupIndex) =>
             groupIndex === index
@@ -237,6 +249,36 @@ export default function BatchImportPage() {
         throw new Error(data.error || "OEM analizi başarısız oldu.");
       }
 
+      // 3. AI okumasından sonra: OEM veya Raf Kodu ile eşleşen ürün varsa YALNIZCA görselleri güncelle, bilgileri değiştirme!
+      const matchedOemProduct = await convex.mutation(api.products.appendImagesByOem, {
+        oemNumbers: data.oemNumber ? [data.oemNumber, data.cleanOemNumber || data.oemNumber] : [],
+        images: data.images,
+        shelfCode: item.shelfCode,
+      });
+
+      if (matchedOemProduct) {
+        setProductGroups((prev) =>
+          prev.map((group, groupIndex) =>
+            groupIndex === index
+              ? {
+                  ...group,
+                  status: "success",
+                  result: {
+                    productId: matchedOemProduct.productId,
+                    oemNumber: matchedOemProduct.oemNumber,
+                    title: matchedOemProduct.title,
+                    brand: matchedOemProduct.brand,
+                    model: matchedOemProduct.model,
+                    imageUrl: matchedOemProduct.imageUrl,
+                    updatedOnlyImages: true,
+                  },
+                }
+              : group,
+          ),
+        );
+        return;
+      }
+
       // 3. Match Category
       const matchedCat = matchCategory(
         item.categoryHint,
@@ -268,7 +310,7 @@ export default function BatchImportPage() {
         condition: data.condition || "Orijinal Çıkma",
         inStock: true,
         description: data.description,
-        images: existing?.images?.length ? existing.images : data.images,
+        images: data.images?.length ? data.images : (existing?.images || []),
         metaTitle: isDraft
           ? ""
           : sanitizeTurkishText(data.metaTitle || finalTitle.slice(0, 60)),
@@ -334,7 +376,17 @@ export default function BatchImportPage() {
         ? await convex.query(api.products.getByShelfCode, { shelfCode })
         : null;
 
-      if (skipExisting && existing) {
+      let hasValidImages = false;
+      if (existing?.images && existing.images.length > 0) {
+        try {
+          const checkRes = await fetch(existing.images[0], { method: "HEAD" });
+          hasValidImages = checkRes.ok;
+        } catch {
+          hasValidImages = false;
+        }
+      }
+
+      if (skipExisting && existing && hasValidImages) {
         setProductGroups((prev) =>
           prev.map((group, groupIndex) =>
             groupIndex === index
@@ -377,11 +429,43 @@ export default function BatchImportPage() {
         uploadedUrls.push(...uploadData.urls);
       }
 
-      // 2. Kategori eşleştir
+      // 2. Eğer ürün zaten sistemde varsa yalnızca görsellerini ekle
+      if (existing) {
+        const updated = await convex.mutation(api.products.appendImagesByOem, {
+          oemNumbers: existing.oemNumber ? [existing.oemNumber] : [],
+          images: uploadedUrls,
+          shelfCode: item.shelfCode,
+        });
+
+        if (updated) {
+          setProductGroups((prev) =>
+            prev.map((g, i) =>
+              i === index
+                ? {
+                    ...g,
+                    status: "success",
+                    result: {
+                      productId: updated.productId,
+                      oemNumber: updated.oemNumber,
+                      title: updated.title,
+                      brand: updated.brand,
+                      model: updated.model,
+                      imageUrl: updated.imageUrl,
+                      updatedOnlyImages: true,
+                    },
+                  }
+                : g,
+            ),
+          );
+          return;
+        }
+      }
+
+      // 3. Kategori eşleştir
       const matchedCat = matchCategory(item.categoryHint);
       if (!matchedCat) throw new Error("Aktarım için bir kategori ekleyin.");
 
-      // 3. Taslak Ürünü Kaydet
+      // 4. Yeni Taslak Ürünü Kaydet
       const fallbackTitle =
         item.shelfCode && item.shelfCode !== "GENEL"
           ? `${item.shelfCode} Oto Elektronik Parça`
@@ -411,9 +495,7 @@ export default function BatchImportPage() {
         description: `${fallbackTitle} orijinal çıkma oto elektronik parça.`,
       };
 
-      const finalProductId = existing
-        ? (await updateProduct({ id: existing._id, ...payload }), existing._id)
-        : await createProduct(payload);
+      const finalProductId = await createProduct(payload);
 
       setProductGroups((prev) =>
         prev.map((g, i) =>
@@ -931,29 +1013,70 @@ export default function BatchImportPage() {
                       </div>
                     </div>
 
-                    {/* Sağ Taraf: Aksiyon */}
+                    {/* Sağ Taraf: Durum Bilgisi & Aksiyon */}
                     <div className="ml-13 flex shrink-0 items-center justify-end gap-2 sm:ml-0">
-                      {item.status === "idle" && !isRunning ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const realIdx = productGroups.findIndex(
-                              (g) => g.id === item.id,
-                            );
-                            if (realIdx !== -1) {
-                              void startProcessing(runMode, realIdx);
-                            }
-                          }}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-slate-100 px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-800"
-                        >
-                          <Play className="h-3 w-3 fill-current" />
-                          <span>
-                            {runMode === "draft"
-                              ? "Taslak kaydet"
-                              : "AI ile işle"}
+                      {item.status === "skipped" && (
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100/90 px-3.5 py-1.5 text-xs font-semibold text-slate-600 shadow-2xs">
+                          <Check className="h-3.5 w-3.5 text-slate-500" />
+                          <span>Zaten kayıtlı · Atlandı</span>
+                        </div>
+                      )}
+
+                      {item.status === "success" && (
+                        item.result?.updatedOnlyImages ? (
+                          <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-xs font-semibold text-emerald-800 shadow-2xs">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            <span>Görseller güncellendi</span>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-semibold text-blue-800 shadow-2xs">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
+                            <span>Yeni parça eklendi</span>
+                          </div>
+                        )
+                      )}
+
+                      {item.status === "processing" && (
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-semibold text-blue-800 shadow-2xs">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+                          <span>İşleniyor…</span>
+                        </div>
+                      )}
+
+                      {item.status === "error" && (
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3.5 py-1.5 text-xs font-semibold text-rose-800 shadow-2xs">
+                          <AlertCircle className="h-3.5 w-3.5 text-rose-600" />
+                          <span>İşlem başarısız</span>
+                        </div>
+                      )}
+
+                      {item.status === "idle" && (
+                        !isRunning ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const realIdx = productGroups.findIndex(
+                                (g) => g.id === item.id,
+                              );
+                              if (realIdx !== -1) {
+                                void startProcessing(runMode, realIdx);
+                              }
+                            }}
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-slate-100 px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-800"
+                          >
+                            <Play className="h-3 w-3 fill-current" />
+                            <span>
+                              {runMode === "draft"
+                                ? "Taslak kaydet"
+                                : "AI ile işle"}
+                            </span>
+                          </button>
+                        ) : (
+                          <span className="text-xs font-medium text-slate-400">
+                            Sırada bekliyor
                           </span>
-                        </button>
-                      ) : null}
+                        )
+                      )}
                     </div>
                   </div>
                 );

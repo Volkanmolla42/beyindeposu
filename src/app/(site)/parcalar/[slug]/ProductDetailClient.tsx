@@ -25,8 +25,14 @@ import { Button } from "@/components/ui/button";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Badge } from "@/components/ui/badge";
 import { ModernImageZoom } from "@/components/ModernImageZoom";
+import { ProductImage } from "@/components/ProductImage";
 import { slugify, LOCAL_BRAND_LOGOS } from "@/app/admin/admin-utils";
 import { trackAnalytics } from "@/lib/analytics";
+import {
+  getProductImageAlt,
+  getProductImageSource,
+  PRODUCT_IMAGE_PLACEHOLDER_ALT,
+} from "@/lib/product-images";
 
 interface PageProps {
   slug: string;
@@ -153,44 +159,52 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start">
 
             {/* Product Gallery (No unnecessary wrappers, no arrow buttons) */}
-            {galleryImages.length > 0 && (
-              <div className="lg:col-span-6 min-w-0 space-y-3">
-                <div className="w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 aspect-4/3 flex items-center justify-center">
+            <div className="lg:col-span-6 min-w-0 space-y-3">
+              <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 aspect-4/3 flex items-center justify-center">
+                {galleryImages.length > 0 ? (
                   <ModernImageZoom
                     src={galleryImages[activeImageIndex] || galleryImages[0]}
-                    alt={product.title}
+                    alt={getProductImageAlt(product.title, galleryImages)}
                     priority={true}
                     className="w-full h-full border-0 bg-transparent rounded-2xl"
                   />
-                </div>
-
-                {galleryImages.length > 1 && (
-                  <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none">
-                    {galleryImages.map((img, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => { setActiveImageIndex(idx); trackAnalytics("image_view", { number: idx + 1 }); }}
-                        aria-label={`Parça görseli ${idx + 1}`}
-                        className={`relative w-16 h-14 sm:w-20 sm:h-16 rounded-xl overflow-hidden border-2 bg-slate-50 transition-all cursor-pointer shrink-0 ${activeImageIndex === idx ? "border-blue-600 ring-2 ring-blue-100" : "border-slate-200 opacity-70 hover:opacity-100"}`}
-                      >
-                        <Image
-                          src={img}
-                          alt=""
-                          fill
-                          unoptimized
-                          sizes="80px"
-                          className="object-cover"
-                        />
-                      </button>
-                    ))}
-                  </div>
+                ) : (
+                  <ProductImage
+                    src={getProductImageSource(galleryImages)}
+                    alt={PRODUCT_IMAGE_PLACEHOLDER_ALT}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-contain p-2"
+                  />
                 )}
               </div>
-            )}
+
+              {galleryImages.length > 1 && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full scrollbar-none">
+                  {galleryImages.map((img, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => { setActiveImageIndex(idx); trackAnalytics("image_view", { number: idx + 1 }); }}
+                      aria-label={`Parça görseli ${idx + 1}`}
+                      className={`relative w-16 h-14 sm:w-20 sm:h-16 rounded-xl overflow-hidden border-2 bg-slate-50 transition-all cursor-pointer shrink-0 ${activeImageIndex === idx ? "border-blue-600 ring-2 ring-blue-100" : "border-slate-200 opacity-70 hover:opacity-100"}`}
+                    >
+                      <ProductImage
+                        src={img}
+                        alt=""
+                        fill
+                        unoptimized
+                        sizes="80px"
+                        className="object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Right Column: Specs, Badges & Working Action CTAs */}
-            <div className={`${galleryImages.length > 0 ? "lg:col-span-6" : "lg:col-span-12"} min-w-0 space-y-4`}>
+            <div className="lg:col-span-6 min-w-0 space-y-4">
               <div>
                 {/* OEM Number + Copy & Share Button */}
                 <div className="flex flex-wrap items-center gap-2">

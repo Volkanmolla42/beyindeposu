@@ -7,7 +7,7 @@ import React, {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import Image from "next/image";
+import { ProductImage } from "@/components/ProductImage";
 import { useMutation, useAction } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
@@ -1055,7 +1055,7 @@ function ProductImagePanel({
                     : "border-slate-200")
                 }
               >
-                <Image
+                <ProductImage
                   src={image}
                   alt={index + 1 + ". parça görseli"}
                   width={80}

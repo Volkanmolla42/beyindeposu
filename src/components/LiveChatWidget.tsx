@@ -2,8 +2,9 @@
 
 import { useCallback, useState, useEffect, useRef, useSyncExternalStore } from "react";
 import { trackAnalytics } from "@/lib/analytics";
+import { getProductImageAlt, getProductImageSource } from "@/lib/product-images";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
+import { ProductImage } from "@/components/ProductImage";
 import {
   X,
   Send,
@@ -180,7 +181,7 @@ export default function LiveChatWidget() {
       productCardPayload = {
         title: currentProduct.title,
         oemNumber: currentProduct.oemNumber,
-        image: currentProduct.images?.[0] || undefined,
+        image: getProductImageSource(currentProduct.images),
         slug: currentProduct.slug,
         brand: currentProduct.brand,
       };
@@ -301,18 +302,17 @@ export default function LiveChatWidget() {
 
                     <div className="flex items-center gap-2.5 bg-slate-50 p-2 rounded-xl border border-slate-100">
                       <div className="relative w-10 h-10 rounded-lg bg-white border border-slate-200 overflow-hidden flex items-center justify-center shrink-0">
-                        {currentProduct.images?.[0] ? (
-                          <Image
-                            src={currentProduct.images[0]}
-                            alt={currentProduct.title}
-                            fill
-                            unoptimized
-                            sizes="40px"
-                            className="object-contain"
-                          />
-                        ) : (
-                          <ShoppingBag className="w-4 h-4 text-slate-400" />
-                        )}
+                        <ProductImage
+                          src={getProductImageSource(currentProduct.images)}
+                          alt={getProductImageAlt(
+                            currentProduct.title,
+                            currentProduct.images,
+                          )}
+                          fill
+                          unoptimized
+                          sizes="40px"
+                          className="object-contain"
+                        />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-[11px] font-bold text-slate-900 truncate">{currentProduct.title}</p>
@@ -433,18 +433,20 @@ export default function LiveChatWidget() {
                         {m.productCard && (
                           <div className="mb-2 p-2 rounded-xl bg-black/10 border border-black/10 text-left">
                             <div className="flex items-center gap-2">
-                              {m.productCard.image && (
-                                <div className="relative w-8 h-8 rounded bg-white overflow-hidden shrink-0">
-                                  <Image
-                                    src={m.productCard.image}
-                                    alt={m.productCard.title}
-                                    fill
-                                    unoptimized
-                                    sizes="32px"
-                                    className="object-contain"
-                                  />
-                                </div>
-                              )}
+                              <div className="relative w-8 h-8 rounded bg-white overflow-hidden shrink-0">
+                                <ProductImage
+                                  src={m.productCard.image || getProductImageSource()}
+                                  alt={
+                                    m.productCard.image
+                                      ? m.productCard.title
+                                      : "Ürün görseli hazırlanıyor"
+                                  }
+                                  fill
+                                  unoptimized
+                                  sizes="32px"
+                                  className="object-contain"
+                                />
+                              </div>
                               <div className="min-w-0">
                                 <p className="font-extrabold text-[11px] truncate">{m.productCard.title}</p>
                                 <p className="text-[10px] opacity-80 font-mono">OEM: {m.productCard.oemNumber}</p>

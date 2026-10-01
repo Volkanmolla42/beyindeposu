@@ -523,6 +523,92 @@ export const create = mutation({
   },
 });
 
+export const appendImagesByOem = mutation({
+  args: {
+    oemNumbers: v.array(v.string()),
+    images: v.array(v.string()),
+    shelfCode: v.optional(v.string()),
+  },
+  returns: v.union(
+    v.object({
+      productId: v.id("products"),
+      oemNumber: v.string(),
+      title: v.string(),
+      brand: v.string(),
+      model: v.string(),
+      imageUrl: v.string(),
+    }),
+    v.null(),
+  ),
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    if (args.images.length === 0) return null;
+
+    // 1. Önce raf kodu (shelfCode) ile eşleşen ürün var mı bak
+    if (args.shelfCode && args.shelfCode.trim() && args.shelfCode.trim().toUpperCase() !== "GENEL") {
+      const byShelf = await ctx.db
+        .query("products")
+        .withIndex("by_shelfCode", (q) => q.eq("shelfCode", args.shelfCode!.trim()))
+        .first();
+      if (byShelf) {
+        // Eski kırık görsel linklerini temizle, doğrudan yeni yüklenen görselleri ata
+        await ctx.db.patch(byShelf._id, { images: args.images, updatedAt: Date.now() });
+        return {
+          productId: byShelf._id,
+          oemNumber: byShelf.oemNumber,
+          title: byShelf.title,
+          brand: byShelf.brand,
+          model: byShelf.model ?? "",
+          imageUrl: args.images[0],
+        };
+      }
+    }
+
+    // 2. AI'ın tespit ettiği OEM numaraları ile eşleşen ürün var mı bak
+    const normalizeOem = (value: string) =>
+      value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    const candidates = Array.from(
+      new Set(
+        args.oemNumbers.flatMap((value) => {
+          const trimmed = value.trim();
+          return trimmed
+            ? [trimmed, trimmed.toUpperCase(), trimmed.toLowerCase()]
+            : [];
+        }),
+      ),
+    );
+
+    for (const candidate of candidates) {
+      const normalizedCandidate = normalizeOem(candidate);
+      if (!normalizedCandidate) continue;
+
+      const matches = await ctx.db
+        .query("products")
+        .withIndex("by_oemNumber", (q) => q.eq("oemNumber", candidate))
+        .take(20);
+      const existing = matches.find(
+        (product) =>
+          normalizeOem(product.oemNumber) === normalizedCandidate,
+      );
+      if (!existing) continue;
+
+      // Eski kırık görsel linklerini temizle, doğrudan yeni yüklenen görselleri ata
+      await ctx.db.patch(existing._id, { images: args.images, updatedAt: Date.now() });
+
+      return {
+        productId: existing._id,
+        oemNumber: existing.oemNumber,
+        title: existing.title,
+        brand: existing.brand,
+        model: existing.model ?? "",
+        imageUrl: args.images[0],
+      };
+    }
+
+    return null;
+  },
+});
+
 export const createDraftBatch = mutation({
   args: {
     products: v.array(v.object({

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useSyncExternalStore } from "react";
-import Image from "next/image";
+import { ProductImage } from "@/components/ProductImage";
 import {
   Plus,
   Search,
@@ -629,7 +629,7 @@ export default function AdminProductsPage() {
           }}
           className="relative w-80 h-80 rounded-2xl border-2 border-white/20 bg-slate-900 shadow-2xl overflow-hidden flex items-center justify-center p-3 ring-1 ring-black/30"
         >
-          <Image
+          <ProductImage
             src={hoverPreview.src}
             alt="Önizleme"
             width={320}

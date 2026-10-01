@@ -4,6 +4,10 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { trackAnalytics } from "@/lib/analytics";
+import {
+  PRODUCT_IMAGE_PLACEHOLDER,
+  PRODUCT_IMAGE_PLACEHOLDER_ALT,
+} from "@/lib/product-images";
 
 interface ModernImageZoomProps {
   src: string;
@@ -43,6 +47,8 @@ export function ModernImageZoom({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isLockedMode, setIsLockedMode] = useState(false);
+  const [failedSource, setFailedSource] = useState<string | null>(null);
+  const imageHasFailed = failedSource === src;
 
   // Pinch-to-zoom for touch devices
   const touchDistanceRef = useRef<number | null>(null);
@@ -315,13 +321,18 @@ export function ModernImageZoom({
         }}
       >
         <Image
-          src={src}
-          alt={alt}
+          src={imageHasFailed ? PRODUCT_IMAGE_PLACEHOLDER : src}
+          alt={imageHasFailed ? PRODUCT_IMAGE_PLACEHOLDER_ALT : alt}
           fill
           unoptimized
           priority={priority}
           loading={priority ? "eager" : undefined}
           sizes="(max-width: 1024px) 100vw, 50vw"
+          onError={() => {
+            if (src !== PRODUCT_IMAGE_PLACEHOLDER && !imageHasFailed) {
+              setFailedSource(src);
+            }
+          }}
           draggable={false}
           className="object-contain pointer-events-none select-none transition-opacity duration-200"
         />

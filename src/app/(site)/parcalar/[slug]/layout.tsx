@@ -4,11 +4,11 @@ import {
   absoluteUrl,
   metadataDescription,
   plainText,
-  SEO_IMAGE,
   serializeJsonLd,
   SITE_NAME,
 } from "@/lib/seo";
 import { getPublicProductBySlug } from "@/lib/seo-data";
+import { PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/product-images";
 
 type ProductRouteParams = {
   params: Promise<{ slug: string }>;
@@ -43,7 +43,9 @@ export async function generateMetadata({ params }: ProductRouteParams): Promise<
   );
   const path = `/parcalar/${product.slug}`;
   const productImages = getProductImages(product.images);
-  const socialImages = productImages.length > 0 ? productImages : [absoluteUrl(SEO_IMAGE)];
+  const socialImages = productImages.length > 0
+    ? productImages
+    : [absoluteUrl(PRODUCT_IMAGE_PLACEHOLDER)];
 
   return {
     title: { absolute: title },

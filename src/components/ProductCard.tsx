@@ -1,13 +1,14 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { Eye, Cpu } from "lucide-react";
+import { Eye } from "lucide-react";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { getWhatsAppUrl } from "@/lib/whatsapp";
 import { ProductWithCategory } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ProductImage } from "@/components/ProductImage";
+import { getProductImageAlt, getProductImageSource } from "@/lib/product-images";
 
 export interface ProductCardProps {
   product: ProductWithCategory;
@@ -26,19 +27,15 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
         {/* Hardware Photo on Clean Background */}
         <Link href={`/parcalar/${product.slug}`} className="block">
           <div className="relative mb-4 flex aspect-4/3 w-full items-center justify-center overflow-hidden rounded-2xl bg-slate-50 p-3">
-            {product.images?.[0] ? (
-              <Image
-                src={product.images[0]}
-                alt={product.title}
-                fill
-                unoptimized
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
-                priority={priority}
-              />
-            ) : (
-              <Cpu className="w-16 h-16 text-slate-300" />
-            )}
+            <ProductImage
+              src={getProductImageSource(product.images)}
+              alt={getProductImageAlt(product.title, product.images)}
+              fill
+              unoptimized
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+              preload={priority}
+            />
           </div>
         </Link>
 

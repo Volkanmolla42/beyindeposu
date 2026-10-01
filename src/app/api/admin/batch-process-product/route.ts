@@ -173,6 +173,7 @@ ${brandsStr}`;
       shelfCode,
       isDraft,
       oemNumber: detectedOem,
+      cleanOemNumber: isDraft ? "" : (parsedData.cleanOem || detectedOem),
       title: detectedTitle,
       brand: parsedData.brand || brandHint,
       model: isDraft ? "" : (parsedData.model || "Genel Uyumlu"),

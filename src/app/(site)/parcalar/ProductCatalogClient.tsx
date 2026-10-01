@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, useMemo, useEffect, useRef } from "react";
-import Image from "next/image";
+import { ProductImage } from "@/components/ProductImage";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -248,7 +248,7 @@ function ProductCatalogView({
 
           {/* Dynamic Category Preview */}
           <div className="relative w-36 sm:w-44 h-24 sm:h-28 rounded-xl bg-slate-50 border border-slate-200 p-2 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs group">
-            <Image
+            <ProductImage
               src={categoryFirstImage}
               alt={activeCategoryTitle}
               fill

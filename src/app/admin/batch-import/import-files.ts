@@ -16,6 +16,7 @@ export interface ProductFileGroup {
     brand?: string;
     model?: string;
     imageUrl?: string;
+    updatedOnlyImages?: boolean;
   };
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
+import { ProductImage } from "@/components/ProductImage";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 export interface LightboxState {
@@ -112,7 +112,7 @@ function LightboxContent({
       <div className="w-[min(94vw,1180px)]" onClick={(e) => e.stopPropagation()}>
         <div className="min-w-0 flex-1">
           <div className="relative flex h-[min(58vh,620px)] w-full items-center justify-center overflow-hidden rounded-2xl bg-black/35 shadow-2xl lg:h-[min(74vh,720px)]">
-            <Image
+            <ProductImage
               key={currentIndex}
               src={lightbox.images[currentIndex]}
               alt={`Görsel ${currentIndex + 1}`}
@@ -181,7 +181,7 @@ function LightboxContent({
                       : "border-white/30 opacity-60 hover:opacity-100"
                   }`}
                 >
-                  <Image
+                  <ProductImage
                     src={img}
                     alt={`Küçük resim ${i + 1}`}
                     fill
