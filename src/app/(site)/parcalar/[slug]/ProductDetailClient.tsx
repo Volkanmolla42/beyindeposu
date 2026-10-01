@@ -21,6 +21,7 @@ import type { FunctionReturnType } from "convex/server";
 import { api } from "@convex/_generated/api";
 import { SITE_CONTACT } from "@/config/site";
 import { getWhatsAppUrl } from "@/lib/whatsapp";
+import { absoluteUrl } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Badge } from "@/components/ui/badge";
@@ -339,6 +340,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                         title: product.title,
                         oemNumber: product.oemNumber,
                         action: "price_and_stock",
+                        productUrl: absoluteUrl(`/parcalar/${slug}`),
                       },
                     })}
                     target="_blank"

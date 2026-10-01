@@ -4,6 +4,7 @@ export interface WhatsAppProductTarget {
   title: string;
   oemNumber?: string;
   action?: "price" | "info" | "price_and_stock";
+  productUrl?: string;
 }
 
 export type WhatsAppTarget =
@@ -62,7 +63,7 @@ export function getWhatsAppUrl(
   } else if ("oemNumber" in target && target.oemNumber) {
     message = `Merhaba Beyin Deposu, ${target.oemNumber} OEM kodlu parça hakkında bilgi ve fiyat almak istiyorum.`;
   } else if ("product" in target && target.product) {
-    const { title, oemNumber, action } = target.product;
+    const { title, oemNumber, action, productUrl } = target.product;
     if (action === "price_and_stock") {
       message = oemNumber
         ? `Merhaba, ${oemNumber} kodlu ${title} için fiyat ve stok bilgisi alabilir miyim?`
@@ -75,6 +76,10 @@ export function getWhatsAppUrl(
       message = oemNumber
         ? `Merhaba Beyin Deposu, web sitenizden ${title} (OEM No: ${oemNumber}) parçası hakkında bilgi ve fiyat almak istiyorum. Stok durumu nedir?`
         : `Merhaba Beyin Deposu, web sitenizden ${title} hakkında bilgi almak istiyorum.`;
+    }
+
+    if (productUrl) {
+      message = `${message}\n\nÜrün linki: ${productUrl}`;
     }
   } else {
     message = "Merhaba Beyin Deposu, oto elektronik parça talebinde bulunmak istiyorum.";

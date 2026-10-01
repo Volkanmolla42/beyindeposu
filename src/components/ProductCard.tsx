@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductImage } from "@/components/ProductImage";
 import { getProductImageAlt, getProductImageSource } from "@/lib/product-images";
+import { absoluteUrl } from "@/lib/seo";
 
 export interface ProductCardProps {
   product: ProductWithCategory;
@@ -92,6 +93,7 @@ export default function ProductCard({ product, priority = false }: ProductCardPr
                 title: product.title,
                 oemNumber: product.oemNumber,
                 action: "price",
+                productUrl: absoluteUrl(`/parcalar/${product.slug}`),
               },
             })}
             target="_blank"
