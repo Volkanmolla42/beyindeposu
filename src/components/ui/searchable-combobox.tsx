@@ -21,6 +21,8 @@ interface SearchableComboboxProps {
   searchPlaceholder?: string;
   emptyText?: string;
   className?: string;
+  ariaLabel?: string;
+  disabled?: boolean;
   allOptionLabel?: string;
 }
 
@@ -32,6 +34,8 @@ export function SearchableCombobox({
   searchPlaceholder = "Ara",
   emptyText = "Sonuç bulunamadı.",
   className,
+  ariaLabel,
+  disabled = false,
   allOptionLabel = "Tümü",
 }: SearchableComboboxProps) {
   const [open, setOpen] = React.useState(false);
@@ -64,36 +68,16 @@ export function SearchableCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          aria-label={placeholder}
+          aria-label={ariaLabel ?? selectedLabel}
+          disabled={disabled}
           className={cn(
-            "w-full justify-between text-xs font-medium h-9 px-3 bg-slate-50 hover:bg-white border-slate-200 text-slate-800 transition-all",
+            "h-11 w-full justify-between px-3 text-xs font-medium bg-slate-50 hover:bg-white border-slate-200 text-slate-800 transition-all",
             !value && "text-slate-500",
             className
           )}
         >
           <span className="truncate">{selectedLabel}</span>
-          <div className="flex items-center gap-1 shrink-0 ml-1">
-            {value && value !== "Tümü" && value !== "" && (
-              <span
-                role="button"
-                tabIndex={0}
-                aria-label="Seçimi temizle"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onChange("");
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.stopPropagation();
-                    onChange("");
-                  }
-                }}
-                className="p-0.5 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700 cursor-pointer"
-                title="Temizle"
-              >
-                <X className="h-3 w-3" />
-              </span>
-            )}
+          <div className="ml-1 flex shrink-0 items-center">
             <ChevronsUpDown className="h-3.5 w-3.5 opacity-50" />
           </div>
         </Button>

@@ -24,7 +24,7 @@ export default function FloatingWhatsApp() {
   };
 
   // Hide on admin and login pages
-  if (pathname?.startsWith("/admin") || pathname === "/login") {
+  if (pathname?.startsWith("/admin") || pathname === "/login" || pathname === "/parcalar") {
     return null;
   }
 

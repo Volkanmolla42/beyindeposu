@@ -7,7 +7,6 @@ import {
   listPublicCategoriesWithProducts,
 } from "@/lib/seo-data";
 
-export const revalidate = 3600;
 
 const STATIC_PATHS = ["/", "/parcalar", "/kategoriler", "/markalar", "/kurumsal"];
 const SITEMAP_URL_LIMIT = 50_000;
@@ -18,8 +17,14 @@ type SitemapProductPage = {
   isDone: boolean;
 };
 
-export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticEntries: MetadataRoute.Sitemap = STATIC_PATHS.map((path) => ({
+type SitemapEntry = {
+  url: string;
+  lastModified?: number;
+};
+
+async function getSitemapEntries(): Promise<SitemapEntry[]> {
+
+  const staticEntries: SitemapEntry[] = STATIC_PATHS.map((path) => ({
     url: absoluteUrl(path),
   }));
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
@@ -76,14 +81,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticEntries,
     ...categoryEntries.map((category) => ({
       url: absoluteUrl(`/kategoriler/${category.slug}`),
-      lastModified: new Date(category.lastModified),
+      lastModified: category.lastModified,
     })),
     ...brandEntries.map((brand) => ({
       url: absoluteUrl(`/markalar/${brand.slug}`),
     })),
     ...productEntries.map((product) => ({
       url: absoluteUrl(`/parcalar/${product.slug}`),
-      lastModified: new Date(product.lastModified),
+      lastModified: product.lastModified,
     })),
   ];
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const entries = await getSitemapEntries();
+
+  return entries.map(({ url, lastModified }) =>
+    lastModified === undefined ? { url } : { url, lastModified: new Date(lastModified) },
+  );
 }

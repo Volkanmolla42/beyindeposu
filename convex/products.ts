@@ -61,73 +61,97 @@ async function resolvePublicProduct(ctx: QueryCtx, p: Doc<"products">) {
 }
 
 type ProductFilterArgs = {
-  categorySlug?: string;
+  categorySlug?: string | string[];
   categoryId?: Id<"categories">;
-  brand?: string;
-  condition?: string;
+  brand?: string | string[];
+  model?: string | string[];
+  condition?: string | string[];
   inStockOnly?: boolean;
-  stockStatus?: "all" | "in_stock" | "out_of_stock";
+  stockStatus?: "all" | "in_stock" | "out_of_stock" | Array<"in_stock" | "out_of_stock">;
   searchTerm?: string;
-  sortBy?: string;
 };
 
+const stringSelectionValidator = v.union(v.string(), v.array(v.string()));
+const MAX_FILTER_SELECTIONS = 10;
+const MAX_FILTER_VALUE_LENGTH = 120;
+
 const productFilterArgs = {
-  categorySlug: v.optional(v.string()),
+  categorySlug: v.optional(stringSelectionValidator),
   categoryId: v.optional(v.id("categories")),
-  brand: v.optional(v.string()),
-  condition: v.optional(v.string()),
+  brand: v.optional(stringSelectionValidator),
+  model: v.optional(stringSelectionValidator),
+  condition: v.optional(stringSelectionValidator),
   inStockOnly: v.optional(v.boolean()),
-  stockStatus: v.optional(v.union(v.literal("all"), v.literal("in_stock"), v.literal("out_of_stock"))),
+  stockStatus: v.optional(v.union(
+    v.literal("all"),
+    v.literal("in_stock"),
+    v.literal("out_of_stock"),
+    v.array(v.union(v.literal("in_stock"), v.literal("out_of_stock"))),
+  )),
   searchTerm: v.optional(v.string()),
-  sortBy: v.optional(v.string()),
 };
+
+function selectedValues(
+  value?: string | string[],
+  field = "Filtre",
+  maxSelections = MAX_FILTER_SELECTIONS,
+) {
+  if (value === undefined) return [];
+  const values = Array.isArray(value) ? value : [value];
+
+  if (values.length > maxSelections) {
+    throw new Error(`${field} için en fazla ${maxSelections} değer seçilebilir.`);
+  }
+  if (values.some((item) => item.length > MAX_FILTER_VALUE_LENGTH)) {
+    throw new Error(`${field} değeri ${MAX_FILTER_VALUE_LENGTH} karakteri aşamaz.`);
+  }
+
+  return [...new Set(values.filter((item) => item && item !== "Tümü" && item !== "all"))];
+}
+
+function validateProductFilterArgs(args: ProductFilterArgs) {
+  selectedValues(args.categorySlug, "Kategori");
+  selectedValues(args.brand, "Marka");
+  selectedValues(args.model, "Model");
+  selectedValues(args.condition, "Durum");
+  selectedValues(args.stockStatus, "Stok durumu", 2);
+
+  if (args.searchTerm && args.searchTerm.length > MAX_FILTER_VALUE_LENGTH) {
+    throw new Error(`Arama terimi ${MAX_FILTER_VALUE_LENGTH} karakteri aşamaz.`);
+  }
+}
 
 function productQuery(
   ctx: QueryCtx,
   args: ProductFilterArgs,
-  categoryId: Id<"categories"> | undefined,
+  categoryIds: Id<"categories">[],
 ): OrderedQuery<DataModel["products"]> {
-  const sortBy = args.sortBy ?? "date-desc";
-  const direction = sortBy === "title-desc" ? "desc" : "asc";
+  const brands = selectedValues(args.brand);
+  const models = selectedValues(args.model);
 
-  if (categoryId) {
-    if (sortBy === "title-asc" || sortBy === "title-desc") {
-      return ctx.db.query("products")
-        .withIndex("by_categoryId_and_title", (q) => q.eq("categoryId", categoryId))
-        .order(direction);
-    }
-    if (sortBy === "oem-asc") {
-      return ctx.db.query("products")
-        .withIndex("by_categoryId_and_oemNumber", (q) => q.eq("categoryId", categoryId))
-        .order("asc");
-    }
+  if (categoryIds.length === 1) {
+    const categoryId = categoryIds[0];
     return ctx.db.query("products")
       .withIndex("by_categoryId_and_createdAt", (q) => q.eq("categoryId", categoryId))
       .order("desc");
   }
 
-  if (args.brand && args.brand !== "Tümü") {
-    if (sortBy === "title-asc" || sortBy === "title-desc") {
+  if (brands.length === 1) {
+    const brand = brands[0];
+    if (models.length === 1) {
+      const model = models[0];
       return ctx.db.query("products")
-        .withIndex("by_brand_and_title", (q) => q.eq("brand", args.brand!))
-        .order(direction);
+        .withIndex("by_brand_and_model_and_createdAt", (q) =>
+          q.eq("brand", brand).eq("model", model),
+        )
+        .order("desc");
     }
-    if (sortBy === "oem-asc") {
-      return ctx.db.query("products")
-        .withIndex("by_brand_and_oemNumber", (q) => q.eq("brand", args.brand!))
-        .order("asc");
-    }
+
     return ctx.db.query("products")
-      .withIndex("by_brand_and_createdAt", (q) => q.eq("brand", args.brand!))
+      .withIndex("by_brand_and_createdAt", (q) => q.eq("brand", brand))
       .order("desc");
   }
 
-  if (sortBy === "title-asc" || sortBy === "title-desc") {
-    return ctx.db.query("products").withIndex("by_title").order(direction);
-  }
-  if (sortBy === "oem-asc") {
-    return ctx.db.query("products").withIndex("by_oemNumber").order("asc");
-  }
   return ctx.db.query("products").withIndex("by_createdAt").order("desc");
 }
 
@@ -135,6 +159,7 @@ function applyProductFilters(
   query: OrderedQuery<DataModel["products"]>,
   args: ProductFilterArgs,
   draftStatus: "all" | "draft" | "published",
+  categoryIds: Id<"categories">[],
 ) {
   let filtered = query;
 
@@ -144,27 +169,58 @@ function applyProductFilters(
     filtered = filtered.filter((q) => q.neq(q.field("isDraft"), true));
   }
 
-  if (args.condition && args.condition !== "Tümü") {
-    filtered = filtered.filter((q) => q.eq(q.field("condition"), args.condition!));
+  if (categoryIds.length === 1) {
+    filtered = filtered.filter((q) => q.eq(q.field("categoryId"), categoryIds[0]));
+  } else if (categoryIds.length > 1) {
+    filtered = filtered.filter((q) => q.or(...categoryIds.map((categoryId) => q.eq(q.field("categoryId"), categoryId))));
   }
-  if (args.stockStatus === "in_stock" || args.inStockOnly) {
+
+  const brands = selectedValues(args.brand);
+  if (brands.length === 1) {
+    filtered = filtered.filter((q) => q.eq(q.field("brand"), brands[0]));
+  } else if (brands.length > 1) {
+    filtered = filtered.filter((q) => q.or(...brands.map((brand) => q.eq(q.field("brand"), brand))));
+  }
+
+  const models = selectedValues(args.model);
+  if (models.length === 1) {
+    filtered = filtered.filter((q) => q.eq(q.field("model"), models[0]));
+  } else if (models.length > 1) {
+    filtered = filtered.filter((q) => q.or(...models.map((model) => q.eq(q.field("model"), model))));
+  }
+
+  const conditions = selectedValues(args.condition);
+  if (conditions.length === 1) {
+    filtered = filtered.filter((q) => q.eq(q.field("condition"), conditions[0]));
+  } else if (conditions.length > 1) {
+    filtered = filtered.filter((q) => q.or(...conditions.map((condition) => q.eq(q.field("condition"), condition))));
+  }
+
+  const stockStatuses = selectedValues(args.stockStatus);
+  if (args.inStockOnly) {
     filtered = filtered.filter((q) => q.eq(q.field("inStock"), true));
-  } else if (args.stockStatus === "out_of_stock") {
+  } else if (stockStatuses.length === 1 && stockStatuses[0] === "in_stock") {
+    filtered = filtered.filter((q) => q.eq(q.field("inStock"), true));
+  } else if (stockStatuses.length === 1 && stockStatuses[0] === "out_of_stock") {
     filtered = filtered.filter((q) => q.eq(q.field("inStock"), false));
   }
 
   return filtered;
 }
 
-async function resolveCategoryId(ctx: QueryCtx, args: ProductFilterArgs) {
-  if (args.categoryId) return args.categoryId;
-  if (!args.categorySlug) return undefined;
+async function resolveCategoryIds(ctx: QueryCtx, args: ProductFilterArgs) {
+  if (args.categoryId) return [args.categoryId];
 
-  const category = await ctx.db
-    .query("categories")
-    .withIndex("by_slug", (q) => q.eq("slug", args.categorySlug!))
-    .first();
-  return category?._id;
+  const categorySlugs = selectedValues(args.categorySlug);
+  if (categorySlugs.length === 0) return [];
+
+  const categories = await Promise.all(categorySlugs.map((slug) =>
+    ctx.db
+      .query("categories")
+      .withIndex("by_slug", (q) => q.eq("slug", slug))
+      .first(),
+  ));
+  return categories.flatMap((category) => category ? [category._id] : []);
 }
 
 function emptyPaginationResult(paginationOpts: PaginationOptions) {
@@ -180,8 +236,15 @@ async function paginateProducts(
   args: ProductFilterArgs & { paginationOpts: PaginationOptions },
   draftStatus: "all" | "draft" | "published",
 ) {
-  const categoryId = await resolveCategoryId(ctx, args);
-  if ((args.categoryId || args.categorySlug) && !categoryId) {
+  validateProductFilterArgs(args);
+  const categoryIds = await resolveCategoryIds(ctx, args);
+  const requestedCategoryFilter = Boolean(args.categoryId) || selectedValues(args.categorySlug).length > 0;
+  if (requestedCategoryFilter && categoryIds.length === 0) {
+    return emptyPaginationResult(args.paginationOpts);
+  }
+  const brands = selectedValues(args.brand);
+  const models = selectedValues(args.model);
+  if (models.length > 0 && brands.length === 0) {
     return emptyPaginationResult(args.paginationOpts);
   }
 
@@ -191,12 +254,16 @@ async function paginateProducts(
   if (searchTerm) {
     const isOemSearch = searchTerm.length >= 4 && /\d/.test(searchTerm) && !/\s/.test(searchTerm);
     const isShelfSearch = /^raf(?:$|[-_\s]|\d)/i.test(searchTerm);
-    const brand = args.brand && args.brand !== "Tümü" ? args.brand : undefined;
-    const condition = args.condition && args.condition !== "Tümü" ? args.condition : undefined;
+    const brand = brands.length === 1 ? brands[0] : undefined;
+    const model = models.length === 1 ? models[0] : undefined;
+    const categoryId = categoryIds.length === 1 ? categoryIds[0] : undefined;
+    const conditions = selectedValues(args.condition);
+    const condition = conditions.length === 1 ? conditions[0] : undefined;
+    const stockStatuses = selectedValues(args.stockStatus);
     const inStockFilter =
-      args.stockStatus === "in_stock" || args.inStockOnly
+      args.inStockOnly || (stockStatuses.length === 1 && stockStatuses[0] === "in_stock")
         ? true
-        : args.stockStatus === "out_of_stock"
+        : stockStatuses.length === 1 && stockStatuses[0] === "out_of_stock"
           ? false
           : undefined;
 
@@ -204,6 +271,7 @@ async function paginateProducts(
       query = ctx.db.query("products").withSearchIndex("search_shelfCode", (q) => {
         let search = q.search("shelfCode", searchTerm);
         if (brand) search = search.eq("brand", brand);
+        if (model) search = search.eq("model", model);
         if (categoryId) search = search.eq("categoryId", categoryId);
         if (condition) search = search.eq("condition", condition);
         if (inStockFilter !== undefined) search = search.eq("inStock", inStockFilter);
@@ -213,6 +281,7 @@ async function paginateProducts(
       query = ctx.db.query("products").withSearchIndex("search_oemNumber", (q) => {
         let search = q.search("oemNumber", searchTerm);
         if (brand) search = search.eq("brand", brand);
+        if (model) search = search.eq("model", model);
         if (categoryId) search = search.eq("categoryId", categoryId);
         if (condition) search = search.eq("condition", condition);
         if (inStockFilter !== undefined) search = search.eq("inStock", inStockFilter);
@@ -222,6 +291,7 @@ async function paginateProducts(
       query = ctx.db.query("products").withSearchIndex("search_title", (q) => {
         let search = q.search("title", searchTerm);
         if (brand) search = search.eq("brand", brand);
+        if (model) search = search.eq("model", model);
         if (categoryId) search = search.eq("categoryId", categoryId);
         if (condition) search = search.eq("condition", condition);
         if (inStockFilter !== undefined) search = search.eq("inStock", inStockFilter);
@@ -229,10 +299,10 @@ async function paginateProducts(
       });
     }
   } else {
-    query = productQuery(ctx, args, categoryId);
+    query = productQuery(ctx, args, categoryIds);
   }
 
-  const filtered = applyProductFilters(query, args, draftStatus);
+  const filtered = applyProductFilters(query, args, draftStatus, categoryIds);
   return await filtered.paginate(args.paginationOpts);
 }
 
@@ -247,6 +317,29 @@ export const listPaginated = query({
       ...result,
       page: await Promise.all(result.page.map((product) => resolvePublicProduct(ctx, product))),
     };
+  },
+});
+
+export const listModelsByBrand = query({
+  args: { brand: stringSelectionValidator },
+  handler: async (ctx, args) => {
+    const brands = selectedValues(args.brand, "Marka", MAX_FILTER_SELECTIONS);
+    if (brands.length === 0) return [];
+
+    const productGroups = await Promise.all(brands.map((brand) =>
+      ctx.db
+        .query("products")
+        .withIndex("by_brand_and_model_and_createdAt", (q) => q.eq("brand", brand))
+        .order("desc")
+        .filter((q) => q.neq(q.field("isDraft"), true))
+        .take(1000),
+    ));
+
+    return [...new Set(
+      productGroups.flat()
+        .map((product) => product.model?.trim())
+        .filter((model): model is string => Boolean(model)),
+    )].sort((a, b) => a.localeCompare(b, "tr"));
   },
 });
 

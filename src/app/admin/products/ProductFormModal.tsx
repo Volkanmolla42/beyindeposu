@@ -36,7 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { slugify } from "../admin-utils";
+import { slugify } from "@/app/admin/admin-utils";
 import { scanProductImage } from "./product-assistant";
 import { useMobileDialogViewport } from "./use-mobile-dialog-viewport";
 import { ModernImageZoom } from "@/components/ModernImageZoom";

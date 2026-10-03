@@ -94,6 +94,7 @@ async function sanitizeFilter(ctx: MutationCtx, value: string) {
     const brands = await ctx.db.query("brands").withIndex("by_order").take(200);
     return brands.some((brand) => brand.name === key) ? value : "brand:diğer";
   }
+  if (kind === "model") return key === "Seçili" ? "model:seçili" : "model:diğer";
   const allowed = ["condition:Orijinal Çıkma", "condition:Sıfır - Orijinal", "condition:Revizyonlu", "condition:Sıfırlanmış - Virgin", "stock:Stokta", "stock:Stokta Yok", "sort:date-desc", "sort:date-asc", "sort:title-asc", "sort:title-desc", "sort:oem-asc", "sort:oem-desc"];
   return allowed.includes(value) ? value : `${kind}:diğer`;
 }

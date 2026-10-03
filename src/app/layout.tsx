@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Roboto, Roboto_Mono } from "next/font/google";
 import "./globals.css";
-import { ConvexClientProvider } from "./ConvexClientProvider";
-import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import {
   ORGANIZATION_JSON_LD,
   SEO_IMAGE,
@@ -89,11 +87,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(ORGANIZATION_JSON_LD) }}
         />
-        <ConvexAuthNextjsServerProvider>
-          <ConvexClientProvider>
-            {children}
-          </ConvexClientProvider>
-        </ConvexAuthNextjsServerProvider>
+        {children}
       </body>
     </html>
   );

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { analyticsLabel, formatAnalyticsDuration, formatAnalyticsMonth, formatAnalyticsNumber as number } from "@/lib/analytics-labels";
 import AnalyticsBoundary from "./AnalyticsBoundary";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 type Dashboard = FunctionReturnType<typeof api.analytics.dashboard>;
 const dateTime = (value: number) => new Date(value).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul", dateStyle: "short", timeStyle: "short" });
@@ -248,27 +249,41 @@ function exportCsv(data: Dashboard, today: string) {
 }
 
 function AnalyticsDashboard() {
-  const [now, setNow] = useState(() => Date.now());
-  const months = monthKeys(now);
-  const [month, setMonth] = useState(() => monthKeys(Date.now())[0]);
+  const [clock, setClock] = useState<{ now: number; month: string }>(() => {
+    const initial = Date.now();
+    return { now: initial, month: monthKeys(initial)[0] };
+  });
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const now = clock.now;
+  const months = monthKeys(clock.now);
+  const month = selectedMonth ?? clock.month;
   const [todayOnly, setTodayOnly] = useState(false);
   const [serverEnabled, setServerEnabled] = useState(false);
   useEffect(() => {
     const timer = window.setInterval(() => {
       const current = Date.now();
-      setNow((previous) => dateKey(previous) === dateKey(current) ? previous : current);
+      setClock((previous) =>
+        dateKey(previous.now) === dateKey(current)
+          ? previous
+          : { now: current, month: monthKeys(current)[0] }
+      );
     }, 60_000);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearInterval(timer);
+    };
   }, []);
   useEffect(() => {
     let mounted = true;
     void fetch("/api/analytics/consent", { cache: "no-store" }).then((response) => response.json()).then((settings) => { if (mounted) setServerEnabled(settings.enabled === true); }).catch(() => { if (mounted) setServerEnabled(false); });
     return () => { mounted = false; };
   }, []);
-  const today = dateKey(now);
+  const today = clock ? dateKey(clock.now) : "";
   const period = todayOnly ? "today" : "month";
-  const data = useQuery(api.analytics.dashboard, { month, period, now });
-  if (!data) return <div role="status" className="flex items-center gap-2 p-6 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" />Analitik yükleniyor...</div>;
+  const data = useQuery(
+    api.analytics.dashboard,
+    clock ? { month, period, now: clock.now } : "skip"
+  );
+  if (!clock || !data) return <div role="status" className="flex items-center gap-2 p-6 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" />Analitik yükleniyor...</div>;
   const metrics = data.total;
   const enabled = data.enabled && serverEnabled;
   const primaryMetrics = [
@@ -286,59 +301,59 @@ function AnalyticsDashboard() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div className="flex items-center gap-2.5">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Analitik</h1>
-          {!enabled && <Badge variant="warning">Ölçüm kapalı</Badge>}
-        </div>
-
-        <div className="flex items-center gap-2 overflow-x-auto pb-0.5 sm:overflow-visible sm:pb-0">
-          <div role="group" aria-label="Rapor dönemi" className="inline-flex shrink-0 rounded-xl bg-slate-100 p-1">
-            <Button size="sm" className="h-8 rounded-lg px-2.5 text-xs sm:px-3 sm:text-sm" variant={todayOnly ? "default" : "ghost"} aria-pressed={todayOnly} onClick={() => setTodayOnly(true)}>Bugün</Button>
-            <Button size="sm" className="h-8 rounded-lg px-2.5 text-xs sm:px-3 sm:text-sm" variant={!todayOnly ? "default" : "ghost"} aria-pressed={!todayOnly} onClick={() => setTodayOnly(false)}>Aylık</Button>
+      <AdminPageHeader
+        title="Analitik"
+        badge={!enabled ? <Badge variant="warning">Ölçüm kapalı</Badge> : undefined}
+        description="Ziyaretçi trafiği, arama eğilimleri ve kullanıcı etkileşim metrikleri."
+        actions={
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5 sm:overflow-visible sm:pb-0">
+            <div role="group" aria-label="Rapor dönemi" className="inline-flex shrink-0 rounded-xl bg-slate-100 p-1">
+              <Button size="sm" className="h-8 rounded-lg px-2.5 text-xs sm:px-3 sm:text-sm" variant={todayOnly ? "default" : "ghost"} aria-pressed={todayOnly} onClick={() => setTodayOnly(true)}>Bugün</Button>
+              <Button size="sm" className="h-8 rounded-lg px-2.5 text-xs sm:px-3 sm:text-sm" variant={!todayOnly ? "default" : "ghost"} aria-pressed={!todayOnly} onClick={() => setTodayOnly(false)}>Aylık</Button>
+            </div>
+            {!todayOnly && (
+              <label htmlFor="analytics-month" className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 text-xs text-slate-700 shadow-2xs focus-within:outline-2 focus-within:outline-blue-600 sm:text-sm">
+                <CalendarDays aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                <span className="sr-only">Rapor ayı</span>
+                <select id="analytics-month" value={month} onChange={(event) => setSelectedMonth(event.target.value)} className="cursor-pointer bg-transparent focus:outline-none">
+                  {months.map((key) => <option key={key} value={key}>{formatAnalyticsMonth(key)}</option>)}
+                </select>
+              </label>
+            )}
+            <Button variant="outline" className="h-10 shrink-0 gap-1.5 rounded-xl px-2.5 text-xs shadow-2xs sm:px-3 sm:text-sm" onClick={() => exportCsv(data, today)}>
+              <Download aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+              <span>CSV</span>
+            </Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 rounded-xl text-slate-400 hover:text-slate-700" aria-label="Analitik raporu hakkında yardım">
+                  <CircleHelp aria-hidden="true" className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl text-left">
+                <div className="space-y-1 pr-6">
+                  <DialogTitle>Analitik hakkında</DialogTitle>
+                  <DialogDescription>Ölçüm kapsamı ve raporların hesaplanma şekli.</DialogDescription>
+                </div>
+                <div className="space-y-5 text-sm leading-6 text-slate-600">
+                  <section>
+                    <h3 className="font-medium text-slate-900">Ziyaretçi ve zaman</h3>
+                    <p className="mt-1">Yalnızca analitik izni veren tarayıcılar ölçülür. Aynı tarayıcı seçili dönemde bir kez sayılır; aylık tekil, günlük tekiller toplanarak hesaplanmaz. Raporlar Türkiye saatine göredir.</p>
+                  </section>
+                  <section>
+                    <h3 className="font-medium text-slate-900">Arama ve iletişim</h3>
+                    <p className="mt-1">Arama sonuç adedi önizlemede veya ilk sayfada gösterilen sonuçları belirtir. İletişim sayısı tıklama ve sohbet başlangıçlarını gösterir; satış ya da tamamlanmış görüşme sayısı değildir.</p>
+                  </section>
+                  <section>
+                    <h3 className="font-medium text-slate-900">Kayıt kapsamı</h3>
+                    <p className="mt-1">Sıralamalarda en fazla ilk 20 değer yer alır. Ham oturum hareketleri 90 gün saklanır ve müşteri hesaplarıyla ilişkilendirilmez.</p>
+                  </section>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
-          {!todayOnly && (
-            <label htmlFor="analytics-month" className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 text-xs text-slate-700 shadow-2xs focus-within:outline-2 focus-within:outline-blue-600 sm:text-sm">
-              <CalendarDays aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-slate-500" />
-              <span className="sr-only">Rapor ayı</span>
-              <select id="analytics-month" value={month} onChange={(event) => setMonth(event.target.value)} className="cursor-pointer bg-transparent focus:outline-none">
-                {months.map((key) => <option key={key} value={key}>{formatAnalyticsMonth(key)}</option>)}
-              </select>
-            </label>
-          )}
-          <Button variant="outline" className="h-10 shrink-0 gap-1.5 rounded-xl px-2.5 text-xs shadow-2xs sm:px-3 sm:text-sm" onClick={() => exportCsv(data, today)}>
-            <Download aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-slate-500" />
-            <span>CSV</span>
-          </Button>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0 rounded-xl text-slate-400 hover:text-slate-700" aria-label="Analitik raporu hakkında yardım">
-                <CircleHelp aria-hidden="true" className="h-5 w-5" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-y-auto rounded-2xl text-left">
-              <div className="space-y-1 pr-6">
-                <DialogTitle>Analitik hakkında</DialogTitle>
-                <DialogDescription>Ölçüm kapsamı ve raporların hesaplanma şekli.</DialogDescription>
-              </div>
-              <div className="space-y-5 text-sm leading-6 text-slate-600">
-                <section>
-                  <h3 className="font-medium text-slate-900">Ziyaretçi ve zaman</h3>
-                  <p className="mt-1">Yalnızca analitik izni veren tarayıcılar ölçülür. Aynı tarayıcı seçili dönemde bir kez sayılır; aylık tekil, günlük tekiller toplanarak hesaplanmaz. Raporlar Türkiye saatine göredir.</p>
-                </section>
-                <section>
-                  <h3 className="font-medium text-slate-900">Arama ve iletişim</h3>
-                  <p className="mt-1">Arama sonuç adedi önizlemede veya ilk sayfada gösterilen sonuçları belirtir. İletişim sayısı tıklama ve sohbet başlangıçlarını gösterir; satış ya da tamamlanmış görüşme sayısı değildir.</p>
-                </section>
-                <section>
-                  <h3 className="font-medium text-slate-900">Kayıt kapsamı</h3>
-                  <p className="mt-1">Sıralamalarda en fazla ilk 20 değer yer alır. Ham oturum hareketleri 90 gün saklanır ve müşteri hesaplarıyla ilişkilendirilmez.</p>
-                </section>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </header>
+        }
+      />
 
       {!enabled && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">

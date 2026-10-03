@@ -178,6 +178,19 @@ Uygulama kabuğu, projenin tüm sayfalarını saran temel iskelettir:
 
 ---
 
+### 2.7. Yönetim Paneli Sayfa Başlığı (`AdminPageHeader`)
+- **Kaynak Dosya:** [`src/components/admin/AdminPageHeader.tsx`](file:///c:/Users/volkan/Desktop/beyindeposu/src/components/admin/AdminPageHeader.tsx)
+- **Top-Level Bileşen:** `AdminPageHeader`
+- **Tasarım Standartları:**
+  - Tüm yönetim (`/admin/*`) sayfalarında standart beyaz kart kabuğu (`rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between sm:p-6`).
+  - Sayfa Ana Başlığı: `text-xl font-bold tracking-tight text-slate-900 sm:text-2xl`
+  - Sayaç / Durum Rozeti: `rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600` veya semantik `Badge`.
+  - Açıklama Metni: `mt-1.5 text-sm text-slate-500`
+  - Aksiyon Alanı: Sağ tarafa hizalanmış `Button` veya filtre araçları (`actions`).
+- **Kullanıldığı Sayfalar:** Parçalar (`/admin/products`), Kategoriler (`/admin/categories`), Markalar (`/admin/brands`), Toplu Aktarım (`/admin/batch-import`), Analitik (`/admin/analytics`).
+
+---
+
 ## 3. Tasarım Borcu Defteri (Design System Debt Ledger)
 
 Tasarım sisteminin kusursuzlaştırılması ve temizlenmesi için tespit edilen mevcut borçlar ve iyileştirme önerileri:

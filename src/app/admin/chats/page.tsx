@@ -31,17 +31,30 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { playAdminNotificationSound } from "../admin-utils";
+import { playAdminNotificationSound } from "@/app/admin/admin-utils";
 import { getProductImageSource } from "@/lib/product-images";
 
-function formatMessageDay(timestamp: number) {
+function formatCalendarDate(timestamp: number) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(timestamp);
+}
+
+function formatMessageDay(timestamp: number, currentTime: number | null) {
+  if (currentTime !== null) {
+    const dateKey = formatCalendarDate(timestamp);
+    const todayKey = formatCalendarDate(currentTime);
+    const yesterdayKey = formatCalendarDate(currentTime - 24 * 60 * 60 * 1000);
+    if (dateKey === todayKey) return "Bugün";
+    if (dateKey === yesterdayKey) return "Dün";
+  }
+
   const date = new Date(timestamp);
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
-  if (date.toDateString() === today.toDateString()) return "Bugün";
-  if (date.toDateString() === yesterday.toDateString()) return "Dün";
   return date.toLocaleDateString("tr-TR", {
+    timeZone: "Europe/Istanbul",
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -51,6 +64,7 @@ function formatMessageDay(timestamp: number) {
 function AdminChatsContent() {
   const searchParams = useSearchParams();
   const requestedConversationId = searchParams.get("conversationId");
+  const [currentTime, setCurrentTime] = useState<number | null>(null);
   const [selectedChatIdState, setSelectedChatId] =
     useState<Id<"conversations"> | null>(
       () => requestedConversationId as Id<"conversations"> | null,
@@ -69,6 +83,14 @@ function AdminChatsContent() {
   const nearBottomRef = useRef(true);
   const previousChatIdRef = useRef<Id<"conversations"> | null>(null);
   const prevAdminMsgCountRef = useRef<number>(0);
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setCurrentTime(Date.now());
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
 
   // Queries
   const conversations = useQuery(api.chats.listConversations, {
@@ -209,9 +231,16 @@ function AdminChatsContent() {
         >
           {/* Tabs & Search */}
           <div className="p-4 shrink-0 border-b border-slate-100 space-y-3">
-            <h1 className="hidden md:block text-xl font-bold text-slate-900">
-              Sohbetler
-            </h1>
+            <div className="hidden md:flex items-center justify-between">
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+                Sohbetler
+              </h1>
+              {conversations !== undefined && (
+                <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                  {conversations.length} sohbet
+                </span>
+              )}
+            </div>
             <div className="relative">
               <Search
                 aria-hidden="true"
@@ -279,6 +308,7 @@ function AdminChatsContent() {
                 const timeStr = new Date(
                   conv.lastMessageAt || conv._creationTime,
                 ).toLocaleTimeString("tr-TR", {
+                  timeZone: "Europe/Istanbul",
                   hour: "2-digit",
                   minute: "2-digit",
                 });
@@ -526,11 +556,12 @@ function AdminChatsContent() {
                       const previous = activeChatMessages[index - 1];
                       const startsDay =
                         !previous ||
-                        new Date(previous.createdAt).toDateString() !==
-                          new Date(msg.createdAt).toDateString();
+                        formatCalendarDate(previous.createdAt) !==
+                          formatCalendarDate(msg.createdAt);
                       const timeStr = new Date(
                         msg.createdAt,
                       ).toLocaleTimeString("tr-TR", {
+                        timeZone: "Europe/Istanbul",
                         hour: "2-digit",
                         minute: "2-digit",
                       });
@@ -540,7 +571,7 @@ function AdminChatsContent() {
                           {startsDay && (
                             <div className="flex justify-center py-3">
                               <span className="rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-slate-500 shadow-xs">
-                                {formatMessageDay(msg.createdAt)}
+                              {formatMessageDay(msg.createdAt, currentTime)}
                               </span>
                             </div>
                           )}

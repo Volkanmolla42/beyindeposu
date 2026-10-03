@@ -21,6 +21,8 @@ import {
   type ProductFileGroup,
 } from "./import-files";
 import { sanitizeTurkishText } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 type StatusFilter = "all" | "success" | "skipped" | "error" | "pending";
 
@@ -675,14 +677,38 @@ export default function BatchImportPage() {
 
   return (
     <div className="min-w-0 space-y-5 sm:space-y-6">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-          Toplu aktarım
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Parça görsellerini klasör yapısıyla önizleyip içe aktarın.
-        </p>
-      </div>
+      {/* Header */}
+      <AdminPageHeader
+        title="Toplu Aktarım"
+        badge={
+          productGroups.length > 0
+            ? `${productGroups.length} parça grubu`
+            : undefined
+        }
+        description="Parça görsellerini klasör yapısıyla önizleyip sisteme toplu aktarın."
+        actions={
+          productGroups.length > 0 ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              className="h-12 w-full gap-2 rounded-full px-5 sm:w-auto"
+            >
+              <FolderUp className="h-4 w-4" />
+              <span>Farklı klasör seç</span>
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="h-12 w-full gap-2 rounded-full px-5 sm:w-auto"
+            >
+              <FolderUp className="h-4 w-4" />
+              <span>Klasör seç</span>
+            </Button>
+          )
+        }
+      />
       {/* 2. Klasör Seçim Kutusu (Dropzone) */}
       {productGroups.length === 0 ? (
         <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-white p-6 text-center transition-colors hover:border-blue-500 hover:bg-blue-50/20 sm:p-10">

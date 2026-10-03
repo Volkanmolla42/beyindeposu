@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import ConvexAuthIsland from "@/app/ConvexAuthIsland";
+import SiteLoading from "@/components/SiteLoading";
 
 export const metadata: Metadata = {
   title: { absolute: "Giriş | Beyin Deposu" },
@@ -7,5 +10,9 @@ export const metadata: Metadata = {
 };
 
 export default function LoginLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return (
+    <Suspense fallback={<SiteLoading />}>
+      <ConvexAuthIsland>{children}</ConvexAuthIsland>
+    </Suspense>
+  );
 }

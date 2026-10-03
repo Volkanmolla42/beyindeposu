@@ -13,7 +13,6 @@ import {
 import { requireAdminApiRequest } from "@/lib/auth/admin-api";
 import { sanitizeTurkishText } from "@/lib/utils";
 
-export const runtime = "nodejs";
 const IMAGE_FORMATS = {
   jpeg: { extension: ".jpg", mimeType: "image/jpeg" },
   png: { extension: ".png", mimeType: "image/png" },

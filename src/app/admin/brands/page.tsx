@@ -14,7 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { slugify, LOCAL_BRAND_LOGOS } from "../admin-utils";
+import { slugify, LOCAL_BRAND_LOGOS } from "@/app/admin/admin-utils";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 type Brand = Doc<"brands">;
 
@@ -141,27 +142,20 @@ export default function AdminBrandsPage() {
   return (
     <div className="min-w-0 space-y-5">
       {/* Header */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between sm:p-6">
-        <div className="min-w-0">
-          <h1 className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-            <span>Markalar</span>
-            <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-              {brands ? `${brands.length} marka` : "Yükleniyor…"}
-            </span>
-          </h1>
-          <p className="mt-1.5 text-sm text-slate-500">
-            Araç markalarını, logolarını ve sıralamasını yönetin.
-          </p>
-        </div>
-
-        <Button
-          onClick={handleOpenAddBrand}
-          className="h-12 w-full gap-2 rounded-full px-5 sm:w-auto"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Marka ekle</span>
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Markalar"
+        badge={brands ? `${brands.length} marka` : "Yükleniyor…"}
+        description="Araç markalarını, logolarını ve sıralamasını yönetin."
+        actions={
+          <Button
+            onClick={handleOpenAddBrand}
+            className="h-12 w-full gap-2 rounded-full px-5 sm:w-auto"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Marka ekle</span>
+          </Button>
+        }
+      />
 
       {/* Search Filter */}
       <div className="relative w-full sm:max-w-md">

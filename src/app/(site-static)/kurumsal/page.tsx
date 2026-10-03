@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ChevronRight,
   Clock,
   ExternalLink,
-  Home,
   Mail,
   MapPin,
   Phone,
@@ -16,19 +14,15 @@ import { SITE_CONTACT } from "@/config/site";
 import { formatPhoneNumber, getWhatsAppUrl } from "@/lib/whatsapp";
 import { createPageMetadata, serializeJsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
 
-export const dynamic = "force-static";
-export const revalidate = 3600;
-
 export const metadata: Metadata = createPageMetadata({
-  title: "Hakkımızda ve İletişim",
+  title: "Hakkımızda ve iletişim",
   description:
-    "Beyin Deposu'nun tecrübesi, parça kontrolü ve oto elektronik parçalar için telefon, WhatsApp, e-posta ve adres bilgileri.",
+    "20 yılı aşkın süredir oto elektronik parça tedarik ediyoruz. Kataloğumuzda 15.000’den fazla parça var.",
   path: "/kurumsal",
 });
 
 export default function KurumsalPage() {
-  const experienceYears = "20+";
-  const productsCount = "15.000+";
+  const productsCount = "15.000’den fazla";
   const displayPhone = SITE_CONTACT.phoneNumber;
   const displayEmail = SITE_CONTACT.email;
   const displayAddress = SITE_CONTACT.address;
@@ -60,27 +54,12 @@ export default function KurumsalPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(contactJsonLd) }}
       />
-      {/* Breadcrumbs */}
-      <div className="bg-white border-b border-slate-200 py-3">
-        <div className="container flex items-center gap-2 text-xs font-medium text-slate-500">
-          <Link href="/" className="hover:text-blue-600 flex items-center gap-1">
-            <Home className="w-3.5 h-3.5" />
-            <span>Ana sayfa</span>
-          </Link>
-          <ChevronRight className="w-3 h-3 text-slate-400" />
-          <span className="text-slate-900 font-bold">Hakkımızda</span>
-        </div>
-      </div>
-
       {/* Hero Banner */}
       <section className="relative overflow-hidden border-b border-slate-200 bg-white py-14 text-slate-900 sm:py-16">
         <div className="container max-w-4xl text-center space-y-4 relative z-10">
           <h1 className="text-3xl font-medium tracking-tight text-slate-900 sm:text-5xl">
-            Oto elektronik parça tedariki
+            20 yılı aşkın süredir oto elektronik parça tedarik ediyoruz.
           </h1>
-          <p className="mx-auto max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-            Motor, fren, airbag, gövde kontrol ve şanzıman modülleri.
-          </p>
         </div>
       </section>
 
@@ -89,21 +68,15 @@ export default function KurumsalPage() {
         {/* About Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div className="space-y-4">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-              Hakkımızda
-            </h2>
             <p className="text-sm text-slate-600 leading-relaxed">
-              {experienceYears} yıldır oto elektronik parça tedarik ediyoruz.
-            </p>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Kataloğumuzda {productsCount} parça bulunuyor.
+              Kataloğumuzda {productsCount} parça var. Motor, fren, airbag, gövde kontrol ve şanzıman modülleri de bunların arasında.
             </p>
           </div>
 
           <div className="relative h-72 rounded-3xl border border-slate-200 bg-slate-50 p-3 shadow-sm overflow-hidden">
             <Image
               src="/images/catalog-ecu-banner.webp"
-              alt="ECU modülleri kataloğu"
+              alt="Oto elektronik kontrol ünitesi"
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
               className="rounded-2xl object-contain p-2"
@@ -142,9 +115,6 @@ export default function KurumsalPage() {
             <h2 className="text-2xl font-medium tracking-tight text-slate-900 sm:text-3xl">
               İletişim
             </h2>
-            <p className="text-sm leading-relaxed text-slate-600 sm:text-base">
-              Parça uyumu, stok ve sipariş bilgisi için bize ulaşın.
-            </p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
@@ -161,7 +131,7 @@ export default function KurumsalPage() {
                 </div>
                 <h3 className="text-lg font-medium tracking-tight">WhatsApp</h3>
                 <p className="text-sm leading-relaxed text-slate-600">
-                  OEM kodu veya parça fotoğrafı gönderin.
+                  OEM kodunu ya da parçanın fotoğrafını gönderin.
                 </p>
               </div>
               <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4 text-sm font-medium text-slate-700">
@@ -197,11 +167,11 @@ export default function KurumsalPage() {
                 </div>
                 <h3 className="text-lg font-medium tracking-tight">Kargo</h3>
                 <p className="text-sm leading-relaxed text-slate-600">
-                  Saat 16:00&apos;a kadar verilen stoklu siparişleri aynı gün kargoya veriyoruz.
+                  Saat 16.00&apos;ya kadar verdiğiniz stoklu siparişleri aynı gün kargoya veriyoruz.
                 </p>
               </div>
               <div className="mt-6 border-t border-slate-200 pt-4 text-sm font-medium text-blue-700">
-                Türkiye geneline gönderim
+                Türkiye&apos;nin her yerine gönderiyoruz.
               </div>
             </div>
           </div>
@@ -209,10 +179,6 @@ export default function KurumsalPage() {
           <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
             <div className="flex flex-col justify-between space-y-8 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm lg:col-span-5">
               <div className="space-y-6">
-                <h3 className="text-xl font-medium tracking-tight text-slate-900">
-                  İletişim bilgileri
-                </h3>
-
                 <div className="space-y-5 text-sm">
                   <div className="flex items-start gap-4">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
@@ -221,21 +187,6 @@ export default function KurumsalPage() {
                     <div>
                       <div className="font-medium text-slate-900">Adres</div>
                       <div className="mt-0.5 leading-relaxed text-slate-600">{displayAddress}</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                      <Phone className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-slate-900">Telefon</div>
-                      <a
-                        href={`tel:${displayPhone.replace(/[^0-9+]/g, "")}`}
-                        className="mt-0.5 inline-block text-slate-600 transition-colors hover:text-blue-700"
-                      >
-                        {formatPhoneNumber(displayPhone)}
-                      </a>
                     </div>
                   </div>
 
@@ -293,13 +244,10 @@ export default function KurumsalPage() {
           </div>
         </section>
 
-        {/* KVKK / Privacy placeholder anchor */}
+        {/* Gizlilik */}
         <div id="kvkk" className="p-6 rounded-2xl bg-white border border-slate-200 text-xs text-slate-600 space-y-2">
-          <h2 className="font-bold text-slate-900">KVKK</h2>
-          <p>
-            Web sitesi üzerinden paylaşılan kişisel veriler 6698 sayılı KVKK kapsamında işlenir.
-          </p>
-          <Link href="/gizlilik" className="inline-block text-blue-700 underline">Analitik ve gizlilik aydınlatması</Link>
+          <h2 className="font-bold text-slate-900">Gizlilik</h2>
+          <Link href="/gizlilik" className="inline-block text-blue-700 underline">Kişisel veriler ve analitik hakkında</Link>
         </div>
       </div>
     </>

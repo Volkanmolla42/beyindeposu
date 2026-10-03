@@ -135,26 +135,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
 
   return (
     <div className="w-full">
-      {/* 1. Breadcrumbs */}
-      <div className="bg-white border-b border-slate-200 py-3">
-        <div className="container flex items-center gap-2 text-xs text-slate-500 overflow-x-auto whitespace-nowrap scrollbar-none">
-          <Link href="/" className="hover:text-blue-600 transition-colors shrink-0">Ana sayfa</Link>
-          <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
-          <Link href="/parcalar" className="hover:text-blue-600 transition-colors shrink-0">Parçalar</Link>
-          <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
-          {product.category ? (
-            <Link href={`/kategoriler/${product.category.slug}`} className="hover:text-blue-600 transition-colors shrink-0">
-              {product.categoryName}
-            </Link>
-          ) : (
-            <span className="shrink-0">{product.categoryName}</span>
-          )}
-          <ChevronRight className="w-3 h-3 text-slate-400 shrink-0" />
-          <span className="text-slate-900 font-mono font-bold truncate max-w-[180px] sm:max-w-none">{product.oemNumber}</span>
-        </div>
-      </div>
-
-      {/* 2. Main Product Showcase */}
+      {/* Main Product Showcase */}
       <section className="bg-white border-b border-slate-200 py-6 sm:py-10">
         <div className="container">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start">
@@ -277,9 +258,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                     <Car className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Araç Markası
                   </span>
                   <Link
-                    href={brandInfo
-                      ? `/markalar/${brandInfo.slug}`
-                      : `/parcalar?marka=${encodeURIComponent(product.brand)}`}
+                    href={`/parcalar?marka=${encodeURIComponent(product.brand)}`}
                     className="inline-flex items-center gap-2 group w-fit font-medium text-slate-900 hover:text-blue-600"
                     title={`${product.brand} parçalarını gör`}
                   >

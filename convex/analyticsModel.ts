@@ -61,7 +61,7 @@ export function cleanEvent(input: unknown): AnalyticsEvent | null {
   const event: AnalyticsEvent = { id: data.id, name, path };
   if (name === "search") event.value = typeof data.value === "string" ? safeSearch(data.value) ?? "[gizlendi]" : "[gizlendi]";
   if (name === "filter_change") {
-    if (typeof data.value !== "string" || !/^(category|brand|condition|stock|sort|reset):[a-zA-ZÇĞİÖŞÜçğıöşü0-9 ._-]{0,80}$/.test(data.value)) return null;
+    if (typeof data.value !== "string" || !/^(category|brand|model|condition|stock|sort|reset):[a-zA-ZÇĞİÖŞÜçğıöşü0-9 ._-]{0,80}$/.test(data.value)) return null;
     event.value = data.value;
   }
   if (name === "search" && typeof data.resultCount === "number" && Number.isFinite(data.resultCount) && data.resultCount >= 0) event.resultCount = Math.min(10000, Math.floor(data.resultCount));

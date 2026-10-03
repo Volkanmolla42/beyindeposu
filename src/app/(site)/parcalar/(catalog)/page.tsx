@@ -1,20 +1,26 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { createPageMetadata, SITE_NAME } from "@/lib/seo";
-import ProductCatalogClient from "./ProductCatalogClient";
+import ProductCatalogClient from "@/app/(site)/parcalar/ProductCatalogClient";
+import ConvexAuthIsland from "@/app/ConvexAuthIsland";
+import { CatalogSkeleton } from "@/components/RouteSkeletons";
 
-export const revalidate = 3600;
 
 type ParcalarPageProps = {
   searchParams: Promise<{
     kategori?: string;
     marka?: string;
+    model?: string;
     q?: string;
+    durum?: string;
+    stok?: string;
   }>;
 };
 
 export async function generateMetadata({ searchParams }: ParcalarPageProps): Promise<Metadata> {
   const params = await searchParams;
-  const { kategori, marka, q } = params;
+  const { kategori, marka, model, q, durum, stok } = params;
+  const hasCatalogQuery = Boolean(kategori || marka || model || q || durum || stok);
 
   let title = `Oto Elektronik Parça Kataloğu | ${SITE_NAME}`;
   let description = "ECU motor beyinleri, ABS, airbag ve oto elektronik parçaları kataloğu.";
@@ -31,15 +37,28 @@ export async function generateMetadata({ searchParams }: ParcalarPageProps): Pro
   } else if (marka) {
     title = `${marka} Oto Elektronik Parçaları | ${SITE_NAME}`;
     description = `${marka} uyumlu oto beyinleri, modülleri ve elektronik parçaları.`;
+  } else if (model) {
+    title = `${model} Uyumlu Parçalar | ${SITE_NAME}`;
+    description = `${model} araç modeliyle eşleşen oto elektronik parçaları.`;
   }
 
-  return createPageMetadata({
+  const metadata = createPageMetadata({
     title,
     description,
     path: "/parcalar",
   });
+
+  return hasCatalogQuery
+    ? { ...metadata, robots: { index: false, follow: true } }
+    : metadata;
 }
 
 export default function ParcalarPage() {
-  return <ProductCatalogClient />;
+  return (
+    <Suspense fallback={<CatalogSkeleton />}>
+      <ConvexAuthIsland>
+        <ProductCatalogClient />
+      </ConvexAuthIsland>
+    </Suspense>
+  );
 }

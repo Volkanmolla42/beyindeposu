@@ -102,17 +102,18 @@ export default defineSchema({
     .index("by_brand_and_createdAt", ["brand", "createdAt"])
     .index("by_brand_and_title", ["brand", "title"])
     .index("by_brand_and_oemNumber", ["brand", "oemNumber"])
+    .index("by_brand_and_model_and_createdAt", ["brand", "model", "createdAt"])
     .searchIndex("search_title", {
       searchField: "title",
-      filterFields: ["brand", "categoryId", "condition", "inStock"],
+      filterFields: ["brand", "model", "categoryId", "condition", "inStock"],
     })
     .searchIndex("search_oemNumber", {
       searchField: "oemNumber",
-      filterFields: ["brand", "categoryId", "condition", "inStock"],
+      filterFields: ["brand", "model", "categoryId", "condition", "inStock"],
     })
     .searchIndex("search_shelfCode", {
       searchField: "shelfCode",
-      filterFields: ["brand", "categoryId", "condition", "inStock"],
+      filterFields: ["brand", "model", "categoryId", "condition", "inStock"],
     }),
 
   // 6. Canlı Destek Sohbet Oturumları (Live Support Conversations)

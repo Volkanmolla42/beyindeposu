@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { Suspense } from "react";
 import { useState } from "react";
 import { Menu, Search, X } from "lucide-react";
 
@@ -15,7 +16,6 @@ const navLinks = [
 ];
 
 export default function Header() {
-  const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -45,24 +45,9 @@ export default function Header() {
             />
           </Link>
 
-          <nav aria-label="Ana menü" className="hidden items-center gap-1 lg:flex">
-            {navLinks.map((link) => {
-              const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  aria-current={isActive ? "page" : undefined}
-                  className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${isActive
-                    ? "bg-blue-50 text-blue-800"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                    }`}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <Suspense fallback={<NavigationLinksFallback />}>
+            <DesktopNavigation />
+          </Suspense>
 
           <div className="flex items-center gap-1.5">
             <button
@@ -109,25 +94,96 @@ export default function Header() {
         )}
 
         {mobileMenuOpen && (
-          <nav aria-label="Mobil menü" className="space-y-1 border-t border-slate-100 py-3 lg:hidden">
-            {navLinks.map((link) => {
-              const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  aria-current={isActive ? "page" : undefined}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`block rounded-full px-4 py-3 text-sm font-medium ${isActive ? "bg-blue-50 text-blue-800" : "text-slate-700 hover:bg-slate-100"
-                    }`}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <Suspense fallback={<MobileNavigationFallback />}>
+            <MobileNavigation onNavigate={() => setMobileMenuOpen(false)} />
+          </Suspense>
         )}
       </div>
     </header>
+  );
+}
+
+function DesktopNavigation() {
+  const pathname = usePathname();
+
+  return (
+    <nav aria-label="Ana menü" className="hidden items-center gap-1 lg:flex">
+      {navLinks.map((link) => {
+        const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            aria-current={isActive ? "page" : undefined}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${isActive
+              ? "bg-blue-50 text-blue-800"
+              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`}
+          >
+            {link.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function NavigationLinksFallback() {
+  return (
+    <nav aria-label="Ana menü" className="hidden items-center gap-1 lg:flex">
+      {navLinks.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href}
+          className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+        >
+          {link.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+function MobileNavigation({ onNavigate }: { onNavigate: () => void }) {
+  const pathname = usePathname();
+
+  return (
+    <nav aria-label="Mobil menü" className="space-y-1 border-t border-slate-100 py-3 lg:hidden">
+      {navLinks.map((link) => {
+        const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            aria-current={isActive ? "page" : undefined}
+            onClick={onNavigate}
+            className={`block rounded-full px-4 py-3 text-sm font-medium ${isActive
+              ? "bg-blue-50 text-blue-800"
+              : "text-slate-700 hover:bg-slate-100"
+              }`}
+          >
+            {link.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function MobileNavigationFallback() {
+  return (
+    <nav aria-label="Mobil menü" className="space-y-1 border-t border-slate-100 py-3 lg:hidden">
+      {navLinks.map((link) => (
+        <Link
+          key={link.href}
+          href={link.href}
+          className="block rounded-full px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
+        >
+          {link.label}
+        </Link>
+      ))}
+    </nav>
   );
 }

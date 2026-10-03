@@ -35,6 +35,7 @@ import {
   ProductLightboxModal,
   type LightboxState,
 } from "./ProductLightboxModal";
+import AdminPageHeader from "@/components/admin/AdminPageHeader";
 
 type Product = Doc<"products">;
 export default function AdminProductsPage() {
@@ -325,16 +326,28 @@ export default function AdminProductsPage() {
     </nav>
   );
   return (
-    <div ref={contentRef} className="w-full min-w-0 space-y-4">
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
+    <div ref={contentRef} className="w-full min-w-0 space-y-5">
+      <AdminPageHeader
+        title="Parçalar"
+        badge={
+          productStats
+            ? `${productStats.total.toLocaleString("tr-TR")} parça`
+            : "Yükleniyor…"
+        }
+        description="Katalogdaki tüm beyin, modül ve yedek parçaları yönetin."
+        actions={
           <Button
             onClick={handleOpenAddProduct}
-            className="h-11 w-full shrink-0 basis-full justify-center gap-2 px-4 lg:w-auto lg:basis-auto"
+            className="h-12 w-full gap-2 rounded-full px-5 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
-            Yeni parça
+            <span>Yeni parça ekle</span>
           </Button>
+        }
+      />
+
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
           <div className="relative min-w-0 w-full flex-1 basis-0 lg:w-auto lg:basis-0">
             <Search
               aria-hidden="true"

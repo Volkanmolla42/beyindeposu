@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,6 +10,7 @@ import { SITE_CONTACT } from "@/config/site";
 import { openAnalyticsPreferences } from "@/lib/analytics";
 
 export default function Footer() {
+  const [currentYear, setCurrentYear] = useState<number | null>(null);
   const phone = SITE_CONTACT.phoneNumber;
   const email = SITE_CONTACT.email;
   const address = SITE_CONTACT.address;
@@ -17,6 +18,14 @@ export default function Footer() {
 
   const clickCountRef = useRef(0);
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setCurrentYear(new Date().getFullYear());
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
 
   const handleLogoClick = (e: React.MouseEvent) => {
     clickCountRef.current += 1;
@@ -89,7 +98,7 @@ export default function Footer() {
 
       <div className="border-t border-slate-200 bg-slate-50">
         <div className="container flex flex-col items-center justify-between gap-3 py-4 text-xs text-slate-600 sm:flex-row sm:pr-44">
-          <p>© {new Date().getFullYear()} Beyin Deposu</p>
+          <p>© {currentYear ? `${currentYear} ` : ""}Beyin Deposu</p>
           <div className="flex items-center gap-4">
             <Link href="/gizlilik" className="hover:text-blue-700">KVKK ve gizlilik</Link>
             <button type="button" onClick={openAnalyticsPreferences} className="hover:text-blue-700">Çerez tercihleri</button>

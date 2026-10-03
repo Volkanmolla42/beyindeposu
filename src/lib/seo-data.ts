@@ -1,6 +1,5 @@
 import "server-only";
 
-import { cache } from "react";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convex/_generated/api";
 
@@ -9,21 +8,21 @@ function getConvexHttpClient() {
   return convexUrl ? new ConvexHttpClient(convexUrl) : null;
 }
 
-export const getPublicProductBySlug = cache(async (slug: string) => {
+export async function getPublicProductBySlug(slug: string) {
   const client = getConvexHttpClient();
   if (!client) return null;
 
   return client.query(api.products.getBySlug, { slug });
-});
+}
 
-const getPublicCategoryBySlug = cache(async (slug: string) => {
+export async function getPublicCategoryBySlug(slug: string) {
   const client = getConvexHttpClient();
   if (!client) return null;
 
   return client.query(api.categories.getBySlug, { slug });
-});
+}
 
-const getPublicCategoryProductsPage = cache(async (slug: string) => {
+export async function getPublicCategoryProductsPage(slug: string) {
   const client = getConvexHttpClient();
   if (!client) return null;
 
@@ -31,9 +30,9 @@ const getPublicCategoryProductsPage = cache(async (slug: string) => {
     categorySlug: slug,
     paginationOpts: { numItems: 24, cursor: null },
   });
-});
+}
 
-export const getPublicCategoryPage = cache(async (slug: string) => {
+export async function getPublicCategoryPage(slug: string) {
   const category = await getPublicCategoryBySlug(slug);
   if (!category) return null;
 
@@ -41,19 +40,19 @@ export const getPublicCategoryPage = cache(async (slug: string) => {
   if (!products) return null;
 
   return { category, products };
-});
+}
 
 async function listPublicCategories(client: ConvexHttpClient) {
   const categories = await client.query(api.categories.list, { onlyActive: true });
   return categories.filter((category) => category.slug.trim().length > 0);
 }
 
-export const getPublicCategories = cache(async () => {
+export async function getPublicCategories() {
   const client = getConvexHttpClient();
   if (!client) return [];
 
   return listPublicCategories(client);
-});
+}
 
 export async function listPublicCategoriesWithProducts(client: ConvexHttpClient) {
   const categories = await listPublicCategories(client);
@@ -71,8 +70,7 @@ export async function listPublicCategoriesWithProducts(client: ConvexHttpClient)
   return categoriesWithProducts.filter((category) => category !== null);
 }
 
-
-export const getPublicBrandPage = cache(async (slug: string) => {
+export async function getPublicBrandPage(slug: string) {
   const client = getConvexHttpClient();
   if (!client) return null;
 
@@ -86,7 +84,7 @@ export const getPublicBrandPage = cache(async (slug: string) => {
   });
 
   return { brand, products };
-});
+}
 
 async function listPublicBrands(client: ConvexHttpClient) {
   const brands = await client.query(api.brands.list, {});
@@ -95,12 +93,25 @@ async function listPublicBrands(client: ConvexHttpClient) {
   );
 }
 
-export const getPublicBrands = cache(async () => {
+export async function getPublicBrands() {
   const client = getConvexHttpClient();
   if (!client) return [];
 
   return listPublicBrands(client);
-});
+}
+
+export async function getPublicProductSlugs() {
+  const client = getConvexHttpClient();
+  if (!client) return [];
+
+  const result = await client.query(api.products.listPublicSitemapEntries, {
+    paginationOpts: { numItems: 100, cursor: null },
+  });
+
+  return result.page
+    .map((product) => product.slug.trim())
+    .filter((slug) => slug.length > 0);
+}
 
 export async function listPublicBrandsWithProducts(client: ConvexHttpClient) {
   const brands = await listPublicBrands(client);
@@ -117,4 +128,3 @@ export async function listPublicBrandsWithProducts(client: ConvexHttpClient) {
 
   return brandsWithProducts.filter((brand) => brand !== null);
 }
-
