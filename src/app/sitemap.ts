@@ -9,7 +9,7 @@ import {
 
 export const revalidate = 3600;
 
-const STATIC_PATHS = ["/", "/parcalar", "/kategoriler", "/markalar", "/kurumsal", "/iletisim"];
+const STATIC_PATHS = ["/", "/parcalar", "/kategoriler", "/markalar", "/kurumsal"];
 const SITEMAP_URL_LIMIT = 50_000;
 
 type SitemapProductPage = {

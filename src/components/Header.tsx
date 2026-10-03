@@ -12,7 +12,6 @@ const navLinks = [
   { href: "/parcalar", label: "Parçalar" },
   { href: "/kategoriler", label: "Kategoriler" },
   { href: "/markalar", label: "Markalar" },
-  { href: "/iletisim", label: "İletişim" },
 ];
 
 export default function Header() {
