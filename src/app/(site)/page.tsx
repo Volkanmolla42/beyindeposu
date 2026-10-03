@@ -83,14 +83,14 @@ function HeroSection() {
           {...mobileImageProps}
           alt=""
           loading="eager"
-          className="absolute inset-0 h-full w-full object-cover object-right sm:object-[65%_center]"
+          className="absolute inset-0 h-full w-full object-cover object-right sm:object-left"
         />
       </picture>
 
       <div className="relative z-20 mx-auto flex w-full max-w-[1680px] flex-col justify-start px-4 py-8 sm:flex-1 sm:justify-center sm:px-6 sm:py-12 lg:px-8">
         <div className="max-w-xl">
           <h1 className="max-w-xl text-4xl font-medium leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-            Aracınıza uygun <span className="text-blue-700">elektronik parçayı</span> bulun.
+            Aracınızın beyni <span className="text-blue-700">bizde</span>
           </h1>
 
           <div className="mt-8 max-w-lg">
