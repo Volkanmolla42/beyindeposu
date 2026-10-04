@@ -60,7 +60,7 @@ function HeroSection() {
     props: { srcSet: desktopSrcSet },
   } = getImageProps({
     ...imageProps,
-    src: "/images/home-hero.webp",
+    src: "/images/hero.webp",
     width: 1672,
     height: 941,
   });
