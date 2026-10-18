@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ProductImage } from "@/components/ProductImage";
 import { getProductImageAlt, getProductImageSource } from "@/lib/product-images";
 import { absoluteUrl } from "@/lib/seo";
+import { useContactSettings } from "@/hooks/useContactSettings";
 
 export interface ProductCardProps {
   product: ProductWithCategory;
@@ -18,6 +19,7 @@ export interface ProductCardProps {
 }
 
 export default function ProductCard({ product, priority = false, variant = "default" }: ProductCardProps) {
+  const { phoneNumber } = useContactSettings();
   const isCatalog = variant === "catalog";
   const subtitle = [product.categoryName, product.brand].filter(Boolean).join(" • ");
 
@@ -111,14 +113,17 @@ export default function ProductCard({ product, priority = false, variant = "defa
           className={isCatalog ? "min-h-11 flex-1 rounded-xl text-xs font-semibold sm:flex-none sm:rounded-full sm:text-sm" : "shrink-0 rounded-full"}
         >
           <a
-            href={getWhatsAppUrl({
-              product: {
-                title: product.title,
-                oemNumber: product.oemNumber,
-                action: "price",
-                productUrl: absoluteUrl(`/parcalar/${product.slug}`),
+            href={getWhatsAppUrl(
+              {
+                product: {
+                  title: product.title,
+                  oemNumber: product.oemNumber,
+                  action: "price",
+                  productUrl: absoluteUrl(`/parcalar/${product.slug}`),
+                },
               },
-            })}
+              phoneNumber
+            )}
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Fiyat sor: ${product.title} için WhatsApp`}

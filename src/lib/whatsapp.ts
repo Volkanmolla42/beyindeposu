@@ -1,5 +1,3 @@
-import { SITE_CONTACT } from "@/config/site";
-
 export interface WhatsAppProductTarget {
   title: string;
   oemNumber?: string;
@@ -51,7 +49,7 @@ export function formatPhoneNumber(phoneNumber?: string): string {
  */
 export function getWhatsAppUrl(
   target?: WhatsAppTarget,
-  phoneNumber: string = SITE_CONTACT.phoneNumber
+  phoneNumber: string = ""
 ): string {
   const clean = cleanPhoneNumber(phoneNumber);
   let message = "";

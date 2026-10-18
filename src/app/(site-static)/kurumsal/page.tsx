@@ -10,7 +10,6 @@ import {
   Truck,
 } from "lucide-react";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
-import { SITE_CONTACT } from "@/config/site";
 import { formatPhoneNumber, getWhatsAppUrl } from "@/lib/whatsapp";
 import { createPageMetadata, serializeJsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { fetchQuery } from "convex/nextjs";
@@ -24,26 +23,7 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default async function KurumsalPage() {
-  let contact: {
-    phoneNumber: string;
-    email: string;
-    address: string;
-    workingHours: string;
-  } = {
-    phoneNumber: SITE_CONTACT.phoneNumber,
-    email: SITE_CONTACT.email,
-    address: SITE_CONTACT.address,
-    workingHours: SITE_CONTACT.workingHours,
-  };
-
-  try {
-    const dbContact = await fetchQuery(api.settings.getContactSettings, {});
-    if (dbContact) {
-      contact = dbContact;
-    }
-  } catch {
-    // Fallback to static values if Convex query cannot be reached at build time
-  }
+  const contact = await fetchQuery(api.settings.getContactSettings, {});
 
   const productsCount = "15.000’den fazla";
   const displayPhone = contact.phoneNumber;

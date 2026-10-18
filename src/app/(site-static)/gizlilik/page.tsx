@@ -1,23 +1,13 @@
 import type { Metadata } from "next";
-import { SITE_CONTACT } from "@/config/site";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@convex/_generated/api";
 
 export const metadata: Metadata = { title: "Analitik ve gizlilik", description: "Beyin Deposu analitik verileri, çerez tercihleri ve kişisel veri hakları." };
 
 export default async function PrivacyPage() {
-  let address: string = SITE_CONTACT.address;
-  let email: string = SITE_CONTACT.email;
-
-  try {
-    const contact = await fetchQuery(api.settings.getContactSettings, {});
-    if (contact) {
-      address = contact.address;
-      email = contact.email;
-    }
-  } catch {
-    // Fallback to static values if Convex query cannot be reached at build time
-  }
+  const contact = await fetchQuery(api.settings.getContactSettings, {});
+  const address = contact.address;
+  const email = contact.email;
 
   return <article className="container max-w-3xl space-y-8 py-12 text-sm leading-relaxed text-slate-700">
     <h1 className="text-3xl font-medium text-slate-900">Analitik ve gizlilik</h1>

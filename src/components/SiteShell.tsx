@@ -6,7 +6,6 @@ import Header from "@/components/Header";
 import { ContactSettingsProvider } from "@/hooks/useContactSettings";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@convex/_generated/api";
-import { SITE_CONTACT } from "@/config/site";
 
 export default async function SiteShell({
   children,
@@ -15,26 +14,7 @@ export default async function SiteShell({
   children: React.ReactNode;
   afterFooter?: React.ReactNode;
 }) {
-  let contact: {
-    phoneNumber: string;
-    email: string;
-    address: string;
-    workingHours: string;
-  } = {
-    phoneNumber: SITE_CONTACT.phoneNumber,
-    email: SITE_CONTACT.email,
-    address: SITE_CONTACT.address,
-    workingHours: SITE_CONTACT.workingHours,
-  };
-
-  try {
-    const dbContact = await fetchQuery(api.settings.getContactSettings, {});
-    if (dbContact) {
-      contact = dbContact;
-    }
-  } catch {
-    // Fallback to static config if query fails
-  }
+  const contact = await fetchQuery(api.settings.getContactSettings, {});
 
   return (
     <ContactSettingsProvider settings={contact}>

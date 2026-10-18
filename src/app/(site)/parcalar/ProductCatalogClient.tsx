@@ -15,6 +15,7 @@ import {
 
 import ProductCard from "@/components/ProductCard";
 import { getWhatsAppUrl } from "@/lib/whatsapp";
+import { useContactSettings } from "@/hooks/useContactSettings";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,7 @@ function ProductCatalogContent() {
 }
 
 function ProductCatalogView() {
+  const { phoneNumber } = useContactSettings();
   const searchParams = useSearchParams();
   const searchParamsKey = searchParams.toString();
   const queryParam = searchParams.get("q") || "";
@@ -461,7 +463,7 @@ function ProductCatalogView() {
                 <div className="flex justify-center">
                   <Button asChild variant="whatsapp" size="sm" className="min-h-11 rounded-xl px-5 font-semibold">
                     <a
-                      href={getWhatsAppUrl({ message: "Merhaba, aradığım oto elektronik parçasını bulamadım. Araç marka, model ve OEM bilgisini paylaşacağım." })}
+                      href={getWhatsAppUrl({ message: "Merhaba, aradığım oto elektronik parçasını bulamadım. Araç marka, model ve OEM bilgisini paylaşacağım." }, phoneNumber)}
                       target="_blank"
                       rel="noopener noreferrer"
                     >

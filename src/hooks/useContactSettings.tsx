@@ -1,7 +1,6 @@
 "use client";
 
 import React, { createContext, useContext } from "react";
-import { SITE_CONTACT } from "@/config/site";
 
 export interface ContactSettings {
   phoneNumber: string;
@@ -12,11 +11,11 @@ export interface ContactSettings {
 }
 
 const defaultContactSettings: ContactSettings = {
-  phoneNumber: SITE_CONTACT.phoneNumber,
-  whatsappNumber: SITE_CONTACT.phoneNumber,
-  email: SITE_CONTACT.email,
-  workingHours: SITE_CONTACT.workingHours,
-  address: SITE_CONTACT.address,
+  phoneNumber: "",
+  whatsappNumber: "",
+  email: "",
+  workingHours: "",
+  address: "",
 };
 
 const ContactSettingsContext = createContext<ContactSettings>(defaultContactSettings);
