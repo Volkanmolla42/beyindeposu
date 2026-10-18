@@ -13,6 +13,8 @@ import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { SITE_CONTACT } from "@/config/site";
 import { formatPhoneNumber, getWhatsAppUrl } from "@/lib/whatsapp";
 import { createPageMetadata, serializeJsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
+import { fetchQuery } from "convex/nextjs";
+import { api } from "@convex/_generated/api";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Hakkımızda ve iletişim",
@@ -21,12 +23,33 @@ export const metadata: Metadata = createPageMetadata({
   path: "/kurumsal",
 });
 
-export default function KurumsalPage() {
+export default async function KurumsalPage() {
+  let contact: {
+    phoneNumber: string;
+    email: string;
+    address: string;
+    workingHours: string;
+  } = {
+    phoneNumber: SITE_CONTACT.phoneNumber,
+    email: SITE_CONTACT.email,
+    address: SITE_CONTACT.address,
+    workingHours: SITE_CONTACT.workingHours,
+  };
+
+  try {
+    const dbContact = await fetchQuery(api.settings.getContactSettings, {});
+    if (dbContact) {
+      contact = dbContact;
+    }
+  } catch {
+    // Fallback to static values if Convex query cannot be reached at build time
+  }
+
   const productsCount = "15.000’den fazla";
-  const displayPhone = SITE_CONTACT.phoneNumber;
-  const displayEmail = SITE_CONTACT.email;
-  const displayAddress = SITE_CONTACT.address;
-  const workingHours = SITE_CONTACT.workingHours;
+  const displayPhone = contact.phoneNumber;
+  const displayEmail = contact.email;
+  const displayAddress = contact.address;
+  const workingHours = contact.workingHours;
   const mapQuery = encodeURIComponent(displayAddress);
 
   const contactJsonLd = {
@@ -119,7 +142,7 @@ export default function KurumsalPage() {
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">
             <a
-              href={getWhatsAppUrl()}
+              href={getWhatsAppUrl(undefined, displayPhone)}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="WhatsApp'tan parça sorun"

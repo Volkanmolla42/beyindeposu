@@ -6,14 +6,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import RoutartLogo from "./RoutartLogo";
 import { MapPin, Mail, Phone } from "lucide-react";
-import { SITE_CONTACT } from "@/config/site";
+import { useContactSettings } from "@/hooks/useContactSettings";
 import { openAnalyticsPreferences } from "@/lib/analytics";
 
 export default function Footer() {
   const [currentYear, setCurrentYear] = useState<number | null>(null);
-  const phone = SITE_CONTACT.phoneNumber;
-  const email = SITE_CONTACT.email;
-  const address = SITE_CONTACT.address;
+  const { phoneNumber: phone, email, address } = useContactSettings();
   const router = useRouter();
 
   const clickCountRef = useRef(0);

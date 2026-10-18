@@ -170,6 +170,14 @@ export default defineSchema({
     drafts: v.number(),
     outOfStock: v.optional(v.number()),
   }).index("by_key", ["key"]),
-}, {
-  schemaValidation: false, // Disables legacy document validation conflicts while maintaining 100% strict TypeScript types
+
+  // 9. Site Ayarları (İletişim & Genel Ayarlar)
+  siteSettings: defineTable({
+    key: v.string(), // "contact"
+    phoneNumber: v.string(),
+    email: v.string(),
+    address: v.string(),
+    workingHours: v.string(),
+    updatedAt: v.optional(v.number()),
+  }).index("by_key", ["key"]),
 });

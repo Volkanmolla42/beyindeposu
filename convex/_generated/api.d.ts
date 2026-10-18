@@ -19,6 +19,7 @@ import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as oem from "../oem.js";
 import type * as products from "../products.js";
+import type * as settings from "../settings.js";
 import type * as users from "../users.js";
 
 import type {
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   oem: typeof oem;
   products: typeof products;
+  settings: typeof settings;
   users: typeof users;
 }>;
 

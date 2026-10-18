@@ -6,16 +6,19 @@ import { X, Send } from "lucide-react";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { getWhatsAppUrl } from "@/lib/whatsapp";
 import { trackAnalytics } from "@/lib/analytics";
+import { useContactSettings } from "@/hooks/useContactSettings";
 
 export default function FloatingWhatsApp() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const { phoneNumber } = useContactSettings();
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     const url = getWhatsAppUrl(
-      message.trim() ? { message: message.trim() } : undefined
+      message.trim() ? { message: message.trim() } : undefined,
+      phoneNumber
     );
     trackAnalytics("whatsapp_click");
     window.open(url, "_blank", "noopener,noreferrer");

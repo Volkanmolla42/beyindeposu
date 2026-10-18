@@ -16,6 +16,7 @@ import {
   Loader2,
   Sparkles,
   ChartNoAxesCombined,
+  Settings,
 } from "lucide-react";
 import { useQuery, useConvexAuth } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -74,7 +75,16 @@ const NAV_GROUPS: NavGroup[] = [
         icon: MessageSquare,
         badgeKey: "unreadChats",
       },
-
+    ],
+  },
+  {
+    title: "Sistem ve ayarlar",
+    items: [
+      {
+        href: "/admin/settings",
+        label: "Site ayarları",
+        icon: Settings,
+      },
     ],
   },
 ];

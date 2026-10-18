@@ -19,7 +19,7 @@ import ProductCard from "@/components/ProductCard";
 import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@convex/_generated/api";
-import { SITE_CONTACT } from "@/config/site";
+import { useContactSettings } from "@/hooks/useContactSettings";
 import { getWhatsAppUrl } from "@/lib/whatsapp";
 import { absoluteUrl } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
       : "skip"
   );
 
-  const displayPhone = SITE_CONTACT.phoneNumber;
+  const { phoneNumber: displayPhone } = useContactSettings();
 
   // Resolve brand logo
   const brands = useQuery(api.brands.list, {});
@@ -314,14 +314,17 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                   className="sm:col-span-2 w-full text-xs font-black tracking-wider py-6 rounded-xl shadow-md shadow-emerald-600/20"
                 >
                   <a
-                    href={getWhatsAppUrl({
-                      product: {
-                        title: product.title,
-                        oemNumber: product.oemNumber,
-                        action: "price_and_stock",
-                        productUrl: absoluteUrl(`/parcalar/${slug}`),
+                    href={getWhatsAppUrl(
+                      {
+                        product: {
+                          title: product.title,
+                          oemNumber: product.oemNumber,
+                          action: "price_and_stock",
+                          productUrl: absoluteUrl(`/parcalar/${slug}`),
+                        },
                       },
-                    })}
+                      displayPhone
+                    )}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`Fiyat ve stok sor: ${product.oemNumber} için WhatsApp`}
