@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Clock,
   ExternalLink,
   Mail,
   MapPin,
@@ -29,7 +28,6 @@ export default async function KurumsalPage() {
   const displayPhone = contact.phoneNumber;
   const displayEmail = contact.email;
   const displayAddress = contact.address;
-  const workingHours = contact.workingHours;
   const mapQuery = encodeURIComponent(displayAddress);
 
   const contactJsonLd = {
@@ -48,7 +46,6 @@ export default async function KurumsalPage() {
       postalCode: "34010",
       addressCountry: "TR",
     },
-    openingHours: "Mo-Su 08:30-18:00",
   };
 
   return (
@@ -133,9 +130,6 @@ export default async function KurumsalPage() {
                   <WhatsAppIcon className="h-6 w-6 fill-emerald-700 text-emerald-700" />
                 </div>
                 <h3 className="text-lg font-medium tracking-tight">WhatsApp</h3>
-                <p className="text-sm leading-relaxed text-slate-600">
-                  OEM kodunu ya da parçanın fotoğrafını gönderin.
-                </p>
               </div>
               <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4 text-sm font-medium text-slate-700">
                 <span>Mesaj gönder</span>
@@ -153,9 +147,6 @@ export default async function KurumsalPage() {
                   <Phone className="h-6 w-6 text-blue-700" />
                 </div>
                 <h3 className="text-lg font-medium tracking-tight">Telefon</h3>
-                <p className="text-sm leading-relaxed text-slate-600">
-                  Parça uyumu ve stok bilgisi için arayın.
-                </p>
               </div>
               <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4 text-sm font-medium text-slate-700">
                 <span>{formatPhoneNumber(displayPhone)}</span>
@@ -169,12 +160,9 @@ export default async function KurumsalPage() {
                   <Truck className="h-6 w-6 text-blue-700" />
                 </div>
                 <h3 className="text-lg font-medium tracking-tight">Kargo</h3>
-                <p className="text-sm leading-relaxed text-slate-600">
-                  Saat 16.00&apos;ya kadar verdiğiniz stoklu siparişleri aynı gün kargoya veriyoruz.
-                </p>
               </div>
-              <div className="mt-6 border-t border-slate-200 pt-4 text-sm font-medium text-blue-700">
-                Türkiye&apos;nin her yerine gönderiyoruz.
+              <div className="mt-6 border-t border-slate-200 pt-4 text-sm font-medium text-slate-700">
+                Türkiye geneli hızlı teslimat
               </div>
             </div>
           </div>
@@ -205,16 +193,6 @@ export default async function KurumsalPage() {
                       >
                         {displayEmail}
                       </a>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                      <Clock className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-slate-900">Çalışma saatleri</div>
-                      <div className="mt-0.5 text-slate-600">{workingHours}</div>
                     </div>
                   </div>
                 </div>
