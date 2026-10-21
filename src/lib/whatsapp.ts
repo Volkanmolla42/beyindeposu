@@ -15,13 +15,8 @@ export type WhatsAppTarget =
  * Normalizes phone numbers to standard WhatsApp format with country code (90...).
  */
 function cleanPhoneNumber(phoneNumber: string): string {
-  let clean = phoneNumber.replace(/[^0-9]/g, "");
-  if (clean.startsWith("0") && clean.length === 11) {
-    clean = "9" + clean;
-  } else if (clean.length === 10 && clean.startsWith("5")) {
-    clean = "90" + clean;
-  }
-  return clean;
+  const digits = phoneNumber.replace(/\D/g, "");
+  return digits.startsWith("0") ? `9${digits}` : digits.startsWith("5") ? `90${digits}` : digits;
 }
 
 /**

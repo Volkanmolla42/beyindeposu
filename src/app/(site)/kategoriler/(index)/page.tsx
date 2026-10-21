@@ -1,7 +1,7 @@
 import { createPageMetadata } from "@/lib/seo";
 import { getPublicCategories } from "@/lib/seo-data";
 import TaxonomyIndexPage from "@/components/TaxonomyIndexPage";
-
+export const revalidate = 300;
 
 export const metadata = createPageMetadata({
   title: "Kategoriler",
@@ -14,7 +14,10 @@ export default async function CategoriesPage() {
 
   return (
     <TaxonomyIndexPage
-      title="Kategoriler"
+      title="Parça Kategorileri"
+      badge="BEYİN DEPOSU KATALOG"
+      description="ECU motor beyinleri, ABS pompaları, şanzıman modülleri ve tüm oto elektronik ünitelerini kategorilere göre inceleyin."
+      heroImage="/images/categories-hero.jpg"
       actionLabel="Parçaları bul"
       detailLabel="Kategori sayfası"
       items={categories.map((category) => ({

@@ -6,11 +6,21 @@ import {
   metadataDescription,
   SITE_NAME,
 } from "@/lib/seo";
-import { getPublicBrandPage } from "@/lib/seo-data";
+import { getPublicBrandPage, getPublicBrands } from "@/lib/seo-data";
 import { ProductListingSkeleton } from "@/components/RouteSkeletons";
 import TaxonomyProductResults from "@/components/TaxonomyProductResults";
 import TaxonomyPageHeader from "@/components/TaxonomyPageHeader";
 
+export const revalidate = 300;
+
+export async function generateStaticParams() {
+  try {
+    const brands = await getPublicBrands();
+    return (brands ?? []).map((brand) => ({ slug: brand.slug }));
+  } catch {
+    return [];
+  }
+}
 
 type BrandPageProps = {
   params: Promise<{ slug: string }>;

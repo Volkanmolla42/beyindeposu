@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { createPageMetadata, SITE_NAME } from "@/lib/seo";
 import ProductCatalogClient from "@/app/(site)/parcalar/ProductCatalogClient";
-import ConvexAuthIsland from "@/app/ConvexAuthIsland";
 import { CatalogSkeleton } from "@/components/RouteSkeletons";
 
 
@@ -56,9 +55,7 @@ export async function generateMetadata({ searchParams }: ParcalarPageProps): Pro
 export default function ParcalarPage() {
   return (
     <Suspense fallback={<CatalogSkeleton />}>
-      <ConvexAuthIsland>
-        <ProductCatalogClient />
-      </ConvexAuthIsland>
+      <ProductCatalogClient />
     </Suspense>
   );
 }

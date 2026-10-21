@@ -31,15 +31,13 @@ export default defineSchema({
     .index("by_visitorId", ["visitorId"])
     .index("by_expiresAt", ["expiresAt"]),
 
-  // 1. Kategoriler Tablosu
   categories: defineTable({
-    name: v.string(), // Kategori Adı (Örn: Motor Beyinleri (ECU))
-    slug: v.string(), // URL slug (Örn: motor-beyinleri-ecu)
-    description: v.optional(v.string()), // Convex Storage Dosya ID'si
-    imageUrl: v.optional(v.string()), // Yerel veya harici görsel URL'i (/images/cat-*.jpg)
+    name: v.string(),
+    slug: v.string(),
+    description: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
     order: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
-    // SEO & Meta Alanları
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
     metaKeywords: v.optional(v.string()),
@@ -50,10 +48,9 @@ export default defineSchema({
     .index("by_order", ["order"])
     .index("by_isActive", ["isActive"]),
 
-  // 2. Araç Markaları Tablosu
   brands: defineTable({
-    name: v.string(), // Marka Adı (Örn: Volkswagen, Mercedes-Benz)
-    slug: v.string(), // URL slug (Örn: volkswagen)
+    name: v.string(),
+    slug: v.string(),
     logoUrl: v.optional(v.string()),
     popular: v.boolean(),
     order: v.number(),
@@ -63,28 +60,23 @@ export default defineSchema({
     .index("by_popular", ["popular"])
     .index("by_order", ["order"]),
 
-  // 3. Parçalar Tablosu (Tam Kapsamlı ve Temiz Oto Elektronik Şeması)
   products: defineTable({
-    title: v.string(), // Parça Başlığı (Örn: Renault Motor Beyni ECU S113717205D Orijinal Çıkma)
-    slug: v.string(), // SEO Bağlantısı / URL slug (Örn: renault-motor-beyni-ecu-s113717205d)
-    oemNumber: v.string(), // Parça No / OEM Kodu (Örn: S113717205D)
-    shelfCode: v.optional(v.string()), // Depo Raf Kodu (Örn: RAF-B08)
-    categoryId: v.optional(v.id("categories")), // Taslaklarda henüz kategori belirlenmemiş olabilir.
-    brand: v.string(), // Araç Markası (Örn: Renault, Volkswagen, Mercedes-Benz)
-    model: v.optional(v.string()), // Model / Yıl (Örn: Megane 2, Clio 3 veya Genel Uyumlu)
-    condition: v.string(), // Durum ("Orijinal Çıkma", "Sıfır - Orijinal", "Revizyonlu")
-    inStock: v.boolean(), // Stok Durumu: true / false
-    description: v.string(), // Detaylı Parça Açıklaması & Kullanım Alanları
-    images: v.array(v.string()), // Parça Görselleri (Çözümlenmiş URL'ler) // Eski kayıtlarla uyumluluk; görüntüleme/yüklemede kullanılmaz
-
-    // SEO & Meta Alanları
-    metaTitle: v.optional(v.string()), // Meta Başlığı
-    metaDescription: v.optional(v.string()), // Meta Açıklaması
-    metaKeywords: v.optional(v.string()), // Meta Kelimeleri (virgülle ayrılmış)
-    tags: v.optional(v.array(v.string())), // Parça Etiketleri (Tags)
-
+    title: v.string(),
+    slug: v.string(),
+    oemNumber: v.string(),
+    shelfCode: v.optional(v.string()),
+    categoryId: v.optional(v.id("categories")),
+    brand: v.string(),
+    model: v.optional(v.string()),
+    condition: v.string(),
+    inStock: v.boolean(),
+    description: v.string(),
+    images: v.array(v.string()),
+    metaTitle: v.optional(v.string()),
+    metaDescription: v.optional(v.string()),
+    metaKeywords: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
     isDraft: v.optional(v.boolean()),
-
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -116,12 +108,11 @@ export default defineSchema({
       filterFields: ["brand", "model", "categoryId", "condition", "inStock"],
     }),
 
-  // 6. Canlı Destek Sohbet Oturumları (Live Support Conversations)
   conversations: defineTable({
-    visitorId: v.string(), // Tarayıcı UUID
-    visitorName: v.optional(v.string()), // Ziyaretçi Adı
+    visitorId: v.string(),
+    visitorName: v.optional(v.string()),
     visitorPhone: v.optional(v.string()),
-    status: v.string(), // "active", "closed"
+    status: v.string(),
     unreadCountAdmin: v.number(),
     unreadCountVisitor: v.number(),
     lastMessage: v.optional(v.string()),
@@ -142,10 +133,9 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_lastMessageAt", ["lastMessageAt"]),
 
-  // 7. Canlı Destek Mesajları (Live Support Messages)
   messages: defineTable({
     conversationId: v.id("conversations"),
-    sender: v.string(), // "visitor" | "admin" | "system"
+    sender: v.string(),
     text: v.string(),
     productCard: v.optional(
       v.object({
@@ -162,22 +152,70 @@ export default defineSchema({
     .index("by_conversationId", ["conversationId"])
     .index("by_createdAt", ["createdAt"]),
 
-  // 8. Sistem Sayaçları ve İstatistikleri (Hızlı O(1) okuma)
   stats: defineTable({
-    key: v.string(), // "products"
+    key: v.string(),
     total: v.number(),
     published: v.number(),
     drafts: v.number(),
     outOfStock: v.optional(v.number()),
   }).index("by_key", ["key"]),
 
-  // 9. Site Ayarları (İletişim & Genel Ayarlar)
   siteSettings: defineTable({
-    key: v.string(), // "contact"
+    key: v.string(),
     phoneNumber: v.string(),
     email: v.string(),
     address: v.string(),
     workingHours: v.string(),
     updatedAt: v.optional(v.number()),
   }).index("by_key", ["key"]),
+
+  faultCodes: defineTable({
+    code: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    isPopular: v.optional(v.boolean()),
+  })
+    .index("by_code", ["code"])
+    .searchIndex("search_code", {
+      searchField: "code",
+    })
+    .searchIndex("search_title", {
+      searchField: "title",
+    }),
+
+  blogs: defineTable({
+    title: v.string(),
+    slug: v.string(),
+    excerpt: v.string(),
+    content: v.string(),
+    coverImageStorageId: v.id("_storage"),
+    category: v.string(),
+    isPublished: v.boolean(),
+    tags: v.optional(v.array(v.string())),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_isPublished", ["isPublished"])
+    .index("by_published_category", ["isPublished", "category"]),
+
+  blogCategories: defineTable({
+    title: v.string(),
+    createdAt: v.optional(v.number()),
+  }).index("by_title", ["title"]),
+
+  services: defineTable({
+    title: v.string(),
+    slug: v.string(),
+    shortDesc: v.string(),
+    fullDesc: v.string(),
+    imageStorageId: v.id("_storage"),
+    videoUrl: v.optional(v.string()),
+    features: v.array(v.string()),
+    order: v.number(),
+    isActive: v.boolean(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_isActive_and_order", ["isActive", "order"]),
 });

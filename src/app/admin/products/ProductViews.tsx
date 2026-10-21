@@ -92,7 +92,7 @@ export function ProductViews({
               products.map((product) => (
                 <tr
                   key={product._id}
-                  className="transition-colors hover:bg-slate-50/80 focus-within:bg-blue-50/40"
+                  className="transition-colors hover:bg-slate-50/80 focus-within:bg-amber-50/40"
                 >
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-4">
@@ -127,7 +127,7 @@ export function ProductViews({
                               )
                             }
                             onMouseLeave={() => setHoverPreview(null)}
-                            className="h-full w-full cursor-zoom-in p-1 focus-visible:outline-2 focus-visible:outline-blue-600 focus-visible:outline-offset-[-2px]"
+                            className="h-full w-full cursor-zoom-in p-1 focus-visible:outline-2 focus-visible:outline-amber-500 focus-visible:outline-offset-[-2px]"
                           >
                             <ProductImage
                               src={product.images[0]}
@@ -164,7 +164,7 @@ export function ProductViews({
                             (product.title || "Taslak parça") + " düzenle"
                           }
                           onClick={() => onEdit(product)}
-                          className="text-left text-sm! font-semibold leading-snug text-slate-900 hover:text-blue-700 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-blue-600 [overflow-wrap:anywhere]"
+                          className="text-left text-sm! font-semibold leading-snug text-slate-900 hover:text-amber-600 focus-visible:rounded focus-visible:outline-2 focus-visible:outline-amber-500 [overflow-wrap:anywhere]"
                         >
                           {product.title || "Taslak parça"}
                         </button>
@@ -203,7 +203,7 @@ export function ProductViews({
                         "inline-flex rounded-full px-2.5 py-1 text-xs font-medium " +
                         (product.isDraft
                           ? "bg-slate-100 text-slate-600"
-                          : "bg-blue-50 text-blue-700")
+                          : "bg-amber-50 text-amber-600")
                       }
                     >
                       {product.isDraft ? "Taslak" : "Yayında"}
@@ -218,7 +218,7 @@ export function ProductViews({
                           (product.title || "Taslak parça") + " düzenle"
                         }
                         onClick={() => onEdit(product)}
-                        className="h-11 w-11 rounded-full text-slate-500 hover:text-blue-700"
+                        className="h-11 w-11 rounded-full text-slate-500 hover:text-amber-600"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -286,7 +286,7 @@ export function ProductViews({
                       aria-label={
                         (product.title || "Parça") + " görselini büyüt"
                       }
-                      className="flex h-full w-full items-center justify-center rounded-lg focus-visible:outline-2 focus-visible:outline-blue-600"
+                      className="flex h-full w-full items-center justify-center rounded-lg focus-visible:outline-2 focus-visible:outline-amber-500"
                     >
                       <ProductImage
                         src={product.images[0]}
@@ -324,7 +324,7 @@ export function ProductViews({
                       aria-label={
                         (product.title || "Taslak parça") + " düzenle"
                       }
-                      className="min-h-11 w-full rounded-lg text-left text-[15px] font-semibold leading-snug text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600"
+                      className="min-h-11 w-full rounded-lg text-left text-[15px] font-semibold leading-snug text-slate-900 focus-visible:outline-2 focus-visible:outline-amber-500"
                     >
                       <span className="line-clamp-2 wrap-anywhere">
                         {product.title || "Taslak parça"}
@@ -354,7 +354,7 @@ export function ProductViews({
                     "rounded-full px-2 py-1 text-xs font-medium " +
                     (product.isDraft
                       ? "bg-red-50 text-red-700"
-                      : "bg-blue-50 text-blue-700")
+                      : "bg-amber-50 text-amber-600")
                   }
                 >
                   {product.isDraft ? "Taslak" : "Yayında"}
@@ -483,7 +483,7 @@ function ProductStockButton({
       }
       onClick={() => onToggle(product)}
       className={
-        "inline-flex h-11 min-w-0 items-center justify-center gap-2 whitespace-nowrap rounded-full px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-blue-600 disabled:opacity-50 " +
+        "inline-flex h-11 min-w-0 items-center justify-center gap-2 whitespace-nowrap rounded-full px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-amber-500 disabled:opacity-50 " +
         (product.inStock
           ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
           : "bg-amber-50 text-amber-800 hover:bg-amber-100")

@@ -168,16 +168,18 @@ export const listConversations = query({
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
-    let convs = await ctx.db
-      .query("conversations")
-      .collect();
+    const baseQuery =
+      args.status && args.status !== "all"
+        ? ctx.db
+            .query("conversations")
+            .withIndex("by_status", (q) => q.eq("status", args.status!))
+            .order("desc")
+        : ctx.db
+            .query("conversations")
+            .withIndex("by_lastMessageAt")
+            .order("desc");
 
-    // Sort by lastMessageAt descending
-    convs.sort((a, b) => b.lastMessageAt - a.lastMessageAt);
-
-    if (args.status && args.status !== "all") {
-      convs = convs.filter((c) => c.status === args.status);
-    }
+    let convs = await baseQuery.take(100);
 
     if (args.searchTerm && args.searchTerm.trim()) {
       const term = args.searchTerm.toLowerCase();

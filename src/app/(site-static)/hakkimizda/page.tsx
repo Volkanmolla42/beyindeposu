@@ -11,18 +11,18 @@ import {
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { formatPhoneNumber, getWhatsAppUrl } from "@/lib/whatsapp";
 import { createPageMetadata, serializeJsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
-import { fetchQuery } from "convex/nextjs";
-import { api } from "@convex/_generated/api";
+import { getSiteContactSettings } from "@/lib/services-data";
+import HeroBanner from "@/components/ui/HeroBanner";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Hakkımızda ve iletişim",
   description:
     "20 yılı aşkın süredir oto elektronik parça tedarik ediyoruz. Kataloğumuzda 15.000’den fazla parça var.",
-  path: "/kurumsal",
+  path: "/hakkimizda",
 });
 
-export default async function KurumsalPage() {
-  const contact = await fetchQuery(api.settings.getContactSettings, {});
+export default async function HakkimizdaPage() {
+  const contact = await getSiteContactSettings();
 
   const productsCount = "15.000’den fazla";
   const displayPhone = contact.phoneNumber;
@@ -34,7 +34,7 @@ export default async function KurumsalPage() {
     "@context": "https://schema.org",
     "@type": "AutoPartsStore",
     name: SITE_NAME,
-    url: `${SITE_URL}/kurumsal`,
+    url: `${SITE_URL}/hakkimizda`,
     image: new URL("/images/logo-mark.webp", SITE_URL).toString(),
     telephone: displayPhone,
     email: displayEmail,
@@ -54,18 +54,15 @@ export default async function KurumsalPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(contactJsonLd) }}
       />
-      {/* Hero Banner */}
-      <section className="relative overflow-hidden border-b border-slate-200 bg-white py-14 text-slate-900 sm:py-16">
-        <div className="container max-w-4xl text-center space-y-4 relative z-10">
-          <h1 className="text-3xl font-medium tracking-tight text-slate-900 sm:text-5xl">
-            20 yılı aşkın süredir oto elektronik parça tedarik ediyoruz.
-          </h1>
-        </div>
-      </section>
+      <HeroBanner
+        src="/images/hero-rebrand.jpg"
+        alt="Beyin Deposu Atölye"
+        eyebrow="Hakkımızda"
+        title="20 yılı aşkın süredir oto elektronik parça tedarik ediyoruz."
+        description="Orijinal çıkma, sıfır ve revizyonlu oto beyinleri, kontrol üniteleri ve hassas elektronik bileşenlerde profesyonel çözümler."
+      />
 
-      {/* Main Content */}
       <div className="container max-w-5xl py-14 space-y-16">
-        {/* About Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div className="space-y-4">
             <p className="text-sm text-slate-600 leading-relaxed">
@@ -84,7 +81,6 @@ export default async function KurumsalPage() {
           </div>
         </div>
 
-        {/* Kalite Politikamız */}
         <div id="kalite" className="space-y-6 rounded-3xl border border-slate-200 bg-white p-8 sm:p-10">
           <h2 className="text-2xl font-medium text-slate-900">Kontrol ve gönderim</h2>
 
@@ -140,24 +136,24 @@ export default async function KurumsalPage() {
             <a
               href={`tel:${displayPhone.replace(/[^0-9+]/g, "")}`}
               aria-label={`Bizi telefonla arayın: ${formatPhoneNumber(displayPhone)}`}
-              className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm transition-colors hover:border-blue-200 hover:shadow-md"
+              className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm transition-colors hover:border-amber-400 hover:shadow-md"
             >
               <div className="space-y-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
-                  <Phone className="h-6 w-6 text-blue-700" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
+                  <Phone className="h-6 w-6 text-amber-500" />
                 </div>
                 <h3 className="text-lg font-medium tracking-tight">Telefon</h3>
               </div>
               <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4 text-sm font-medium text-slate-700">
                 <span>{formatPhoneNumber(displayPhone)}</span>
-                <span className="text-blue-700 transition-transform group-hover:translate-x-1">→</span>
+                <span className="text-amber-500 transition-transform group-hover:translate-x-1">→</span>
               </div>
             </a>
 
             <div className="flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm">
               <div className="space-y-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
-                  <Truck className="h-6 w-6 text-blue-700" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
+                  <Truck className="h-6 w-6 text-amber-500" />
                 </div>
                 <h3 className="text-lg font-medium tracking-tight">Kargo</h3>
               </div>
@@ -189,7 +185,7 @@ export default async function KurumsalPage() {
                       <div className="font-medium text-slate-900">E-posta</div>
                       <a
                         href={`mailto:${displayEmail}`}
-                        className="mt-0.5 inline-block break-all text-slate-600 transition-colors hover:text-blue-700"
+                        className="mt-0.5 inline-block break-all text-slate-600 transition-colors hover:text-amber-500"
                       >
                         {displayEmail}
                       </a>
@@ -203,7 +199,7 @@ export default async function KurumsalPage() {
                   href={`https://maps.google.com/maps?q=${mapQuery}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-700 transition-colors hover:text-blue-800"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 transition-colors hover:text-amber-500"
                 >
                   Google Haritalar&apos;da aç
                   <ExternalLink className="h-4 w-4" />
@@ -225,10 +221,9 @@ export default async function KurumsalPage() {
           </div>
         </section>
 
-        {/* Gizlilik */}
         <div id="kvkk" className="p-6 rounded-2xl bg-white border border-slate-200 text-xs text-slate-600 space-y-2">
           <h2 className="font-bold text-slate-900">Gizlilik</h2>
-          <Link href="/gizlilik" className="inline-block text-blue-700 underline">Kişisel veriler ve analitik hakkında</Link>
+          <Link href="/gizlilik" className="inline-block text-amber-600 underline hover:text-amber-500">Kişisel veriler ve analitik hakkında</Link>
         </div>
       </div>
     </>

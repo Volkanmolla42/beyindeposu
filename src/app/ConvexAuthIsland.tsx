@@ -8,7 +8,7 @@ export default function ConvexAuthIsland({
 }) {
   return (
     <ConvexAuthNextjsServerProvider>
-      <ConvexClientProvider>{children}</ConvexClientProvider>
+      <ConvexClientProvider auth>{children}</ConvexClientProvider>
     </ConvexAuthNextjsServerProvider>
   );
 }

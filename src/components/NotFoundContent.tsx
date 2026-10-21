@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 export default function NotFoundContent() {
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-4 text-center">
-      <p className="text-sm font-semibold text-blue-700">404</p>
+      <p className="text-sm font-semibold text-amber-600">404</p>
       <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
         Sayfa bulunamadı
       </h1>

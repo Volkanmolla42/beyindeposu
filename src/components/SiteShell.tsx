@@ -4,8 +4,7 @@ import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { ContactSettingsProvider } from "@/hooks/useContactSettings";
-import { fetchQuery } from "convex/nextjs";
-import { api } from "@convex/_generated/api";
+import { getSiteContactSettings } from "@/lib/services-data";
 
 export default async function SiteShell({
   children,
@@ -14,14 +13,14 @@ export default async function SiteShell({
   children: React.ReactNode;
   afterFooter?: React.ReactNode;
 }) {
-  const contact = await fetchQuery(api.settings.getContactSettings, {});
+  const contact = await getSiteContactSettings();
 
   return (
     <ContactSettingsProvider settings={contact}>
       <div className="flex min-h-screen flex-col bg-slate-50">
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-xl focus:bg-blue-700 focus:px-4 focus:py-2.5 focus:text-white focus:shadow-lg focus:outline-none"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-xl focus:bg-amber-600 focus:px-4 focus:py-2.5 focus:text-white focus:shadow-lg focus:outline-none"
         >
           Ana içeriğe atla
         </a>

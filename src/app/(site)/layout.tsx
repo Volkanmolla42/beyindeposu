@@ -1,7 +1,9 @@
 import LiveChatWidget from "@/components/LiveChatWidget";
 import { Suspense } from "react";
-import ConvexAuthIsland from "@/app/ConvexAuthIsland";
+import { ConvexClientProvider } from "@/app/ConvexClientProvider";
 import SiteShell from "@/components/SiteShell";
+
+export const revalidate = 300;
 
 export default function SiteLayout({
   children,
@@ -9,16 +11,16 @@ export default function SiteLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SiteShell
-      afterFooter={
-        <Suspense fallback={null}>
-          <ConvexAuthIsland>
+    <ConvexClientProvider>
+      <SiteShell
+        afterFooter={
+          <Suspense fallback={null}>
             <LiveChatWidget />
-          </ConvexAuthIsland>
-        </Suspense>
-      }
-    >
-      {children}
-    </SiteShell>
+          </Suspense>
+        }
+      >
+        {children}
+      </SiteShell>
+    </ConvexClientProvider>
   );
 }

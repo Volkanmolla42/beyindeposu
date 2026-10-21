@@ -51,7 +51,8 @@ export default function LoginPage() {
             src="/images/logo.webp"
             alt="Beyin Deposu"
             width={1027}
-            height={581} priority
+            height={581}
+            preload
             className="h-20 w-auto mx-auto object-contain"
           />
         </Link>
@@ -123,7 +124,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-blue-600 py-2.5 px-4 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 disabled:opacity-50 transition-colors cursor-pointer"
+              className="w-full rounded-full bg-amber-500 py-2.5 px-4 text-sm font-medium text-white shadow-sm hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {loading ? "Giriş yapılıyor..." : "Giriş yap"}
             </button>

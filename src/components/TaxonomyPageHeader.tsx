@@ -30,10 +30,12 @@ export default function TaxonomyPageHeader({
               height={80}
               sizes="(max-width: 640px) 56px, 80px"
               unoptimized
+              preload
+              loading="eager"
               className="h-full w-full object-contain"
             />
           ) : (
-            <Cpu className="h-7 w-7 text-blue-700" aria-hidden="true" />
+            <Cpu className="h-7 w-7 text-amber-500" aria-hidden="true" />
           )}
         </div>
         <div className="min-w-0">

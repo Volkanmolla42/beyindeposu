@@ -191,7 +191,7 @@ function LightboxContent({
                     draggable={false}
                   />
                   {i === 0 && (
-                    <span className="absolute bottom-0.5 left-0.5 px-1 py-0.5 rounded text-[7px] font-black bg-amber-500 text-white shadow-xs leading-none">
+                    <span className="absolute bottom-0.5 left-0.5 px-1 py-0.5 rounded text-[7px] font-bold bg-amber-500 text-white shadow-xs leading-none">
                       KAPAK
                     </span>
                   )}

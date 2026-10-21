@@ -515,12 +515,29 @@ export const getBySlug = query({
 export const getByOem = query({
   args: { oemNumber: v.string() },
   handler: async (ctx, args) => {
-    const cleanOem = args.oemNumber.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-    const all = await ctx.db.query("products").filter((q) => q.neq(q.field("isDraft"), true)).take(200);
-    const matched = all.filter((p) => {
-      const pOem = p.oemNumber.toLowerCase().replace(/[^a-z0-9]/g, "");
-      return pOem.includes(cleanOem) || p.title.toLowerCase().includes(cleanOem);
-    });
+    const rawOem = args.oemNumber.trim();
+    if (!rawOem) return [];
+
+    // 1. Exact match with index
+    const exactMatches = await ctx.db
+      .query("products")
+      .withIndex("by_oemNumber", (q) => q.eq("oemNumber", rawOem))
+      .take(10);
+
+    // 2. Search index match for formatted / partial OEM numbers
+    const searchMatches = await ctx.db
+      .query("products")
+      .withSearchIndex("search_oemNumber", (q) => q.search("oemNumber", rawOem))
+      .take(10);
+
+    const seen = new Set<string>();
+    const matched = [];
+    for (const p of [...exactMatches, ...searchMatches]) {
+      if (!p.isDraft && !seen.has(p._id)) {
+        seen.add(p._id);
+        matched.push(p);
+      }
+    }
 
     return await Promise.all(matched.map((p) => resolvePublicProduct(ctx, p)));
   },
@@ -532,29 +549,35 @@ export const search = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const term = args.query.trim().toLowerCase();
+    const term = args.query.trim();
     if (!term) return [];
-    const cleanTerm = term.replace(/[^a-z0-9]/g, "");
 
-    const all = await ctx.db.query("products").filter((q) => q.neq(q.field("isDraft"), true)).take(200);
-    const filtered = all
-      .filter((p) => {
-        const oemClean = p.oemNumber.toLowerCase().replace(/[^a-z0-9]/g, "");
-        const hasTagMatch = p.tags?.some((t) => t.toLowerCase().includes(term));
+    const limit = args.limit ?? 10;
 
-        return (
-          p.title.toLowerCase().includes(term) ||
-          p.oemNumber.toLowerCase().includes(term) ||
-          (cleanTerm.length >= 2 && oemClean.includes(cleanTerm)) ||
-          p.brand.toLowerCase().includes(term) ||
-          (p.model && p.model.toLowerCase().includes(term)) ||
-          (p.metaKeywords && p.metaKeywords.toLowerCase().includes(term)) ||
-          hasTagMatch
-        );
-      })
-      .slice(0, args.limit ?? 10);
+    // 1. Search in title full-text search index
+    const titleHits = await ctx.db
+      .query("products")
+      .withSearchIndex("search_title", (q) => q.search("title", term))
+      .take(limit);
 
-    return await Promise.all(filtered.map((p) => resolvePublicProduct(ctx, p)));
+    // 2. Search in oemNumber full-text search index
+    const oemHits = await ctx.db
+      .query("products")
+      .withSearchIndex("search_oemNumber", (q) => q.search("oemNumber", term))
+      .take(limit);
+
+    // Combine and deduplicate
+    const seen = new Set<string>();
+    const combined = [];
+    for (const p of [...oemHits, ...titleHits]) {
+      if (!p.isDraft && !seen.has(p._id)) {
+        seen.add(p._id);
+        combined.push(p);
+        if (combined.length >= limit) break;
+      }
+    }
+
+    return await Promise.all(combined.map((p) => resolvePublicProduct(ctx, p)));
   },
 });
 

@@ -9,10 +9,13 @@ import { Menu, Search, X } from "lucide-react";
 
 const navLinks = [
   { href: "/", label: "Ana sayfa" },
-  { href: "/kurumsal", label: "Hakkımızda" },
   { href: "/parcalar", label: "Parçalar" },
+  { href: "/tamirveservis", label: "Tamir & Servis" },
+  { href: "/hakkimizda", label: "Hakkımızda" },
   { href: "/kategoriler", label: "Kategoriler" },
   { href: "/markalar", label: "Markalar" },
+  { href: "/ariza-kodlari", label: "Arıza Kodları" },
+  { href: "/blog", label: "Blog" },
 ];
 
 export default function Header() {
@@ -29,7 +32,7 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-dark-bg/95 text-white backdrop-blur">
       <div className="container">
         <div className="flex h-16 items-center justify-between sm:h-[72px]">
           <Link href="/" aria-label="Beyin Deposu ana sayfa" className="flex shrink-0 items-center rounded-lg focus-visible:outline-none">
@@ -38,10 +41,10 @@ export default function Header() {
               alt="Beyin Deposu ana sayfa"
               width={160}
               height={40}
-              priority
+              preload
               loading="eager"
               style={{ width: "auto" }}
-              className="h-9 w-auto object-contain sm:h-10"
+              className="h-9 w-auto object-contain sm:h-10 brightness-0 invert"
             />
           </Link>
 
@@ -55,7 +58,7 @@ export default function Header() {
               onClick={() => setSearchOpen((open) => !open)}
               aria-label={searchOpen ? "Aramayı kapat" : "Arama"}
               aria-expanded={searchOpen}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-blue-700"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-300 transition-colors hover:bg-white/10 hover:text-amber-400"
             >
               {searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
             </button>
@@ -64,7 +67,7 @@ export default function Header() {
               onClick={() => setMobileMenuOpen((open) => !open)}
               aria-label={mobileMenuOpen ? "Menüyü kapat" : "Menüyü aç"}
               aria-expanded={mobileMenuOpen}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-slate-100 lg:hidden"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-300 transition-colors hover:bg-white/10 hover:text-white lg:hidden"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
@@ -72,9 +75,9 @@ export default function Header() {
         </div>
 
         {searchOpen && (
-          <div className="border-t border-slate-100 py-3 sm:py-4">
-            <form onSubmit={handleSearchSubmit} className="mx-auto flex max-w-2xl items-center gap-2 rounded-full border border-slate-300 bg-slate-50 p-1.5 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100">
-              <Search className="ml-3 h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" />
+          <div className="border-t border-white/10 bg-dark-surface py-3 sm:py-4">
+            <form onSubmit={handleSearchSubmit} className="mx-auto flex max-w-2xl items-center gap-2 rounded-full border border-white/20 bg-white/5 p-1.5 focus-within:border-amber-400 focus-within:bg-black/60 focus-within:ring-2 focus-within:ring-amber-400/20">
+              <Search className="ml-3 h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
               <input
                 id="header-search-input"
                 name="header-search"
@@ -83,10 +86,10 @@ export default function Header() {
                 onChange={(event) => setSearchInput(event.target.value)}
                 placeholder="OEM no, parça no veya araç modeli"
                 aria-label="Parça ara"
-                className="min-w-0 flex-1 bg-transparent px-1 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-500"
+                className="min-w-0 flex-1 border-0 bg-transparent px-2 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0"
                 autoFocus
               />
-              <button type="submit" className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700">
+              <button type="submit" className="rounded-full bg-amber-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition-colors hover:bg-amber-400 active:bg-amber-600">
                 Ara
               </button>
             </form>
@@ -107,7 +110,7 @@ function DesktopNavigation() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Ana menü" className="hidden items-center gap-1 lg:flex">
+    <nav aria-label="Ana menü" className="hidden items-center gap-1.5 lg:flex">
       {navLinks.map((link) => {
         const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
 
@@ -116,9 +119,9 @@ function DesktopNavigation() {
             key={link.href}
             href={link.href}
             aria-current={isActive ? "page" : undefined}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${isActive
-              ? "bg-blue-50 text-blue-800"
-              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            className={`relative px-3.5 py-2 text-sm font-medium transition-colors ${isActive
+              ? "text-amber-400 font-semibold after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:bg-amber-400"
+              : "text-slate-300 hover:text-white hover:bg-white/5 rounded-lg"
               }`}
           >
             {link.label}
@@ -131,12 +134,12 @@ function DesktopNavigation() {
 
 function NavigationLinksFallback() {
   return (
-    <nav aria-label="Ana menü" className="hidden items-center gap-1 lg:flex">
+    <nav aria-label="Ana menü" className="hidden items-center gap-1.5 lg:flex">
       {navLinks.map((link) => (
         <Link
           key={link.href}
           href={link.href}
-          className="rounded-full px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+          className="rounded-lg px-3.5 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white"
         >
           {link.label}
         </Link>
@@ -149,7 +152,7 @@ function MobileNavigation({ onNavigate }: { onNavigate: () => void }) {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Mobil menü" className="space-y-1 border-t border-slate-100 py-3 lg:hidden">
+    <nav aria-label="Mobil menü" className="space-y-1 border-t border-white/10 bg-dark-bg py-3 lg:hidden">
       {navLinks.map((link) => {
         const isActive = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
 
@@ -159,9 +162,9 @@ function MobileNavigation({ onNavigate }: { onNavigate: () => void }) {
             href={link.href}
             aria-current={isActive ? "page" : undefined}
             onClick={onNavigate}
-            className={`block rounded-full px-4 py-3 text-sm font-medium ${isActive
-              ? "bg-blue-50 text-blue-800"
-              : "text-slate-700 hover:bg-slate-100"
+            className={`block rounded-xl px-4 py-3 text-sm font-medium transition-colors ${isActive
+              ? "bg-amber-500/15 text-amber-400 font-semibold border-l-2 border-amber-400"
+              : "text-slate-300 hover:bg-white/5 hover:text-white"
               }`}
           >
             {link.label}
@@ -174,12 +177,12 @@ function MobileNavigation({ onNavigate }: { onNavigate: () => void }) {
 
 function MobileNavigationFallback() {
   return (
-    <nav aria-label="Mobil menü" className="space-y-1 border-t border-slate-100 py-3 lg:hidden">
+    <nav aria-label="Mobil menü" className="space-y-1 border-t border-white/10 bg-dark-bg py-3 lg:hidden">
       {navLinks.map((link) => (
         <Link
           key={link.href}
           href={link.href}
-          className="block rounded-full px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          className="block rounded-xl px-4 py-3 text-sm font-medium text-slate-300 hover:bg-white/5"
         >
           {link.label}
         </Link>

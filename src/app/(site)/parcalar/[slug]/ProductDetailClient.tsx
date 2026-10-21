@@ -48,9 +48,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
 
   const queriedProduct = useQuery(api.products.getBySlug, { slug });
   const product = queriedProduct === undefined ? initialProduct : queriedProduct;
-  // static site contact
 
-  // Fetch related products in the same category
   const relatedProducts = useQuery(
     api.products.list,
     product?.categorySlug
@@ -60,7 +58,6 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
 
   const { phoneNumber: displayPhone } = useContactSettings();
 
-  // Resolve brand logo
   const brands = useQuery(api.brands.list, {});
   const brandSlug = product?.brand ? slugify(product.brand) : "";
   const brandInfo = brands?.find(
@@ -75,7 +72,6 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
 
   const galleryImages = product?.images ?? [];
   const productDescription = product?.description?.trim() ?? "";
-
 
   const copyOemTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copyLinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -128,26 +124,26 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
     );
   }
 
-  // Filter out current product from related list and take up to 3 items
   const filteredRelated = (relatedProducts || [])
     .filter((p) => p._id !== product._id)
     .slice(0, 3);
 
   return (
     <div className="w-full">
-      {/* Main Product Showcase */}
       <section className="bg-white border-b border-slate-200 py-6 sm:py-10">
         <div className="container">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start">
-
-            {/* Product Gallery (No unnecessary wrappers, no arrow buttons) */}
             <div className="lg:col-span-6 min-w-0 space-y-3">
-              <div className="relative w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 aspect-4/3 flex items-center justify-center">
+              <div className="relative w-full rounded-2xl border border-slate-200 bg-slate-50 aspect-4/3 flex items-center justify-center">
                 {galleryImages.length > 0 ? (
                   <ModernImageZoom
                     src={galleryImages[activeImageIndex] || galleryImages[0]}
                     alt={getProductImageAlt(product.title, galleryImages)}
-                    priority={true}
+                    preload={true}
+                    images={galleryImages}
+                    currentIndex={activeImageIndex}
+                    onIndexChange={setActiveImageIndex}
+                    zoomMode="side"
                     className="w-full h-full border-0 bg-transparent rounded-2xl"
                   />
                 ) : (
@@ -169,7 +165,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                       type="button"
                       onClick={() => { setActiveImageIndex(idx); trackAnalytics("image_view", { number: idx + 1 }); }}
                       aria-label={`Parça görseli ${idx + 1}`}
-                      className={`relative w-16 h-14 sm:w-20 sm:h-16 rounded-xl overflow-hidden border-2 bg-slate-50 transition-all cursor-pointer shrink-0 ${activeImageIndex === idx ? "border-blue-600 ring-2 ring-blue-100" : "border-slate-200 opacity-70 hover:opacity-100"}`}
+                      className={`relative w-16 h-14 sm:w-20 sm:h-16 rounded-xl overflow-hidden border-2 bg-slate-50 transition-all cursor-pointer shrink-0 ${activeImageIndex === idx ? "border-amber-500 ring-2 ring-amber-200/60" : "border-slate-200 opacity-70 hover:opacity-100"}`}
                     >
                       <ProductImage
                         src={img}
@@ -185,12 +181,10 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
               )}
             </div>
 
-            {/* Right Column: Specs, Badges & Working Action CTAs */}
             <div className="lg:col-span-6 min-w-0 space-y-4">
               <div>
-                {/* OEM Number + Copy & Share Button */}
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="font-mono text-2xl sm:text-3xl font-black text-slate-950 tracking-tight break-all">
+                  <h1 className="font-mono text-2xl sm:text-3xl font-bold text-slate-950 tracking-tight break-all">
                     {product.oemNumber}
                   </h1>
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -240,7 +234,6 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                   {product.title}
                 </h2>
 
-                {/* Status Badges */}
                 <div className="flex items-center gap-2 pt-3">
                   <Badge variant={product.condition === "Sıfır" ? "success" : "secondary"} className="text-xs font-bold">
                     {product.condition}
@@ -251,7 +244,6 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                 </div>
               </div>
 
-              {/* Technical Information Summary Table */}
               <div className="border border-slate-200 rounded-xl overflow-hidden text-xs divide-y divide-slate-100 bg-white">
                 <div className="grid grid-cols-2 p-3 items-center">
                   <span className="text-slate-500 font-medium flex items-center gap-1.5">
@@ -259,7 +251,7 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                   </span>
                   <Link
                     href={`/parcalar?marka=${encodeURIComponent(product.brand)}`}
-                    className="inline-flex items-center gap-2 group w-fit font-medium text-slate-900 hover:text-blue-600"
+                    className="inline-flex items-center gap-2 group w-fit font-medium text-slate-900 hover:text-amber-600"
                     title={`${product.brand} parçalarını gör`}
                   >
                     {brandLogoUrl && (
@@ -290,14 +282,13 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                 </div>
               </div>
 
-              {/* Clickable Tags */}
               {product.tags && product.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {product.tags.map((tag, idx) => (
                     <Link
                       key={idx}
                       href={`/parcalar?q=${encodeURIComponent(tag)}`}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-600 border border-slate-200 text-slate-600 font-semibold text-[11px] transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 hover:text-amber-700 border border-slate-200 text-slate-600 font-semibold text-[11px] transition-colors cursor-pointer"
                     >
                       #{tag}
                     </Link>
@@ -305,13 +296,12 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
                 </div>
               )}
 
-              {/* Contact actions */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                 <Button
                   asChild
                   variant="whatsapp"
                   size="lg"
-                  className="sm:col-span-2 w-full text-xs font-black tracking-wider py-6 rounded-xl shadow-md shadow-emerald-600/20"
+                  className="sm:col-span-2 w-full text-xs font-bold tracking-wider py-6 rounded-xl shadow-md"
                 >
                   <a
                     href={getWhatsAppUrl(
@@ -353,7 +343,6 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
             </div>
           </div>
 
-          {/* Description */}
           {productDescription && (
             <section className="mt-8 pt-8 border-t border-slate-200 text-sm text-slate-700 leading-relaxed max-w-4xl">
               <MarkdownRenderer content={productDescription} />
@@ -362,17 +351,16 @@ export default function ProductDetailClient({ slug, initialProduct }: PageProps)
         </div>
       </section>
 
-      {/* 3. Related Products */}
       {filteredRelated && filteredRelated.length > 0 && (
         <section className="py-8 sm:py-12 bg-slate-50">
           <div className="container space-y-5">
             <div className="flex items-center justify-between">
-              <h3 className="font-black text-lg text-slate-900 tracking-tight">
+              <h3 className="font-bold text-lg text-slate-900 tracking-tight">
                 {product.categoryName} kategorisindeki parçalar
               </h3>
               <Link
                 href={product.category ? `/kategoriler/${product.category.slug}` : "/parcalar"}
-                className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+                className="text-xs font-bold text-amber-600 hover:underline flex items-center gap-1"
               >
                 <span>Tümünü gör</span>
                 <ChevronRight className="w-3.5 h-3.5" />

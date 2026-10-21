@@ -14,11 +14,11 @@ import { useContactSettings } from "@/hooks/useContactSettings";
 
 export interface ProductCardProps {
   product: ProductWithCategory;
-  priority?: boolean;
+  preload?: boolean;
   variant?: "default" | "catalog";
 }
 
-export default function ProductCard({ product, priority = false, variant = "default" }: ProductCardProps) {
+export default function ProductCard({ product, preload = false, variant = "default" }: ProductCardProps) {
   const { phoneNumber } = useContactSettings();
   const isCatalog = variant === "catalog";
   const subtitle = [product.categoryName, product.brand].filter(Boolean).join(" • ");
@@ -40,8 +40,9 @@ export default function ProductCard({ product, priority = false, variant = "defa
               fill
               unoptimized
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="object-contain transition-transform duration-200 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-              preload={priority}
+              preload={preload}
+              loading={preload ? "eager" : "lazy"}
+              fetchPriority={preload ? "high" : "auto"}
             />
           </div>
         </Link>
@@ -49,12 +50,12 @@ export default function ProductCard({ product, priority = false, variant = "defa
         {isCatalog ? (
           <div className="min-w-0 self-center sm:space-y-1">
             <Link href={`/parcalar/${product.slug}`} className="block">
-              <h2 className="whitespace-normal break-words text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-blue-800 sm:text-base">
+              <h2 className="whitespace-normal break-words text-sm font-semibold leading-snug text-slate-900 transition-colors group-hover:text-amber-700 sm:text-base">
                 {product.title}
               </h2>
             </Link>
             <Link href={`/parcalar/${product.slug}`} className="block">
-              <span className="mt-1 block font-mono text-xs font-semibold tracking-wide text-blue-800 sm:text-sm">
+              <span className="mt-1 block font-mono text-xs font-semibold tracking-wide text-amber-700 sm:text-sm">
                 {product.oemNumber}
               </span>
             </Link>
@@ -70,7 +71,7 @@ export default function ProductCard({ product, priority = false, variant = "defa
         ) : (
           <div className="space-y-1">
             <Link href={`/parcalar/${product.slug}`} className="block">
-              <span className="font-mono text-sm font-medium tracking-wide text-slate-900 transition-colors group-hover:text-blue-700 sm:text-base">
+              <span className="font-mono text-sm font-medium tracking-wide text-slate-900 transition-colors group-hover:text-amber-700 sm:text-base">
                 {product.oemNumber}
               </span>
             </Link>

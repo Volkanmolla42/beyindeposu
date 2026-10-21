@@ -26,17 +26,14 @@ export default function FloatingWhatsApp() {
     setMessage("");
   };
 
-  // Hide on admin and login pages
   if (pathname?.startsWith("/admin") || pathname === "/login" || pathname === "/parcalar") {
     return null;
   }
 
   return (
     <div className="fixed bottom-5 left-5 z-50 flex flex-col items-start">
-      {/* WhatsApp Popup Card */}
       {open && (
         <div className="mb-3 w-80 max-w-[calc(100vw-2.5rem)] sm:w-96 rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in-0 slide-in-from-bottom-4 duration-200">
-          {/* Header */}
           <div className="bg-emerald-700 text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center">
@@ -55,14 +52,12 @@ export default function FloatingWhatsApp() {
             </button>
           </div>
 
-          {/* Chat Body */}
           <div className="p-4 bg-slate-50 space-y-3">
             <div className="bg-white p-3 rounded-2xl rounded-tl-none border border-slate-200/80 shadow-xs max-w-[85%] text-xs text-slate-700 leading-relaxed">
               <p>OEM kodunu veya parça fotoğrafını gönderin.</p>
             </div>
           </div>
 
-          {/* Input Footer */}
           <form onSubmit={handleSend} className="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
             <input
               id="whatsapp-chat-message"
@@ -86,10 +81,9 @@ export default function FloatingWhatsApp() {
         </div>
       )}
 
-      {/* Floating Left Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="group relative flex items-center gap-2.5 h-11 sm:h-12 px-3.5 sm:px-4 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-sm shadow-lg shadow-slate-900/15 hover:shadow-xl hover:shadow-slate-900/20 border border-emerald-600/40 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-pointer"
+        className="group relative flex items-center gap-2.5 h-11 sm:h-12 px-3.5 sm:px-4 rounded-full bg-emerald-700 hover:bg-emerald-800 text-white font-medium text-sm shadow-lg hover:shadow-xl border border-emerald-600/40 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-pointer"
         aria-label="WhatsApp desteği"
         aria-expanded={open}
       >

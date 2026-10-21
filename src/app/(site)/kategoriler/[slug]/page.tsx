@@ -7,11 +7,21 @@ import {
   plainText,
   SITE_NAME,
 } from "@/lib/seo";
-import { getPublicCategoryPage } from "@/lib/seo-data";
+import { getPublicCategories, getPublicCategoryPage } from "@/lib/seo-data";
 import { ProductListingSkeleton } from "@/components/RouteSkeletons";
 import TaxonomyProductResults from "@/components/TaxonomyProductResults";
 import TaxonomyPageHeader from "@/components/TaxonomyPageHeader";
 
+export const revalidate = 300;
+
+export async function generateStaticParams() {
+  try {
+    const categories = await getPublicCategories();
+    return (categories ?? []).map((cat) => ({ slug: cat.slug }));
+  } catch {
+    return [];
+  }
+}
 
 type CategoryPageProps = {
   params: Promise<{ slug: string }>;

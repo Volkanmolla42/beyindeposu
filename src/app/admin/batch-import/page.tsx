@@ -711,7 +711,7 @@ export default function BatchImportPage() {
       />
       {/* 2. Klasör Seçim Kutusu (Dropzone) */}
       {productGroups.length === 0 ? (
-        <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-white p-6 text-center transition-colors hover:border-blue-500 hover:bg-blue-50/20 sm:p-10">
+        <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-300 bg-white p-6 text-center transition-colors hover:border-amber-500 hover:bg-amber-50/20 sm:p-10">
           <input
             ref={fileInputRef}
             type="file"
@@ -723,7 +723,7 @@ export default function BatchImportPage() {
             className="hidden"
           />
 
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-700 sm:h-16 sm:w-16">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 sm:h-16 sm:w-16">
             <FolderUp className="h-7 w-7 sm:h-8 sm:w-8" />
           </div>
 
@@ -740,7 +740,7 @@ export default function BatchImportPage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-blue-700 sm:w-auto"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-amber-500 px-5 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-amber-600 sm:w-auto"
             >
               <FolderUp className="h-4 w-4" />
               <span>Klasör seç ve önizle</span>
@@ -763,7 +763,7 @@ export default function BatchImportPage() {
                     <span className="max-w-full truncate font-mono text-sm font-semibold text-slate-900">
                       {selectedFolderName}
                     </span>
-                    <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                    <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-600">
                       {totalCount} parça
                     </span>
                   </div>
@@ -782,7 +782,7 @@ export default function BatchImportPage() {
                       type="button"
                       onClick={() => startProcessing("ai")}
                       disabled={categories.length === 0}
-                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-4 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-blue-700 sm:w-auto"
+                      className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-amber-500 px-4 text-sm font-semibold text-white shadow-xs transition-colors hover:bg-amber-600 sm:w-auto"
                       title="Yapay zeka ile görselleri tarayıp OEM, başlık ve marka bilgilerini otomatik çıkartır"
                     >
                       <Play className="h-4 w-4 fill-current" />
@@ -844,17 +844,17 @@ export default function BatchImportPage() {
                 <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span>İlerleme</span>
                   {isRunning && (
-                    <span className="inline-flex flex-wrap items-center gap-1.5 text-xs font-medium text-blue-700">
+                    <span className="inline-flex flex-wrap items-center gap-1.5 text-xs font-medium text-amber-600">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       <span
                         className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold border ${
                           runMode === "ai"
-                            ? "bg-blue-50 text-blue-700 border-blue-200"
+                            ? "bg-amber-50 text-amber-600 border-amber-200"
                             : "bg-emerald-50 text-emerald-700 border-emerald-200"
                         }`}
                       >
                         <Zap
-                          className={`h-3 w-3 ${runMode === "ai" ? "fill-blue-600 text-blue-600" : "fill-emerald-600 text-emerald-600"}`}
+                          className={`h-3 w-3 ${runMode === "ai" ? "fill-amber-500 text-amber-500" : "fill-emerald-600 text-emerald-600"}`}
                         />
                         {runMode === "ai" ? "8x AI Modu" : "Hızlı Taslak Modu"}
                       </span>
@@ -880,7 +880,7 @@ export default function BatchImportPage() {
 
               <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
                 <div
-                  className="h-full rounded-full bg-blue-600 transition-all duration-300 ease-out"
+                  className="h-full rounded-full bg-amber-500 transition-all duration-300 ease-out"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -894,14 +894,14 @@ export default function BatchImportPage() {
                   checked={skipExisting}
                   onChange={(e) => setSkipExisting(e.target.checked)}
                   disabled={isRunning}
-                  className="h-5 w-5 rounded border-slate-300 text-blue-600 accent-blue-600"
+                  className="h-5 w-5 rounded border-slate-300 text-amber-500 accent-amber-500"
                 />
                 <span>Kayıtlı parçaları atla</span>
               </label>
 
               {/* Sabit Ultra Mod Rozeti */}
-              <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700">
-                <Zap className="h-4 w-4 shrink-0 fill-blue-600 text-blue-600" />
+              <div className="inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-amber-100 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-600">
+                <Zap className="h-4 w-4 shrink-0 fill-amber-500 text-amber-500" />
                 <span>Ultra Mod Aktif (8x Eşzamanlı Tarama)</span>
               </div>
             </div>
@@ -932,7 +932,7 @@ export default function BatchImportPage() {
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
                     placeholder="OEM, raf kodu veya model ara"
-                    className="h-12 w-full rounded-full border border-slate-300 bg-white pl-11 pr-4 text-base! text-slate-900 placeholder:text-slate-500 focus:border-blue-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200 sm:text-sm!"
+                    className="h-12 w-full rounded-full border border-slate-300 bg-white pl-11 pr-4 text-base! text-slate-900 placeholder:text-slate-500 focus:border-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 sm:text-sm!"
                   />
                 </div>
 
@@ -948,9 +948,9 @@ export default function BatchImportPage() {
                       type="button"
                       aria-pressed={statusFilter === filter.value}
                       onClick={() => setStatusFilter(filter.value)}
-                      className={`inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
+                      className={`inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-1 ${
                         statusFilter === filter.value
-                          ? "bg-blue-50 text-blue-800"
+                          ? "bg-amber-50 text-amber-700"
                           : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                       }`}
                     >
@@ -976,7 +976,7 @@ export default function BatchImportPage() {
                     key={item.id}
                     className={`flex flex-col gap-3 p-3 transition-colors sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4 ${
                       isCurrent
-                        ? "bg-blue-50/50"
+                        ? "bg-amber-50/50"
                         : item.status === "success"
                           ? "hover:bg-slate-50"
                           : item.status === "error"
@@ -988,7 +988,7 @@ export default function BatchImportPage() {
                       {/* Sıra & Durum İkonu */}
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 font-mono text-xs font-bold text-slate-700">
                         {item.status === "processing" ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                          <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
                         ) : item.status === "success" ? (
                           <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                         ) : item.status === "skipped" ? (
@@ -1007,7 +1007,7 @@ export default function BatchImportPage() {
                             {item.shelfCode}
                           </span>
                           {item.result?.oemNumber && (
-                            <span className="max-w-full rounded-full bg-blue-50 px-2.5 py-1 font-mono text-xs font-medium text-blue-800 [overflow-wrap:anywhere]">
+                            <span className="max-w-full rounded-full bg-amber-50 px-2.5 py-1 font-mono text-xs font-medium text-amber-700 [overflow-wrap:anywhere]">
                               OEM: {item.result.oemNumber}
                             </span>
                           )}
@@ -1055,16 +1055,16 @@ export default function BatchImportPage() {
                             <span>Görseller güncellendi</span>
                           </div>
                         ) : (
-                          <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-semibold text-blue-800 shadow-2xs">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
+                          <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-xs font-semibold text-amber-700 shadow-2xs">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-amber-500" />
                             <span>Yeni parça eklendi</span>
                           </div>
                         )
                       )}
 
                       {item.status === "processing" && (
-                        <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1.5 text-xs font-semibold text-blue-800 shadow-2xs">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+                        <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-xs font-semibold text-amber-700 shadow-2xs">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-500" />
                           <span>İşleniyor…</span>
                         </div>
                       )}
@@ -1088,7 +1088,7 @@ export default function BatchImportPage() {
                                 void startProcessing(runMode, realIdx);
                               }
                             }}
-                            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-slate-100 px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-800"
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-slate-100 px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-amber-50 hover:text-amber-700"
                           >
                             <Play className="h-3 w-3 fill-current" />
                             <span>

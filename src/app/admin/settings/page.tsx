@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Phone,
   Mail,
@@ -30,18 +30,15 @@ export default function AdminSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize form when data loads
-  useEffect(() => {
-    if (contactData && !isInitialized) {
-      setPhoneNumber(contactData.phoneNumber);
-      setEmail(contactData.email);
-      setWorkingHours(contactData.workingHours);
-      setAddress(contactData.address);
-      setIsInitialized(true);
-    }
-  }, [contactData, isInitialized]);
+  const [prevContactData, setPrevContactData] = useState(contactData);
+  if (contactData && prevContactData !== contactData) {
+    setPrevContactData(contactData);
+    setPhoneNumber(contactData.phoneNumber);
+    setEmail(contactData.email);
+    setWorkingHours(contactData.workingHours);
+    setAddress(contactData.address);
+  }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,14 +116,14 @@ export default function AdminSettingsPage() {
 
           {isLoading ? (
             <div className="flex h-64 items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+              <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
             </div>
           ) : (
             <form onSubmit={handleSave} className="mt-5 space-y-5">
               {/* Telefon ve WhatsApp Numarası */}
               <div className="space-y-1.5">
                 <label htmlFor="phoneNumber" className="flex items-center gap-2 text-xs font-medium text-slate-700">
-                  <Phone className="h-4 w-4 text-blue-600" />
+                  <Phone className="h-4 w-4 text-amber-500" />
                   <span>Telefon & WhatsApp Numarası</span>
                 </label>
                 <Input
@@ -142,7 +139,7 @@ export default function AdminSettingsPage() {
               {/* E-posta Adresi */}
               <div className="space-y-1.5">
                 <label htmlFor="email" className="flex items-center gap-2 text-xs font-medium text-slate-700">
-                  <Mail className="h-4 w-4 text-blue-600" />
+                  <Mail className="h-4 w-4 text-amber-500" />
                   <span>E-posta Adresi</span>
                 </label>
                 <Input
@@ -158,7 +155,7 @@ export default function AdminSettingsPage() {
               {/* Çalışma Saatleri */}
               <div className="space-y-1.5">
                 <label htmlFor="workingHours" className="flex items-center gap-2 text-xs font-medium text-slate-700">
-                  <Clock className="h-4 w-4 text-blue-600" />
+                  <Clock className="h-4 w-4 text-amber-500" />
                   <span>Çalışma Saatleri</span>
                 </label>
                 <Input
@@ -173,7 +170,7 @@ export default function AdminSettingsPage() {
               {/* Adres */}
               <div className="space-y-1.5">
                 <label htmlFor="address" className="flex items-center gap-2 text-xs font-medium text-slate-700">
-                  <MapPin className="h-4 w-4 text-blue-600" />
+                  <MapPin className="h-4 w-4 text-amber-500" />
                   <span>Fiziksel Mağaza / Depo Adresi</span>
                 </label>
                 <Textarea

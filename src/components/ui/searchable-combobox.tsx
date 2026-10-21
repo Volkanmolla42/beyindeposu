@@ -120,13 +120,13 @@ export function SearchableCombobox({
             className={cn(
               "flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors",
               !value || value === "" || value === "Tümü"
-                ? "bg-blue-50 text-blue-700 font-bold"
+                ? "bg-amber-50 text-amber-700 font-bold"
                 : "text-slate-700 hover:bg-slate-100"
             )}
           >
             <span>{allOptionLabel}</span>
             {(!value || value === "" || value === "Tümü") && (
-              <Check className="h-3.5 w-3.5 text-blue-600" />
+              <Check className="h-3.5 w-3.5 text-amber-600" />
             )}
           </div>
 
@@ -143,7 +143,7 @@ export function SearchableCombobox({
                 className={cn(
                   "flex items-center justify-between px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors",
                   isSelected
-                    ? "bg-blue-50 text-blue-700 font-bold"
+                    ? "bg-amber-50 text-amber-700 font-bold"
                     : "text-slate-700 hover:bg-slate-100"
                 )}
               >
@@ -161,7 +161,7 @@ export function SearchableCombobox({
                       {opt.count}
                     </span>
                   )}
-                  {isSelected && <Check className="h-3.5 w-3.5 text-blue-600" />}
+                  {isSelected && <Check className="h-3.5 w-3.5 text-amber-600" />}
                 </div>
               </div>
             );

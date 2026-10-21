@@ -4,7 +4,7 @@ export const metadata = createPageMetadata({
   title: "Hakkımızda",
   description:
     "Beyin Deposu'nun oto elektronik parça tedariği, parça kontrolü ve satış hizmetleri hakkında bilgi alın.",
-  path: "/kurumsal",
+  path: "/hakkimizda",
 });
 
 export default function AboutLayout({ children }: { children: React.ReactNode }) {

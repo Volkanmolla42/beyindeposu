@@ -10,10 +10,10 @@ import {
 } from "@/lib/seo";
 import { getPublicProductBySlug } from "@/lib/seo-data";
 import { PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/product-images";
-import ConvexAuthIsland from "@/app/ConvexAuthIsland";
 import { ProductDetailSkeleton } from "@/components/RouteSkeletons";
 import ProductDetailClient from "./ProductDetailClient";
 
+export const revalidate = 300;
 
 type ProductRouteProps = {
   params: Promise<{ slug: string }>;
@@ -112,9 +112,7 @@ async function ProductDetailContent({ params }: ProductRouteProps) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
       />
       <Suspense fallback={<ProductDetailSkeleton />}>
-        <ConvexAuthIsland>
-          <ProductDetailClient slug={slug} initialProduct={product} />
-        </ConvexAuthIsland>
+        <ProductDetailClient slug={slug} initialProduct={product} />
       </Suspense>
     </>
   );

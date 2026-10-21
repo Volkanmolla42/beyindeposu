@@ -49,3 +49,31 @@ export function sanitizeTurkishText(text: string): string {
   return cleaned.replace(/\s+/g, " ").trim();
 }
 
+export function calculateReadTime(content?: string): string {
+  if (!content || !content.trim()) return "1 dk";
+  const words = content.trim().split(/\s+/).filter(Boolean).length;
+  return `${Math.max(1, Math.ceil(words / 200))} dk`;
+}
+
+export function slugifyTurkish(text: string): string {
+  if (!text) return "";
+  const trMap: Record<string, string> = {
+    ç: "c", Ç: "c",
+    ğ: "g", Ğ: "g",
+    ı: "i", İ: "i",
+    ö: "o", Ö: "o",
+    ş: "s", Ş: "s",
+    ü: "u", Ü: "u",
+  };
+  return text
+    .split("")
+    .map((char) => trMap[char] || char)
+    .join("")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+

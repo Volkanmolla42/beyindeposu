@@ -486,7 +486,7 @@ function ProductFormContent({
                 aria-checked={inStock}
                 onClick={() => setInStock(!inStock)}
                 className={
-                  "flex min-h-16 min-w-0 items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-left focus-visible:outline-2 focus-visible:outline-blue-600 " +
+                  "flex min-h-16 min-w-0 items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-left focus-visible:outline-2 focus-visible:outline-amber-500 " +
                   (inStock
                     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                     : "border-slate-200 bg-white text-slate-600")
@@ -519,9 +519,9 @@ function ProductFormContent({
                 aria-checked={!isDraft}
                 onClick={() => setIsDraft(!isDraft)}
                 className={
-                  "flex min-h-16 min-w-0 items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-left focus-visible:outline-2 focus-visible:outline-blue-600 " +
+                  "flex min-h-16 min-w-0 items-center justify-between gap-2 rounded-2xl border px-3 py-2 text-left focus-visible:outline-2 focus-visible:outline-amber-500 " +
                   (!isDraft
-                    ? "border-blue-200 bg-blue-50 text-blue-800"
+                    ? "border-amber-200 bg-amber-50 text-amber-700"
                     : "border-slate-200 bg-white text-slate-600")
                 }
               >
@@ -534,7 +534,7 @@ function ProductFormContent({
                 <span
                   className={
                     "flex h-6 w-10 shrink-0 items-center rounded-full p-0.5 " +
-                    (!isDraft ? "bg-blue-600" : "bg-slate-300")
+                    (!isDraft ? "bg-amber-500" : "bg-slate-300")
                   }
                 >
                   <span
@@ -644,7 +644,7 @@ function ProductFormContent({
                           href={source.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="max-w-full truncate text-xs text-blue-700 underline"
+                          className="max-w-full truncate text-xs text-amber-600 underline"
                         >
                           {source.title || "Kaynak"}
                         </a>
@@ -688,7 +688,7 @@ function ProductFormContent({
                     onChange={(event) => setBrand(event.target.value)}
                     className={
                       fieldClass +
-                      " w-full min-w-0 border px-3 text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600"
+                      " w-full min-w-0 border px-3 text-slate-900 focus-visible:outline-2 focus-visible:outline-amber-500"
                     }
                   >
                     <option value="Genel Uyumlu">Genel Uyumlu</option>
@@ -719,7 +719,7 @@ function ProductFormContent({
                     }
                     className={
                       fieldClass +
-                      " w-full min-w-0 border px-3 text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600"
+                      " w-full min-w-0 border px-3 text-slate-900 focus-visible:outline-2 focus-visible:outline-amber-500"
                     }
                   >
                     <option value="">Kategori seçin</option>
@@ -774,7 +774,7 @@ function ProductFormContent({
                   onChange={(event) => setCondition(event.target.value)}
                   className={
                     fieldClass +
-                    " w-full border px-3 text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600"
+                    " w-full border px-3 text-slate-900 focus-visible:outline-2 focus-visible:outline-amber-500"
                   }
                 >
                   <option value="Orijinal Çıkma">Orijinal Çıkma</option>
@@ -787,7 +787,7 @@ function ProductFormContent({
               </div>
             </>
             <details className="group rounded-2xl border border-slate-200 bg-white">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-2xl px-4 font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-2xl px-4 font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-amber-500 [&::-webkit-details-marker]:hidden">
                 <FileText className="h-4 w-4 text-slate-500" />
                 <span className="flex-1">Açıklama ve etiketler</span>
                 <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
@@ -826,7 +826,7 @@ function ProductFormContent({
               </div>
             </details>
             <details className="group rounded-2xl border border-slate-200 bg-white">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-2xl px-4 font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-blue-600 [&::-webkit-details-marker]:hidden">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 rounded-2xl px-4 font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-amber-500 [&::-webkit-details-marker]:hidden">
                 <Globe className="h-4 w-4 text-slate-500" />
                 <span className="flex-1">Arama motorları</span>
                 <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180 motion-reduce:transition-none" />
@@ -1030,6 +1030,9 @@ function ProductImagePanel({
             <ModernImageZoom
               src={previewImages[selectedFormImageIndex]}
               alt={title || "Seçili parça görseli"}
+              images={previewImages}
+              currentIndex={selectedFormImageIndex}
+              zoomMode="inner"
               className="h-full w-full aspect-[4/3] border-0 rounded-none bg-transparent"
             />
           ) : (
@@ -1049,9 +1052,9 @@ function ProductImagePanel({
                 aria-pressed={selectedFormImageIndex === index}
                 onClick={() => setSelectedFormImageIndex(index)}
                 className={
-                  "relative h-16 w-20 shrink-0 overflow-hidden rounded-xl border-2 bg-white p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 " +
+                  "relative h-16 w-20 shrink-0 overflow-hidden rounded-xl border-2 bg-white p-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 " +
                   (selectedFormImageIndex === index
-                    ? "border-blue-600"
+                    ? "border-amber-500"
                     : "border-slate-200")
                 }
               >
@@ -1064,7 +1067,7 @@ function ProductImagePanel({
                   className="h-full w-full object-contain"
                 />
                 {index === 0 && (
-                  <span className="absolute bottom-1 left-1 rounded-full bg-blue-600 p-0.5 text-white">
+                  <span className="absolute bottom-1 left-1 rounded-full bg-amber-500 p-0.5 text-white">
                     <Check className="h-3 w-3" />
                   </span>
                 )}

@@ -30,18 +30,20 @@ export default function AnalyticsProvider() {
 
   // 1. İlk yüklemede localStorage kontrolü (Anında hatırlama, zero-flash)
   useEffect(() => {
-    let hasLocal = false;
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === "granted" || saved === "denied") {
-        hasLocal = true;
-        setAnalyticsConsent({ ready: true, enabled: true, choice: saved, privacySignal: false });
-      }
-    } catch {}
+    queueMicrotask(() => {
+      let hasLocal = false;
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved === "granted" || saved === "denied") {
+          hasLocal = true;
+          setAnalyticsConsent({ ready: true, enabled: true, choice: saved, privacySignal: false });
+        }
+      } catch {}
 
-    if (!hasLocal) {
-      setShowBanner(true);
-    }
+      if (!hasLocal) {
+        setShowBanner(true);
+      }
+    });
 
     // Sunucu ile arka planda tek seferlik senkronizasyon
     void fetch("/api/analytics/consent", { cache: "no-store" })
@@ -201,9 +203,9 @@ export default function AnalyticsProvider() {
           aria-label="Gizlilik ve çerez tercihi"
           className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-1.5rem)] max-w-4xl"
         >
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-xl shadow-slate-900/10 backdrop-blur-md">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 rounded-2xl border border-slate-200 bg-white/95 px-4 py-3 shadow-xl backdrop-blur-md">
             <div className="flex items-center gap-2.5 min-w-0">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-500">
                 <ShieldCheck aria-hidden="true" className="size-4" />
               </span>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
@@ -212,7 +214,7 @@ export default function AnalyticsProvider() {
                   type="button"
                   disabled={busy}
                   onClick={() => void choose("denied")}
-                  className="font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer disabled:opacity-50"
+                  className="font-medium text-amber-500 hover:text-amber-600 hover:underline cursor-pointer disabled:opacity-50"
                 >
                   Reddet
                 </button>{" "}
@@ -224,14 +226,14 @@ export default function AnalyticsProvider() {
                     setAnalyticsSelection(null);
                     setPreferences(true);
                   }}
-                  className="font-medium text-blue-600 hover:text-blue-700 hover:underline cursor-pointer disabled:opacity-50"
+                  className="font-medium text-amber-500 hover:text-amber-600 hover:underline cursor-pointer disabled:opacity-50"
                 >
                   Tercihler
                 </button>{" "}
                 üzerinden düzenleyebilirsiniz.{" "}
                 <Link
                   href="/gizlilik"
-                  className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                  className="font-medium text-amber-500 hover:text-amber-600 hover:underline"
                 >
                   Ayrıntılar
                 </Link>
@@ -243,7 +245,7 @@ export default function AnalyticsProvider() {
                 size="sm"
                 disabled={busy}
                 aria-busy={busy}
-                className="w-full sm:w-auto h-9 shrink-0 rounded-xl px-5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-xs"
+                className="w-full sm:w-auto h-9 shrink-0 rounded-xl px-5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs"
                 onClick={() => void choose("granted")}
               >
                 Kabul et
@@ -258,7 +260,7 @@ export default function AnalyticsProvider() {
         <DialogContent className="max-h-[90dvh] w-[calc(100%-1.5rem)] max-w-xl gap-0 overflow-y-auto rounded-2xl p-0">
           <div className="border-b border-slate-200 bg-slate-50 px-5 py-5 pr-14 sm:px-6 sm:py-6">
             <div className="flex items-start gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
                 <ShieldCheck aria-hidden="true" className="size-5" />
               </span>
               <div className="space-y-1.5">
@@ -289,7 +291,7 @@ export default function AnalyticsProvider() {
                     disabled={busy || !consent.enabled || consent.privacySignal}
                     onChange={(event) => setAnalyticsSelection(event.target.checked)}
                     aria-describedby="analytics-cookie-description"
-                    className="mt-0.5 size-5 shrink-0 accent-blue-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed"
+                    className="mt-0.5 size-5 shrink-0 accent-amber-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:cursor-not-allowed"
                   />
                   <span>
                     <span className="block text-sm font-semibold text-slate-900">Analitik çerezleri</span>
@@ -298,15 +300,15 @@ export default function AnalyticsProvider() {
                     </span>
                   </span>
                 </span>
-                <span aria-hidden="true" className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${selectedAnalytics ? "bg-blue-50 text-blue-800" : "bg-slate-100 text-slate-700"}`}>
+                <span aria-hidden="true" className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${selectedAnalytics ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-700"}`}>
                   {selectedAnalytics ? "Açık" : "Kapalı"}
                 </span>
               </label>
               {!consent.enabled && <p role="status" className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Bu ortamda analitik tercihi şu anda kullanılamıyor.</p>}
-              {consent.privacySignal && <p role="status" className="mt-3 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">Tarayıcınız gizlilik sinyali gönderdi; analitik kapalı kalır.</p>}
+              {consent.privacySignal && <p role="status" className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">Tarayıcınız gizlilik sinyali gönderdi; analitik kapalı kalır.</p>}
             </section>
 
-            <Link href="/gizlilik" className="inline-flex text-sm font-medium text-blue-700 underline underline-offset-2 hover:text-blue-800">
+            <Link href="/gizlilik" className="inline-flex text-sm font-medium text-amber-600 underline underline-offset-2 hover:text-amber-700">
               Analitik ve gizlilik metnini okuyun
             </Link>
           </div>

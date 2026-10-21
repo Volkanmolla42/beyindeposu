@@ -1,4 +1,3 @@
-import React from "react";
 
 interface RoutartLogoProps {
   variant?: "light" | "dark" | "pill";
@@ -30,17 +29,17 @@ export default function RoutartLogo({
 
   const content = (
     <div className={`inline-flex items-center gap-2 group transition-all select-none ${className}`}>
-      <div className="flex items-center font-black tracking-tight leading-none">
+      <div className="flex items-center font-bold tracking-tight leading-none">
         <span
-          className={`transition-colors font-extrabold ${
+          className={`transition-colors font-bold ${
             isDarkBg ? "text-white group-hover:text-slate-200" : "text-slate-900 group-hover:text-slate-700"
           } ${sizeClasses[size]}`}
         >
           ROUT
         </span>
         <span
-          className={`transition-colors font-black ${
-            isDarkBg ? "text-[#ff5a1f] group-hover:text-[#ff7543]" : "text-[#c2410c] group-hover:text-[#9a3412]"
+          className={`transition-colors font-bold ${
+            isDarkBg ? "text-orange-500 group-hover:text-orange-400" : "text-orange-700 group-hover:text-orange-800"
           } ${sizeClasses[size]}`}
         >
           ART

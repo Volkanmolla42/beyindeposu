@@ -114,8 +114,8 @@ export function SearchableMultiSelect({
             }}
             onKeyDown={handleSearchKeyDown}
             className={cn(
-              "h-12 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-20 text-base text-slate-900 shadow-2xs outline-none transition-colors placeholder:text-slate-500 hover:border-blue-300 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100 data-[state=open]:border-blue-500 data-[state=open]:ring-2 data-[state=open]:ring-blue-100",
-              selectedOptions.length > 0 && "border-blue-200",
+              "h-12 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-20 text-base text-slate-900 shadow-2xs outline-none transition-colors placeholder:text-slate-500 hover:border-amber-300 focus-visible:border-amber-500 focus-visible:ring-2 focus-visible:ring-amber-200 data-[state=open]:border-amber-500 data-[state=open]:ring-2 data-[state=open]:ring-amber-200",
+              selectedOptions.length > 0 && "border-amber-200",
               disabled && "cursor-not-allowed opacity-60",
             )}
           />
@@ -132,13 +132,13 @@ export function SearchableMultiSelect({
                 setOpen(true);
               }}
               aria-label="Aramayı temizle"
-              className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="pointer-events-auto inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
           {selectedOptions.length > 0 && (
-            <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-blue-800">
+            <span className="inline-flex min-w-6 items-center justify-center rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-amber-800">
               {selectedOptions.length}
             </span>
           )}
@@ -190,7 +190,7 @@ export function SearchableMultiSelect({
                 htmlFor={checkboxId}
                 className={cn(
                   "flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors hover:bg-slate-50",
-                  isChecked && "bg-blue-50 text-blue-900 hover:bg-blue-50",
+                  isChecked && "bg-amber-50 text-amber-900 hover:bg-amber-50",
                 )}
               >
                 <input
@@ -201,7 +201,7 @@ export function SearchableMultiSelect({
                   checked={isChecked}
                   ref={index === 0 ? firstOptionRef : undefined}
                   onChange={(event) => toggleOption(option.value, event.target.checked)}
-                  className="h-4 w-4 shrink-0 rounded border-slate-300 accent-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  className="h-4 w-4 shrink-0 rounded border-slate-300 accent-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
                 />
                 <span className="min-w-0 flex-1 truncate font-medium">{option.label}</span>
                 {option.description && (

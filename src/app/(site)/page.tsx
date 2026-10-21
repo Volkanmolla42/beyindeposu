@@ -1,11 +1,21 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import Image, { getImageProps } from "next/image";
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Cpu, Layers } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import HeroBanner from "@/components/ui/HeroBanner";
+import {
+  ArrowRight,
+  Cpu,
+  Layers,
+  ShieldCheck,
+  Wrench,
+  Clock,
+  CheckCircle2,
+} from "lucide-react";
+import ProblemCta from "@/components/ProblemCta";
 import OemSearchBar from "@/components/OemSearchBar";
 import { getPublicCategories, getPublicBrands } from "@/lib/seo-data";
-import ConvexAuthIsland from "@/app/ConvexAuthIsland";
 import {
   createPageMetadata,
   serializeJsonLd,
@@ -15,6 +25,7 @@ import {
   SITE_URL,
 } from "@/lib/seo";
 
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   ...createPageMetadata({
@@ -42,63 +53,79 @@ const WEBSITE_JSON_LD = {
 function getRepeatedBrands<T>(items: T[], minCount = 28): T[] {
   if (items.length === 0) return [];
   const repeatCount = Math.max(1, Math.ceil(minCount / items.length));
-  const result: T[] = [];
-  for (let i = 0; i < repeatCount; i++) {
-    result.push(...items);
-  }
-  return result;
+  return Array.from({ length: repeatCount }, () => items).flat();
 }
 
 function HeroSection() {
-  const imageProps = {
-    alt: "",
-    sizes: "100vw",
-    quality: 75,
-    fetchPriority: "high" as const,
-  };
-  const {
-    props: { srcSet: desktopSrcSet },
-  } = getImageProps({
-    ...imageProps,
-    src: "/images/hero.webp",
-    width: 1672,
-    height: 941,
-  });
-  const {
-    props: { srcSet: mobileSrcSet, ...mobileImageProps },
-  } = getImageProps({
-    ...imageProps,
-    src: "/images/home-hero-mobile.webp",
-    width: 941,
-    height: 1672,
-  });
-
   return (
-    <section className="relative isolate flex min-h-[calc(100svh-76px)] flex-col overflow-hidden bg-slate-100 text-slate-900">
-      <picture className="absolute inset-0 z-0 block">
-        <source media="(min-width: 640px)" srcSet={desktopSrcSet} sizes="100vw" />
-        <source media="(max-width: 639px)" srcSet={mobileSrcSet} sizes="100vw" />
-        <img
-          {...mobileImageProps}
-          alt=""
-          loading="eager"
-          className="absolute inset-0 h-full w-full object-cover object-right sm:object-left"
-        />
-      </picture>
-
-      <div className="relative z-20 mx-auto flex w-full max-w-[1680px] flex-col justify-start px-4 py-8 sm:flex-1 sm:justify-center sm:px-6 sm:py-12 lg:px-8">
-        <div className="max-w-xl">
-          <h1 className="max-w-xl text-4xl font-medium leading-[1.08] tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-            Aracınızın beyni <span className="text-blue-700">bizde</span>
-          </h1>
-
-          <div className="mt-8 max-w-lg">
-            <Suspense fallback={<div className="h-14 animate-pulse rounded-full border border-slate-300 bg-white shadow-sm" aria-hidden="true" />}>
-              <ConvexAuthIsland>
-                <OemSearchBar variant="hero" />
-              </ConvexAuthIsland>
+    <HeroBanner
+      src="/images/hero-rebrand.jpg"
+      alt="Beyin Deposu ECU ve Oto Elektronik Servisi"
+      size="full"
+      eyebrow=""
+      title="Aracınızın Beyni Bizde"
+      description="Aracınızın tüm mekanik ve elektronik ihtiyaçları için profesyonel test, tamir, kodlama ve garantili parça çözümleri sunuyoruz."
+      actions={
+        <>
+          <div className="w-full max-w-2xl">
+            <Suspense fallback={<div className="h-14 animate-pulse rounded-2xl border border-white/20 bg-white/10 shadow-sm" aria-hidden="true" />}>
+              <OemSearchBar variant="hero" />
             </Suspense>
           </div>
+          <Button asChild variant="default" size="lg">
+            <Link href="/parcalar">
+              Parçaları İncele
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </Button>
+          <Button asChild variant="darkOutline" size="lg">
+            <Link href="/hakkimizda">Hizmetlerimiz ve İletişim</Link>
+          </Button>
+        </>
+      }
+    />
+  );
+}
+
+function BenefitStrip() {
+  const benefits = [
+    {
+      icon: ShieldCheck,
+      title: "Uzman Kadro",
+      description: "Deneyimli teknisyenler",
+    },
+    {
+      icon: Wrench,
+      title: "Orijinal Ekipman",
+      description: "Profesyonel test cihazları",
+    },
+    {
+      icon: Clock,
+      title: "Hızlı Çözüm",
+      description: "Zamanında teslimat",
+    },
+    {
+      icon: CheckCircle2,
+      title: "Güvenilir Hizmet",
+      description: "Garantili onarım & parça",
+    },
+  ];
+
+  return (
+    <section className="border-b border-slate-200 bg-white py-6 shadow-xs">
+      <div className="container">
+        <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+          {benefits.map((b, i) => (
+            <div key={i} className="flex items-center gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-400/30 bg-amber-50 text-amber-600">
+                <b.icon className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-sm font-semibold text-slate-900">{b.title}</h4>
+                <p className="truncate text-xs text-slate-500">{b.description}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -107,7 +134,7 @@ function HeroSection() {
 
 function StatsSection() {
   return (
-    <section className="container pb-12 pt-8 sm:pb-16">
+    <section className="container py-12 sm:py-16">
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-slate-200 bg-slate-200 md:grid-cols-4">
         {[
           ["15.000+", "Stoklu parça"],
@@ -116,8 +143,8 @@ function StatsSection() {
           ["20+", "Yıllık tecrübe"],
         ].map(([value, label]) => (
           <div key={label} className="bg-white px-4 py-6 text-center sm:px-6 sm:py-8">
-            <div className="text-2xl font-medium tracking-tight text-slate-900 sm:text-3xl">{value}</div>
-            <div className="mt-1 text-sm text-slate-600">{label}</div>
+            <div className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{value}</div>
+            <div className="mt-1 text-sm font-medium text-slate-600">{label}</div>
           </div>
         ))}
       </div>
@@ -152,17 +179,22 @@ async function CategoriesSection() {
   if (!categories || categories.length === 0) return null;
 
   return (
-    <section className="container py-12 sm:py-16">
-      <div className="mb-6 flex items-end justify-between gap-4">
-        <h2 className="text-2xl font-medium tracking-tight text-slate-900 sm:text-3xl">
-          Kategoriler
-        </h2>
+    <section className="container pb-14 sm:pb-20">
+      <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Hizmet & Parça Kategorileri
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Aracınızın tüm sistemleri için kapsamlı parça, tamir ve kodlama çözümleri.
+          </p>
+        </div>
         <Link
           href="/parcalar"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-2xs transition-colors hover:border-amber-400 hover:text-amber-600"
         >
           Tüm parçalar
-          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          <ArrowRight className="h-4 w-4 text-amber-500" aria-hidden="true" />
         </Link>
       </div>
 
@@ -171,9 +203,9 @@ async function CategoriesSection() {
           <Link
             key={category._id || category.slug}
             href={`/parcalar?kategori=${encodeURIComponent(category.slug)}`}
-            className="group flex min-h-24 items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 transition-colors hover:border-blue-200 hover:bg-blue-50/50 sm:gap-4 sm:p-4"
+            className="group flex min-h-24 items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 transition-all hover:border-amber-400 hover:shadow-md sm:gap-4 sm:p-4"
           >
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 sm:h-16 sm:w-16">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 border border-slate-100 transition-colors group-hover:border-amber-200 sm:h-16 sm:w-16">
               {category.image ? (
                 <div className="relative h-full w-full">
                   <Image
@@ -185,15 +217,15 @@ async function CategoriesSection() {
                   />
                 </div>
               ) : (
-                <Cpu className="h-7 w-7 text-blue-700" aria-hidden="true" />
+                <Cpu className="h-7 w-7 text-amber-500" aria-hidden="true" />
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-medium leading-5 text-slate-800 group-hover:text-blue-800">
+              <h3 className="text-sm font-semibold leading-5 text-slate-900 transition-colors group-hover:text-amber-700">
                 {category.name}
               </h3>
             </div>
-            <ArrowRight className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-blue-700" aria-hidden="true" />
+            <ArrowRight className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-amber-500" aria-hidden="true" />
           </Link>
         ))}
       </div>
@@ -230,15 +262,15 @@ async function BrandsSection() {
     <section className="border-y border-slate-200 bg-white">
       <div className="container py-10">
         <div className="mb-5 flex items-center justify-between gap-4">
-          <h2 className="text-xl font-medium tracking-tight text-slate-900 sm:text-2xl">
-            Araç markaları
+          <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+            Araç Markaları
           </h2>
           <Link
             href="/markalar"
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:text-amber-600"
           >
             Tüm markalar
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            <ArrowRight className="h-4 w-4 text-amber-500" aria-hidden="true" />
           </Link>
         </div>
         <div className="space-y-3">
@@ -260,7 +292,7 @@ async function BrandsSection() {
                           key={`${isDuplicate ? "dup" : "orig"}-${rowIndex}-${itemIndex}-${brand._id}`}
                           href={`/parcalar?marka=${encodeURIComponent(brand.name)}`}
                           tabIndex={isDuplicate ? -1 : undefined}
-                          className="group inline-flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-800"
+                          className="group inline-flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-amber-400 hover:text-amber-800"
                         >
                           {brand.logoUrl ? (
                             <Image
@@ -297,6 +329,7 @@ export default function HomePage() {
       />
 
       <HeroSection />
+      <BenefitStrip />
       <StatsSection />
 
       <Suspense fallback={<CategoriesSkeleton />}>
@@ -306,6 +339,10 @@ export default function HomePage() {
       <Suspense fallback={<BrandsSkeleton />}>
         <BrandsSection />
       </Suspense>
+
+      <section className="container py-14 sm:py-20">
+        <ProblemCta />
+      </section>
     </>
   );
 }

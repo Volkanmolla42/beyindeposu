@@ -254,7 +254,7 @@ export default function AdminBrandsPage() {
                   type="button"
                   aria-label={`${b.name} markasını düzenle`}
                   onClick={() => handleOpenEditBrand(b)}
-                  className="flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-blue-50 hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-blue-600"
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-amber-50 hover:text-amber-600 focus-visible:outline-2 focus-visible:outline-amber-500"
                 >
                   <Edit2 className="h-4 w-4" />
                 </button>
@@ -262,7 +262,7 @@ export default function AdminBrandsPage() {
                   type="button"
                   aria-label={`${b.name} markasını sil`}
                   onClick={() => handleDeleteBrand(b)}
-                  className="flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-blue-600"
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-red-50 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-amber-500"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -421,7 +421,7 @@ export default function AdminBrandsPage() {
                       type="checkbox"
                       checked={brandIsActive}
                       onChange={(e) => setBrandIsActive(e.target.checked)}
-                      className="h-5 w-5 rounded text-blue-600 accent-blue-600"
+                      className="h-5 w-5 rounded text-amber-500 accent-amber-500"
                     />
                     <span>Yayında</span>
                   </label>

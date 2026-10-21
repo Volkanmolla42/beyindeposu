@@ -288,7 +288,7 @@ export default function AdminProductsPage() {
             setPageSize(Number(event.target.value));
             resetPage();
           }}
-          className="h-11 rounded-xl border border-slate-200 bg-white px-2 text-base text-slate-700 lg:text-sm focus-visible:outline-2 focus-visible:outline-blue-600"
+          className="h-11 rounded-xl border border-slate-200 bg-white px-2 text-base text-slate-700 lg:text-sm focus-visible:outline-2 focus-visible:outline-amber-500"
         >
           <option value={25}>25 / sayfa</option>
           <option value={50}>50 / sayfa</option>
@@ -393,7 +393,7 @@ export default function AdminProductsPage() {
             }
             ref={filterButtonRef}
             onClick={() => setFiltersOpen(true)}
-            className={`h-12 shrink-0 gap-2 rounded-full px-4 ${activeFilterCount ? "border-blue-200 bg-blue-50 text-blue-700" : "bg-white"}`}
+            className={`h-12 shrink-0 gap-2 rounded-full px-4 ${activeFilterCount ? "border-amber-200 bg-amber-50 text-amber-600" : "bg-white"}`}
           >
             <SlidersHorizontal className="h-5 w-5" />
             <span className="hidden sm:inline">Filtreler</span>
@@ -437,7 +437,7 @@ export default function AdminProductsPage() {
                 key={filter.label}
                 aria-label={`${filter.label} filtresini kaldır`}
                 onClick={filter.clear}
-                className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 text-sm text-blue-800 focus-visible:outline-2 focus-visible:outline-blue-600"
+                className="inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border border-amber-100 bg-amber-50 px-3 text-sm text-amber-700 focus-visible:outline-2 focus-visible:outline-amber-500"
               >
                 <span className="truncate">{filter.label}</span>
                 <X className="h-3.5 w-3.5 shrink-0" />
@@ -501,9 +501,9 @@ export default function AdminProductsPage() {
                   <label
                     key={filter.value}
                     className={
-                      "flex min-h-12 cursor-pointer items-center justify-center rounded-xl border px-2 text-sm font-medium has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-600 " +
+                      "flex min-h-12 cursor-pointer items-center justify-center rounded-xl border px-2 text-sm font-medium has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-amber-500 " +
                       (draftStatus === filter.value
-                        ? "border-blue-200 bg-blue-50 text-blue-800"
+                        ? "border-amber-200 bg-amber-50 text-amber-700"
                         : "border-slate-200 bg-white text-slate-600")
                     }
                   >
@@ -537,7 +537,7 @@ export default function AdminProductsPage() {
                   setSelectedBrandFilter(event.target.value);
                   resetPage();
                 }}
-                className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600"
+                className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-900 focus-visible:outline-2 focus-visible:outline-amber-500"
               >
                 <option value="">Tüm markalar</option>
                 {brands?.map((brand) => (
@@ -561,7 +561,7 @@ export default function AdminProductsPage() {
                   setSelectedCategoryFilter(event.target.value);
                   resetPage();
                 }}
-                className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-900 focus-visible:outline-2 focus-visible:outline-blue-600"
+                className="h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base text-slate-900 focus-visible:outline-2 focus-visible:outline-amber-500"
               >
                 <option value="">Tüm kategoriler</option>
                 {categories?.map((category) => (
@@ -585,7 +585,7 @@ export default function AdminProductsPage() {
                 ).map((filter) => (
                   <label
                     key={filter.value}
-                    className={`flex min-h-12 cursor-pointer items-center justify-center rounded-xl border px-2 text-sm font-medium has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-blue-600 ${stockFilter === filter.value ? "border-blue-200 bg-blue-50 text-blue-800" : "border-slate-200 bg-white text-slate-600"}`}
+                    className={`flex min-h-12 cursor-pointer items-center justify-center rounded-xl border px-2 text-sm font-medium has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-amber-500 ${stockFilter === filter.value ? "border-amber-200 bg-amber-50 text-amber-700" : "border-slate-200 bg-white text-slate-600"}`}
                   >
                     <input
                       className="sr-only"

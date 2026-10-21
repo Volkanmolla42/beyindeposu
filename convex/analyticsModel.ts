@@ -37,8 +37,8 @@ export function monthKeys(timestamp: number, count = 13) {
 }
 
 export function safePath(input: string): string | null {
-  if (["/", "/parcalar", "/markalar", "/kategoriler", "/kurumsal", "/gizlilik"].includes(input)) return input;
-  return /^\/(parcalar|markalar|kategoriler)\/[a-z0-9-]{1,180}$/.test(input) ? input : null;
+  if (["/", "/parcalar", "/markalar", "/kategoriler", "/hakkimizda", "/gizlilik", "/blog", "/tamirveservis", "/ariza-kodlari"].includes(input)) return input;
+  return /^\/(parcalar|markalar|kategoriler|blog|tamirveservis)\/[a-z0-9-]{1,180}$/.test(input) ? input : null;
 }
 
 // Free-form text is never retained: only catalog terms/codes verified at ingestion.

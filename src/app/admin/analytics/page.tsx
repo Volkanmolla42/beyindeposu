@@ -26,7 +26,7 @@ function Ranking({ title, rows, countLabel, products = false }: { title: string;
           <span aria-hidden="true" className="text-xs font-medium tabular-nums text-slate-400">{String(startIndex + index + 1).padStart(2, "0")}</span>
           <div className="min-w-0 break-words text-sm text-slate-700">
             {row.key.startsWith("/") ? (
-              <Link href={row.key} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-blue-700">
+              <Link href={row.key} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:text-amber-600">
                 {row.label}<ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
               </Link>
             ) : analyticsLabel(row.label)}
@@ -52,7 +52,7 @@ function Ranking({ title, rows, countLabel, products = false }: { title: string;
           {renderRows(rows.slice(0, 5), 0)}
           {rows.length > 5 && (
             <details className="border-t border-slate-100 px-4 sm:px-5">
-              <summary className="cursor-pointer py-3 text-sm font-medium text-blue-700 hover:text-blue-800">{number(rows.length - 5)} sonuç daha göster</summary>
+              <summary className="cursor-pointer py-3 text-sm font-medium text-amber-600 hover:text-amber-700">{number(rows.length - 5)} sonuç daha göster</summary>
               {renderRows(rows.slice(5), 5)}
             </details>
           )}
@@ -80,7 +80,7 @@ function MetricCard({
   return (
     <article
       className={`relative flex h-full flex-col justify-between rounded-xl border p-3.5 sm:rounded-2xl sm:p-5 transition-shadow ${
-        primary ? "border-blue-200 bg-blue-50/70" : "border-slate-200 bg-white"
+        primary ? "border-amber-200 bg-amber-50/70" : "border-slate-200 bg-white"
       }`}
     >
       <div className="flex min-h-[2.5rem] items-start justify-between gap-2">
@@ -90,7 +90,7 @@ function MetricCard({
         <span
           aria-hidden="true"
           className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg sm:h-8 sm:w-8 ${
-            primary ? "bg-white text-blue-700 shadow-2xs" : "bg-slate-100 text-slate-600"
+            primary ? "bg-white text-amber-600 shadow-2xs" : "bg-slate-100 text-slate-600"
           }`}
         >
           <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -137,7 +137,7 @@ function TrafficChart({ title, points, monthly = false }: { title: string; point
                     const height = value > 0 ? Math.max((value / max) * 100, 2) : 0;
                     return (
                       <div key={point.key} className="flex h-full min-w-0 flex-1 items-end">
-                        <div title={`${monthly ? formatAnalyticsMonth(point.key) : point.key}: ${number(value)}`} className="w-full rounded-t bg-blue-600" style={{ height: `${height}%`, minHeight: value ? 3 : 0 }} />
+                        <div title={`${monthly ? formatAnalyticsMonth(point.key) : point.key}: ${number(value)}`} className="w-full rounded-t bg-amber-500" style={{ height: `${height}%`, minHeight: value ? 3 : 0 }} />
                       </div>
                     );
                   })}
@@ -164,7 +164,7 @@ function TrafficChart({ title, points, monthly = false }: { title: string; point
 
 function Journey({ session }: { session: Id<"analyticsSessions"> }) {
   const { results, status, loadMore } = usePaginatedQuery(api.analytics.journey, { session }, { initialNumItems: 40 });
-  return <><ol className="max-h-[55vh] space-y-4 overflow-y-auto pr-2">{results.map((row) => <li key={row.id} className="border-l-2 border-blue-200 pl-4"><div className="flex flex-wrap justify-between gap-2"><span className="text-sm font-medium">{analyticsLabel(row.event.name)}</span><time className="text-xs text-slate-500">{dateTime(row.at)}</time></div><p className="mt-1 break-all text-xs text-slate-600">{row.event.path}</p>{row.event.value && <p className="mt-1 text-sm text-slate-700">{analyticsLabel(row.event.value)}</p>}{row.event.resultCount !== undefined && <p className="text-xs text-slate-500">{row.event.resultCount === 0 ? "Sonuç bulunamadı" : `${row.event.resultCount} önizleme sonucu`}</p>}{row.event.number !== undefined && <p className="text-xs text-slate-500">{row.event.name === "engagement" ? formatAnalyticsDuration(row.event.number) : row.event.number}</p>}</li>)}</ol>{status === "LoadingFirstPage" && <p role="status" className="text-sm text-slate-500">Yükleniyor...</p>}{status === "Exhausted" && !results.length && <p className="text-sm text-slate-500">Oturum kayıtları silinmiş veya saklama süresi dolmuş.</p>}{status === "CanLoadMore" && <Button variant="outline" onClick={() => loadMore(40)}>Daha fazla hareket</Button>}</>;
+  return <><ol className="max-h-[55vh] space-y-4 overflow-y-auto pr-2">{results.map((row) => <li key={row.id} className="border-l-2 border-amber-200 pl-4"><div className="flex flex-wrap justify-between gap-2"><span className="text-sm font-medium">{analyticsLabel(row.event.name)}</span><time className="text-xs text-slate-500">{dateTime(row.at)}</time></div><p className="mt-1 break-all text-xs text-slate-600">{row.event.path}</p>{row.event.value && <p className="mt-1 text-sm text-slate-700">{analyticsLabel(row.event.value)}</p>}{row.event.resultCount !== undefined && <p className="text-xs text-slate-500">{row.event.resultCount === 0 ? "Sonuç bulunamadı" : `${row.event.resultCount} önizleme sonucu`}</p>}{row.event.number !== undefined && <p className="text-xs text-slate-500">{row.event.name === "engagement" ? formatAnalyticsDuration(row.event.number) : row.event.number}</p>}</li>)}</ol>{status === "LoadingFirstPage" && <p role="status" className="text-sm text-slate-500">Yükleniyor...</p>}{status === "Exhausted" && !results.length && <p className="text-sm text-slate-500">Oturum kayıtları silinmiş veya saklama süresi dolmuş.</p>}{status === "CanLoadMore" && <Button variant="outline" onClick={() => loadMore(40)}>Daha fazla hareket</Button>}</>;
 }
 
 function Sessions({ month, period, now }: { month: string; period: "today" | "month"; now: number }) {
@@ -312,7 +312,7 @@ function AnalyticsDashboard() {
               <Button size="sm" className="h-8 rounded-lg px-2.5 text-xs sm:px-3 sm:text-sm" variant={!todayOnly ? "default" : "ghost"} aria-pressed={!todayOnly} onClick={() => setTodayOnly(false)}>Aylık</Button>
             </div>
             {!todayOnly && (
-              <label htmlFor="analytics-month" className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 text-xs text-slate-700 shadow-2xs focus-within:outline-2 focus-within:outline-blue-600 sm:text-sm">
+              <label htmlFor="analytics-month" className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 text-xs text-slate-700 shadow-2xs focus-within:outline-2 focus-within:outline-amber-500 sm:text-sm">
                 <CalendarDays aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-slate-500" />
                 <span className="sr-only">Rapor ayı</span>
                 <select id="analytics-month" value={month} onChange={(event) => setSelectedMonth(event.target.value)} className="cursor-pointer bg-transparent focus:outline-none">
@@ -382,12 +382,12 @@ function AnalyticsDashboard() {
       </section>
 
       {todayOnly ? (
-        <div className="flex flex-col gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex flex-col gap-3 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <div>
             <h2 className="text-sm font-medium text-slate-900">Bugünkü ziyaret akışı</h2>
             <p className="mt-1 text-sm text-slate-600">Bugün görünümünde saatlik grafik yok. Oturum listesinden ziyaret rotalarını ve aramalarını inceleyebilirsin.</p>
           </div>
-          <Link href="#sessions" className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-3 text-sm font-medium text-blue-700 hover:bg-blue-100 focus-visible:outline-2 focus-visible:outline-blue-600">
+          <Link href="#sessions" className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full px-3 text-sm font-medium text-amber-600 hover:bg-amber-100 focus-visible:outline-2 focus-visible:outline-amber-500">
             Oturumlara git<ArrowDown aria-hidden="true" className="h-4 w-4" />
           </Link>
         </div>

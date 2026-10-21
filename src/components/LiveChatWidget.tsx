@@ -147,7 +147,6 @@ export default function LiveChatWidget() {
   const sendMessageMutation = useMutation(api.chats.sendMessage);
   const markAsReadMutation = useMutation(api.chats.markAsRead);
 
-  // Auto scroll to bottom & sound alert on new admin message
   useEffect(() => {
     if (messages && messages.length > 0) {
       if (messages.length > prevMsgCountRef.current) {
@@ -161,14 +160,12 @@ export default function LiveChatWidget() {
     }
   }, [messages]);
 
-  // Mark messages as read when widget is opened
   useEffect(() => {
     if (isOpen && conversationId && activeConversation?.unreadCountVisitor) {
       markAsReadMutation({ conversationId, reader: "visitor", visitorId });
     }
   }, [isOpen, conversationId, visitorId, activeConversation?.unreadCountVisitor, markAsReadMutation]);
 
-  // Handle start chat
   const handleStartChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!visitorId) return;
@@ -206,7 +203,6 @@ export default function LiveChatWidget() {
     }
   };
 
-  // Handle send message
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim() || !conversationId) return;
@@ -229,18 +225,16 @@ export default function LiveChatWidget() {
 
   const unreadCount = activeConversation?.unreadCountVisitor || 0;
 
-  // Hide on admin panel and login pages
   if (pathname?.startsWith("/admin") || pathname === "/login" || pathname === "/parcalar") {
     return null;
   }
 
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end">
-      {/* Floating Chat Trigger Button (when closed) */}
       {!isOpen && (
         <button
           onClick={() => { trackAnalytics("chat_open"); setIsOpen(true); }}
-          className="group relative flex items-center gap-2.5 h-11 sm:h-12 px-3.5 sm:px-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm shadow-lg shadow-slate-900/15 hover:shadow-xl hover:shadow-slate-900/20 border border-blue-500/40 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-pointer"
+          className="group relative flex items-center gap-2.5 h-11 sm:h-12 px-3.5 sm:px-4 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm shadow-lg hover:shadow-xl border border-amber-400/40 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] cursor-pointer"
           aria-label="Canlı destek"
           aria-haspopup="dialog"
           aria-expanded={false}
@@ -251,14 +245,13 @@ export default function LiveChatWidget() {
           <span className="text-sm font-semibold tracking-tight hidden sm:inline">Canlı destek</span>
 
           {unreadCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-bold text-white shadow-sm ring-2 ring-white">
+            <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-3xs font-bold text-white shadow-sm ring-2 ring-white">
               {unreadCount}
             </span>
           )}
         </button>
       )}
 
-      {/* Expanded Live Chat Window */}
       {isOpen && (
         <div
           role="dialog"
@@ -266,11 +259,10 @@ export default function LiveChatWidget() {
           aria-modal="false"
           className="w-[360px] sm:w-[390px] h-[520px] max-h-[85vh] bg-white rounded-3xl shadow-2xl border border-slate-200/80 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200"
         >
-          {/* Header */}
           <div className="bg-slate-900 text-white px-4 py-3.5 flex items-center justify-between shadow-md select-none">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-inner">
+                <div className="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-slate-950 font-bold shadow-inner">
                   <Headphones className="w-5 h-5" />
                 </div>
               </div>
@@ -288,15 +280,13 @@ export default function LiveChatWidget() {
             </button>
           </div>
 
-          {/* Body: State 1 - Start Conversation Form */}
           {!conversationId ? (
             <div className="flex-1 p-5 flex flex-col justify-between overflow-y-auto bg-slate-50/50">
               <div className="space-y-4">
-                {/* Product Detection Banner */}
                 {isProductPage && currentProduct && (
                   <div className="p-3 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-2">
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                      <ShoppingBag className="w-4 h-4 text-blue-600" />
+                      <ShoppingBag className="w-4 h-4 text-amber-600" />
                       <span>Bu parça</span>
                     </div>
 
@@ -315,17 +305,17 @@ export default function LiveChatWidget() {
                         />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-bold text-slate-900 truncate">{currentProduct.title}</p>
-                        <p className="text-[10px] font-mono text-blue-600 font-semibold">{currentProduct.oemNumber}</p>
+                        <p className="text-3xs font-bold text-slate-900 truncate">{currentProduct.title}</p>
+                        <p className="text-2xs font-mono text-amber-700 font-semibold">{currentProduct.oemNumber}</p>
                       </div>
                     </div>
 
-                    <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-700 cursor-pointer pt-0.5">
+                    <label className="flex items-center gap-2 text-3xs font-semibold text-slate-700 cursor-pointer pt-0.5">
                       <input
                         type="checkbox"
                         checked={includeProduct}
                         onChange={(e) => setIncludeProduct(e.target.checked)}
-                        className="rounded text-blue-600 w-3.5 h-3.5"
+                        className="rounded accent-amber-500 w-3.5 h-3.5"
                       />
                       <span>Parçayı sohbete ekle</span>
                     </label>
@@ -334,7 +324,7 @@ export default function LiveChatWidget() {
 
                 <form id="start-chat-form" onSubmit={handleStartChat} className="space-y-3">
                   <div>
-                    <label htmlFor="chat-visitor-name" className="text-[11px] font-bold text-slate-700 block mb-1">
+                    <label htmlFor="chat-visitor-name" className="text-3xs font-bold text-slate-700 block mb-1">
                       Ad soyad <span className="text-slate-400 font-normal">· isteğe bağlı</span>
                     </label>
                     <Input
@@ -348,7 +338,7 @@ export default function LiveChatWidget() {
                   </div>
 
                   <div>
-                    <label htmlFor="chat-visitor-phone" className="text-[11px] font-bold text-slate-700 block mb-1">
+                    <label htmlFor="chat-visitor-phone" className="text-3xs font-bold text-slate-700 block mb-1">
                       Telefon <span className="text-emerald-600 font-normal">(WhatsApp için)</span>
                     </label>
                     <Input
@@ -364,7 +354,7 @@ export default function LiveChatWidget() {
                   </div>
 
                   <div>
-                    <label htmlFor="chat-visitor-message" className="text-[11px] font-bold text-slate-700 block mb-1">
+                    <label htmlFor="chat-visitor-message" className="text-3xs font-bold text-slate-700 block mb-1">
                       Mesaj <span className="text-slate-400 font-normal">· isteğe bağlı</span>
                     </label>
                     <Input
@@ -385,7 +375,7 @@ export default function LiveChatWidget() {
                   form="start-chat-form"
                   type="submit"
                   disabled={isStarting}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-10 rounded-xl shadow-md shadow-blue-600/20 cursor-pointer"
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs h-10 rounded-xl shadow-md cursor-pointer"
                 >
                   {isStarting ? (
                     <>
@@ -399,9 +389,7 @@ export default function LiveChatWidget() {
               </div>
             </div>
           ) : (
-            /* Body: State 2 - Active Live Messages Feed */
             <div className="flex-1 flex flex-col justify-between overflow-hidden bg-slate-100/60">
-              {/* Messages Scroll Area */}
               <div className="flex-1 p-3.5 overflow-y-auto space-y-2.5 text-xs">
                 {messages?.map((m) => {
                   const isVisitor = m.sender === "visitor";
@@ -410,7 +398,7 @@ export default function LiveChatWidget() {
                   if (isSystem) {
                     return (
                       <div key={m._id} className="flex justify-center my-1.5">
-                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/80 px-3 py-1 rounded-full text-center max-w-xs">
+                        <span className="text-2xs font-semibold text-slate-500 bg-slate-200/80 px-3 py-1 rounded-full text-center max-w-xs">
                           {m.text}
                         </span>
                       </div>
@@ -425,11 +413,10 @@ export default function LiveChatWidget() {
                       <div
                         className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 shadow-xs ${
                           isVisitor
-                            ? "bg-blue-600 text-white rounded-tr-xs"
+                            ? "bg-amber-500 text-slate-950 font-medium rounded-tr-xs"
                             : "bg-white text-slate-900 border border-slate-200/80 rounded-tl-xs"
                         }`}
                       >
-                        {/* If product card attached in message */}
                         {m.productCard && (
                           <div className="mb-2 p-2 rounded-xl bg-black/10 border border-black/10 text-left">
                             <div className="flex items-center gap-2">
@@ -448,8 +435,8 @@ export default function LiveChatWidget() {
                                 />
                               </div>
                               <div className="min-w-0">
-                                <p className="font-extrabold text-[11px] truncate">{m.productCard.title}</p>
-                                <p className="text-[10px] opacity-80 font-mono">OEM: {m.productCard.oemNumber}</p>
+                                <p className="font-bold text-3xs truncate">{m.productCard.title}</p>
+                                <p className="text-2xs opacity-80 font-mono">OEM: {m.productCard.oemNumber}</p>
                               </div>
                             </div>
                           </div>
@@ -458,14 +445,14 @@ export default function LiveChatWidget() {
                         <p className="leading-relaxed whitespace-pre-wrap">{m.text}</p>
 
                         <div
-                          className={`flex items-center justify-end gap-1 mt-1 text-[9px] ${
-                            isVisitor ? "text-blue-100" : "text-slate-400"
+                          className={`flex items-center justify-end gap-1 mt-1 text-2xs ${
+                            isVisitor ? "text-slate-800/80" : "text-slate-400"
                           }`}
                         >
                           <span>{new Date(m.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
                           {isVisitor && (
                             m.isRead ? (
-                              <CheckCheck className="w-3 h-3 text-emerald-300" />
+                              <CheckCheck className="w-3 h-3 text-emerald-800" />
                             ) : (
                               <Check className="w-3 h-3 opacity-80" />
                             )
@@ -478,7 +465,6 @@ export default function LiveChatWidget() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Input Bar */}
               <form onSubmit={handleSendMessage} className="p-2.5 bg-white border-t border-slate-200 flex items-center gap-2">
                 <Input
                   id="chat-active-message-input"
@@ -494,7 +480,7 @@ export default function LiveChatWidget() {
                   type="submit"
                   size="sm"
                   disabled={!inputMessage.trim()}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-9 w-9 p-0 shrink-0 cursor-pointer shadow-xs"
+                  className="bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl h-9 w-9 p-0 shrink-0 cursor-pointer shadow-xs"
                   aria-label="Mesajı gönder"
                 >
                   <Send className="w-4 h-4" />

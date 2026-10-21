@@ -21,6 +21,10 @@ export function absoluteUrl(path: string): string {
   return new URL(path.replace(/^\/+/, ""), `${SITE_URL}/`).toString();
 }
 
+export function toAbsoluteUrl(value: string): string {
+  return /^https?:\/\//i.test(value) ? value : absoluteUrl(value);
+}
+
 export function plainText(value: string): string {
   return value
     .replace(/<[^>]*>/g, " ")

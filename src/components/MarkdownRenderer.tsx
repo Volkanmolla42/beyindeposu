@@ -20,7 +20,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
         <ul key={`ul-${elements.length}`} className="my-3 space-y-1.5 pl-1">
           {listItems.map((item, idx) => (
             <li key={idx} className="flex items-start gap-2 text-xs text-slate-700 leading-relaxed">
-              <span className="text-blue-600 font-bold mt-0.5">•</span>
+              <span className="text-amber-500 font-bold mt-0.5">•</span>
               <div>{renderInline(item)}</div>
             </li>
           ))}
@@ -106,9 +106,9 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       elements.push(
         <h2
           key={`h2-${i}`}
-          className="text-sm sm:text-base font-extrabold text-slate-900 mt-6 mb-2.5 pt-2 border-b border-slate-200 pb-1.5 flex items-center gap-2"
+          className="text-sm sm:text-base font-bold text-slate-900 mt-6 mb-2.5 pt-2 border-b border-slate-200 pb-1.5 flex items-center gap-2"
         >
-          <span className="w-1.5 h-4 rounded-full bg-blue-600 shrink-0" />
+          <span className="w-1.5 h-4 rounded-full bg-amber-500 shrink-0" />
           <span>{renderInline(trimmed.replace(/^##\s+/, ""))}</span>
         </h2>
       );
@@ -157,7 +157,7 @@ function renderInline(text: string): React.ReactNode {
       return (
         <code
           key={index}
-          className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[11px] text-blue-700 font-semibold"
+          className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[11px] text-amber-600 font-semibold"
         >
           {part.slice(1, -1)}
         </code>

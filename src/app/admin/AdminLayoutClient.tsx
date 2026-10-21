@@ -14,9 +14,11 @@ import {
   LogOut,
   User,
   Loader2,
-  Sparkles,
   ChartNoAxesCombined,
   Settings,
+  FileCode2,
+  BookOpen,
+  Wrench,
 } from "lucide-react";
 import { useQuery, useConvexAuth } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
@@ -31,62 +33,21 @@ interface NavItem {
   badgeKey?: string;
 }
 
-interface NavGroup {
-  title: string;
-  items: NavItem[];
-}
-
-const NAV_GROUPS: NavGroup[] = [
+const NAV_ITEMS: NavItem[] = [
+  { href: "/admin/analytics", label: "Analitik", icon: ChartNoAxesCombined },
+  { href: "/admin/products", label: "Parçalar", icon: Package },
+  { href: "/admin/categories", label: "Kategoriler", icon: Layers },
+  { href: "/admin/brands", label: "Markalar", icon: Car },
+  { href: "/admin/services", label: "Tamir & Servis", icon: Wrench },
+  { href: "/admin/fault-codes", label: "Arıza Kodları", icon: FileCode2 },
+  { href: "/admin/blogs", label: "Blog", icon: BookOpen },
   {
-    title: "İstatistikler",
-    items: [{ href: "/admin/analytics", label: "Analitik", icon: ChartNoAxesCombined }],
+    href: "/admin/chats",
+    label: "Sohbetler",
+    icon: MessageSquare,
+    badgeKey: "unreadChats",
   },
-  {
-    title: "Katalog ve stok",
-    items: [
-      {
-        href: "/admin/products",
-        label: "Parçalar",
-        icon: Package,
-      },
-      {
-        href: "/admin/batch-import",
-        label: "Toplu aktarım",
-        icon: Sparkles,
-      },
-      {
-        href: "/admin/categories",
-        label: "Kategoriler",
-        icon: Layers,
-      },
-      {
-        href: "/admin/brands",
-        label: "Markalar",
-        icon: Car,
-      },
-    ],
-  },
-  {
-    title: "Müşteri desteği",
-    items: [
-      {
-        href: "/admin/chats",
-        label: "Sohbetler",
-        icon: MessageSquare,
-        badgeKey: "unreadChats",
-      },
-    ],
-  },
-  {
-    title: "Sistem ve ayarlar",
-    items: [
-      {
-        href: "/admin/settings",
-        label: "Site ayarları",
-        icon: Settings,
-      },
-    ],
-  },
+  { href: "/admin/settings", label: "Site ayarları", icon: Settings },
 ];
 
 export default function AdminLayout({
@@ -103,7 +64,6 @@ export default function AdminLayout({
   const { signOut } = useAuthActions();
   const isAdmin = useQuery(api.users.isAdmin, isAuthenticated ? {} : "skip");
 
-  // Client-side authentication guard
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.replace("/login");
@@ -131,11 +91,10 @@ export default function AdminLayout({
   const unreadChatsCount =
     conversations?.reduce((acc, c) => acc + (c.unreadCountAdmin || 0), 0) || 0;
 
-  const allItems: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
   const currentItem =
-    allItems.find((item) =>
-      item.exact ? pathname === item.href : pathname.startsWith(item.href)
-    ) || allItems[0];
+    NAV_ITEMS.find((item) =>
+      item.exact ? pathname === item.href : pathname.startsWith(item.href),
+    ) || NAV_ITEMS[0];
   const isChatsPage = pathname.startsWith("/admin/chats");
   const shellRef = useRef<HTMLDivElement>(null);
 
@@ -161,7 +120,6 @@ export default function AdminLayout({
     };
   }, [isChatsPage, authLoading, isAuthenticated, isAdmin]);
 
-  // Auth Loading Screen
   if (authLoading || !isAuthenticated || isAdmin !== true) {
     return (
       <div className="h-screen w-full bg-slate-50 flex flex-col items-center justify-center text-slate-500 gap-2 text-xs">
@@ -173,7 +131,6 @@ export default function AdminLayout({
 
   return (
     <div ref={shellRef} className="group/admin fixed inset-0 h-[100dvh] w-full bg-slate-50/70 text-slate-900 flex flex-col md:flex-row antialiased font-sans overflow-hidden">
-      {/* Mobile Header Bar */}
       <header className="md:hidden group-has-[[data-chat-open=true]]/admin:hidden flex shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 text-slate-900 z-40">
         <div className="flex items-center gap-2.5 min-w-0">
           <button
@@ -195,7 +152,7 @@ export default function AdminLayout({
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`${unreadChatsCount} okunmamış sohbet`}
-              className="shrink-0 px-2 py-1 rounded-full bg-blue-600 text-white text-[11px] font-bold"
+              className="shrink-0 px-2 py-1 rounded-full bg-amber-500 text-white text-[11px] font-bold"
             >
               {unreadChatsCount}
             </Link>
@@ -203,7 +160,6 @@ export default function AdminLayout({
         </div>
       </header>
 
-      {/* Mobile Overlay */}
       {mobileMenuOpen && (
         <div
           className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-xs md:hidden"
@@ -211,13 +167,11 @@ export default function AdminLayout({
         />
       )}
 
-      {/* Admin navigation */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex h-full w-64 shrink-0 flex-col justify-between border-r border-slate-200 bg-white text-slate-900 transition-transform duration-200 ease-in-out md:static md:z-30 md:translate-x-0 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Logo Header */}
           <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-5">
             <Link
               href="/"
@@ -229,75 +183,66 @@ export default function AdminLayout({
                 alt="Beyin Deposu"
                 width={160}
                 height={40}
-                priority
+                preload
                 loading="eager"
                 className="h-8 w-auto object-contain"
               />
-              <span className="rounded-full border border-blue-100 bg-blue-50 px-2 py-1 text-[10px] font-medium tracking-wide text-blue-800">
+              <span className="rounded-full border border-amber-100 bg-amber-50 px-2 py-1 text-[10px] font-medium tracking-wide text-amber-700">
                 Yönetim
               </span>
             </Link>
           </div>
 
-          {/* Nav Groups Scrollable Area */}
-          <nav className="p-3 space-y-5 flex-1 overflow-y-auto">
-            {NAV_GROUPS.map((group, gIdx) => (
-              <div key={gIdx} className="space-y-1">
-                <div className="px-3 text-[11px] font-medium tracking-wide text-slate-500">
-                  {group.title}
-                </div>
+          <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+            {NAV_ITEMS.map((item) => {
+              const isActive = item.exact
+                ? pathname === item.href
+                : pathname.startsWith(item.href);
+              const Icon = item.icon;
+              const hasBadge =
+                item.badgeKey === "unreadChats" && unreadChatsCount > 0;
 
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const isActive = item.exact
-                      ? pathname === item.href
-                      : pathname.startsWith(item.href);
-                    const Icon = item.icon;
-                    const hasBadge = item.badgeKey === "unreadChats" && unreadChatsCount > 0;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center justify-between rounded-full px-3 py-2.5 text-sm transition-colors ${
+                    isActive
+                      ? "bg-amber-50 font-medium text-amber-700"
+                      : "font-normal text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon
+                      className={`h-4 w-4 transition-colors ${
+                        isActive ? "text-amber-700" : "text-slate-500"
+                      }`}
+                    />
+                    <span>{item.label}</span>
+                  </div>
 
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`flex items-center justify-between rounded-full px-3 py-2.5 text-sm transition-colors ${isActive
-                          ? "bg-blue-50 text-blue-800 font-medium"
-                          : "text-slate-700 hover:bg-slate-100 font-normal"
-                          }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <Icon
-                            className={`h-4 w-4 transition-colors ${isActive ? "text-blue-800" : "text-slate-500"
-                              }`}
-                          />
-                          <span>{item.label}</span>
-                        </div>
-
-                        {hasBadge && (
-                          <span
-                            className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${isActive
-                              ? "bg-white text-blue-700"
-                              : "bg-amber-100 text-amber-900"
-                              }`}
-                          >
-                            {unreadChatsCount}
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+                  {hasBadge && (
+                    <span
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
+                        isActive
+                          ? "bg-white text-amber-600"
+                          : "bg-amber-100 text-amber-900"
+                      }`}
+                    >
+                      {unreadChatsCount}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 
-        {/* Sidebar Footer with User Info & Logout */}
         <div className="shrink-0 border-t border-slate-200 bg-slate-50">
-          {/* User & Logout section */}
           <div className="flex items-center justify-between gap-2 border-b border-slate-200 p-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-200 bg-blue-50 text-blue-700 shadow-2xs">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-amber-600 shadow-2xs">
                 <User className="w-4 h-4" />
               </div>
               <div className="min-w-0 flex-1">
@@ -326,7 +271,6 @@ export default function AdminLayout({
             </button>
           </div>
 
-          {/* Developer credit */}
           <div className="flex items-center justify-between px-4 py-2.5 text-[10px] font-medium text-slate-500">
             <span>Geliştirici:</span>
             <div className="flex items-center gap-1.5">
@@ -334,7 +278,7 @@ export default function AdminLayout({
                 href="https://www.volkanmolla.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-semibold text-slate-700 hover:text-blue-600 transition-colors"
+                className="font-semibold text-slate-700 hover:text-amber-500 transition-colors"
               >
                 Volkan Molla
               </a>
@@ -345,12 +289,10 @@ export default function AdminLayout({
         </div>
       </aside>
 
-      {/* Main Content Area (Independent Scroll) */}
       <div
         className={`flex-1 flex flex-col min-w-0 min-h-0 ${isChatsPage ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"
           }`}
       >
-        {/* Canvas Body */}
         <main
           className={`flex-1 w-full min-w-0 mx-auto max-w-8xl flex flex-col ${isChatsPage
               ? "p-0 lg:p-8 overflow-hidden min-h-0"

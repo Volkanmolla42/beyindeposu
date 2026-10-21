@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import Image from "next/image";
 import {
   ChevronRight,
   ChevronLeft,
@@ -14,6 +13,7 @@ import {
 
 
 import ProductCard from "@/components/ProductCard";
+import HeroBanner from "@/components/ui/HeroBanner";
 import { getWhatsAppUrl } from "@/lib/whatsapp";
 import { useContactSettings } from "@/hooks/useContactSettings";
 import { useQuery } from "convex/react";
@@ -47,11 +47,7 @@ function readFilterValues(searchParamsKey: string, key: string) {
   )];
 }
 
-function ProductCatalogContent() {
-  return <ProductCatalogView />;
-}
-
-function ProductCatalogView() {
+export default function ProductCatalogClient() {
   const { phoneNumber } = useContactSettings();
   const searchParams = useSearchParams();
   const searchParamsKey = searchParams.toString();
@@ -92,7 +88,6 @@ function ProductCatalogView() {
     }
   };
 
-  // Fetch categories from Convex
   const categories = useQuery(api.categories.list, {});
   const availableModels = useQuery(
     api.products.listModelsByBrand,
@@ -148,7 +143,6 @@ function ProductCatalogView() {
     previousFilters.current = filters;
   }, [selectedCategories, selectedBrands, selectedModels, selectedConditions]);
 
-  // Searchable Brand Options
   const brandOptions: SearchableMultiSelectOption[] = useMemo(() => {
     if (!brands) return [];
     return brands.map((b) => ({
@@ -162,7 +156,6 @@ function ProductCatalogView() {
     [availableModels],
   );
 
-  // Searchable Category Options (Dynamic from Convex)
   const categoryOptions: SearchableMultiSelectOption[] = useMemo(() => {
     if (!categories) return [];
     return categories.map((c) => ({
@@ -249,41 +242,19 @@ function ProductCatalogView() {
       if (currentPage > 1) return `${products.length} sonuç bu sayfada`;
       return `${products.length}${pageData?.isDone ? "" : "+"} sonuç`;
     }
-    return "Parçalar";
+    return "";
   }, [hasActiveFilters, totalCatalogCount, products, pageData, currentPage]);
 
   return (
     <>
-      {/* Catalogue heading */}
-      <div className="border-b border-slate-200 bg-white py-5 sm:py-6">
-        <div className="container flex items-center justify-between gap-3 sm:gap-6">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                {activeListingTitle}
-              </h1>
-              <span className="text-sm font-medium text-slate-500" aria-live="polite">
-                {partCountLabel}
-              </span>
-            </div>
-          </div>
-          {selectedCategories.length === 1 && activeCategory?.image && (
-            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-1.5 shadow-2xs sm:h-28 sm:w-44 sm:p-2">
-              <Image
-                src={activeCategory.image}
-                alt=""
-                width={176}
-                height={112}
-                sizes="(max-width: 639px) 80px, 176px"
-                unoptimized
-                className="h-full w-full object-contain"
-              />
-            </div>
-          )}
-        </div>
-      </div>
+      <HeroBanner
+        src="/images/catalog-parts-hero.jpg"
+        alt="Oto Elektronik Parça Kataloğu"
+        eyebrow="Beyin Deposu Parça Kataloğu"
+        title={activeListingTitle}
+        description={`${hasActiveFilters ? "Seçtiğiniz filtrelere uygun orijinal oto elektronik parçaları listeleniyor." : "Tüm araç modelleri için test edilmiş, garantili orijinal oto beyinleri, kontrol üniteleri ve modülleri."}${partCountLabel ? ` (${partCountLabel})` : ""}`}
+      />
 
-      {/* 3. Main Body Layout */}
       <div className="container py-5 sm:py-7">
         <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-12 lg:gap-7">
           <aside className="hidden lg:col-span-3 lg:block lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:space-y-5 lg:overflow-y-auto lg:pr-1">
@@ -310,12 +281,12 @@ function ProductCatalogView() {
 
           </aside>
 
-          {/* Right Product Grid & Pagination */}
           <section className="min-w-0 space-y-4 lg:col-span-9" aria-label="Parça sonuçları">
-            {/* Search, filters and sorting */}
+            <p role="status" aria-live="polite" className="sr-only">
+              {partCountLabel}
+            </p>
             <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-xs sm:p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-                {/* Search Form */}
                 <div className="flex min-w-0 items-center gap-2 lg:flex-1">
                   <form onSubmit={handleFilterSubmit} className="flex min-w-0 flex-1 items-center gap-2">
                   <div className="relative flex-1">
@@ -327,7 +298,7 @@ function ProductCatalogView() {
                       aria-label="OEM numarası, parça adı veya kod ara"
                       value={oemSearch}
                       onChange={(e) => setSearchDraft({ query: activeSearch, value: e.target.value })}
-                      className="h-12 rounded-xl border-slate-300 bg-slate-50 px-4 pr-12 text-base font-mono uppercase shadow-xs placeholder:font-sans placeholder:normal-case placeholder:text-slate-500 focus-visible:bg-white focus-visible:ring-blue-500"
+                      className="h-12 rounded-xl border-slate-300 bg-slate-50 px-4 pr-12 text-base font-mono uppercase shadow-xs placeholder:font-sans placeholder:normal-case placeholder:text-slate-500 focus-visible:bg-white focus-visible:ring-amber-400"
                     />
                     {oemSearch && (
                       <Button
@@ -364,10 +335,10 @@ function ProductCatalogView() {
                         variant="outline"
                         className="h-12 shrink-0 gap-2 rounded-xl px-2.5 text-sm font-semibold lg:hidden"
                       >
-                        <SlidersHorizontal className="h-4 w-4 text-blue-700" aria-hidden="true" />
+                        <SlidersHorizontal className="h-4 w-4 text-amber-600" aria-hidden="true" />
                         <span className="sr-only sm:not-sr-only">Filtreler</span>
                         {activeFilterCount > 0 && (
-                          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-700 px-1.5 text-xs font-bold text-white">
+                          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-xs font-bold text-slate-950">
                             {activeFilterCount}
                           </span>
                         )}
@@ -386,7 +357,7 @@ function ProductCatalogView() {
                               variant="ghost"
                               size="sm"
                               onClick={handleResetFilters}
-                              className="h-9 shrink-0 gap-1 rounded-lg px-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+                              className="h-9 shrink-0 gap-1 rounded-lg px-2 text-xs font-semibold text-amber-700 hover:bg-amber-50"
                             >
                               <X className="h-3.5 w-3.5" aria-hidden="true" />
                               Temizle
@@ -429,11 +400,10 @@ function ProductCatalogView() {
 
             </div>
 
-            {/* 3. Product Grid */}
             {products && products.length > 0 ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 sm:gap-4">
                 {products.map((p, idx) => (
-                  <ProductCard key={p._id} product={p} priority={idx < 3} variant="catalog" />
+                  <ProductCard key={p._id} product={p} preload={idx < 3} variant="catalog" />
                 ))}
               </div>
             ) : pageData === undefined ? (
@@ -451,7 +421,7 @@ function ProductCatalogView() {
               </div>
             ) : (
               <div className="space-y-4 rounded-2xl border border-slate-200 bg-white px-5 py-10 text-center shadow-xs sm:px-10 sm:py-14">
-                <Cpu className="mx-auto h-10 w-10 text-blue-700" aria-hidden="true" />
+                <Cpu className="mx-auto h-10 w-10 text-amber-500" aria-hidden="true" />
                 <div className="space-y-2">
                   <h2 className="text-base font-semibold text-slate-900">
                     {activeSearch ? "Bu aramayla eşleşen parça yok" : "Bu ölçütlere uygun parça yok"}
@@ -474,7 +444,6 @@ function ProductCatalogView() {
               </div>
             )}
 
-            {/* 4. Cursor pagination */}
             {products && products.length > 0 && (
               <div className="mt-6 flex flex-col items-center justify-between gap-4 border-t border-slate-200 pt-5 sm:flex-row">
                 <div className="text-sm font-medium text-slate-600 text-center sm:text-left">
@@ -551,7 +520,7 @@ function CheckboxFilterGroup({
             <label
               key={option.value}
               htmlFor={inputId}
-              className={`flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2 text-sm font-medium leading-tight transition-colors ${isChecked ? "border-blue-300 bg-blue-50 text-blue-900" : "border-slate-300 bg-white text-slate-700 hover:border-blue-300 hover:bg-slate-50"}`}
+              className={`flex min-h-11 cursor-pointer items-center gap-2.5 rounded-xl border px-3 py-2 text-sm font-medium leading-tight transition-colors ${isChecked ? "border-amber-400 bg-amber-50/70 text-amber-950 font-semibold" : "border-slate-300 bg-white text-slate-700 hover:border-amber-300 hover:bg-slate-50"}`}
             >
               <input
                 id={inputId}
@@ -560,7 +529,7 @@ function CheckboxFilterGroup({
                 value={option.value}
                 checked={isChecked}
                 onChange={(event) => toggleOption(option.value, event.target.checked)}
-                className="h-4 w-4 shrink-0 rounded border-slate-300 accent-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                className="h-4 w-4 shrink-0 rounded border-slate-300 accent-amber-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2"
               />
               <span className="min-w-0">{option.label}</span>
             </label>
@@ -623,7 +592,7 @@ function CatalogFilterFields({
       {showHeader && (
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 pb-3">
           <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
-            <SlidersHorizontal className="h-4 w-4 text-blue-700" aria-hidden="true" />
+            <SlidersHorizontal className="h-4 w-4 text-amber-600" aria-hidden="true" />
             {title}
           </h2>
           {hasActiveFilters && onReset && (
@@ -632,7 +601,7 @@ function CatalogFilterFields({
               variant="ghost"
               size="sm"
               onClick={onReset}
-              className="h-9 shrink-0 gap-1 rounded-lg px-2 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+              className="h-9 shrink-0 gap-1 rounded-lg px-2 text-xs font-semibold text-amber-700 hover:bg-amber-50"
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />
               Temizle
@@ -695,6 +664,3 @@ function CatalogFilterFields({
   );
 }
 
-export default function ProductCatalogClient() {
-  return <ProductCatalogContent />;
-}
