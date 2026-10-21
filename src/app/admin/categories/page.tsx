@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { slugify, LOCAL_CATEGORY_IMAGES } from "@/app/admin/admin-utils";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { triggerRevalidate } from "@/lib/revalidate";
 
 type Category = Doc<"categories"> & { image?: string };
 
@@ -130,6 +131,16 @@ export default function AdminCategoriesPage() {
         await createCategory(payload);
       }
 
+      void triggerRevalidate([
+        "/",
+        "/parcalar",
+        "/kategoriler",
+        `/kategoriler/${generatedSlug}`,
+        ...(editingCategory && editingCategory.slug !== generatedSlug
+          ? [`/kategoriler/${editingCategory.slug}`]
+          : []),
+      ]);
+
       setCategoryModalOpen(false);
       resetCategoryForm();
     } catch (err: unknown) {
@@ -148,6 +159,12 @@ export default function AdminCategoriesPage() {
     if (confirm(`'${cat.name}' kategorisi silinsin mi?`)) {
       try {
         await deleteCategory({ id: cat._id });
+        void triggerRevalidate([
+          "/",
+          "/parcalar",
+          "/kategoriler",
+          `/kategoriler/${cat.slug}`,
+        ]);
       } catch (err: unknown) {
         alert(
           err instanceof Error

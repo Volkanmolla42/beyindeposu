@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { slugify, LOCAL_BRAND_LOGOS } from "@/app/admin/admin-utils";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { triggerRevalidate } from "@/lib/revalidate";
 
 type Brand = Doc<"brands">;
 
@@ -108,6 +109,16 @@ export default function AdminBrandsPage() {
         await createBrand(payload);
       }
 
+      void triggerRevalidate([
+        "/",
+        "/parcalar",
+        "/markalar",
+        `/markalar/${finalSlug}`,
+        ...(editingBrand && editingBrand.slug !== finalSlug
+          ? [`/markalar/${editingBrand.slug}`]
+          : []),
+      ]);
+
       setBrandModalOpen(false);
       resetBrandForm();
     } catch (err: unknown) {
@@ -126,6 +137,12 @@ export default function AdminBrandsPage() {
     if (confirm(`'${b.name}' markası silinsin mi?`)) {
       try {
         await deleteBrand({ id: b._id });
+        void triggerRevalidate([
+          "/",
+          "/parcalar",
+          "/markalar",
+          `/markalar/${b.slug}`,
+        ]);
       } catch (err: unknown) {
         alert(err instanceof Error ? err.message : "Marka silinemedi.");
       }

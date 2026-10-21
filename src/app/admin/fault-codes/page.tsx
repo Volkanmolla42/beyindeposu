@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { triggerRevalidate } from "@/lib/revalidate";
 
 type FaultCode = Doc<"faultCodes">;
 
@@ -61,8 +62,13 @@ export default function AdminFaultCodesPage() {
   };
 
   const handleTogglePopular = async (id: Id<"faultCodes">) => {
+    const item = faultCodes?.find((fc) => fc._id === id);
     try {
       await togglePopular({ id });
+      void triggerRevalidate([
+        "/ariza-kodlari",
+        ...(item ? [`/ariza-kodlari/${item.code.toLowerCase()}`] : []),
+      ]);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Popülerlik durumu güncellenemedi.");
     }
@@ -85,8 +91,9 @@ export default function AdminFaultCodesPage() {
     setError("");
 
     try {
+      const cleanCode = code.trim().toUpperCase();
       const payload = {
-        code: code.trim().toUpperCase(),
+        code: cleanCode,
         title: title.trim(),
         description: description.trim() || undefined,
         isPopular,
@@ -100,6 +107,15 @@ export default function AdminFaultCodesPage() {
       } else {
         await createFaultCode(payload);
       }
+
+      void triggerRevalidate([
+        "/ariza-kodlari",
+        `/ariza-kodlari/${cleanCode.toLowerCase()}`,
+        ...(editingItem && editingItem.code !== cleanCode
+          ? [`/ariza-kodlari/${editingItem.code.toLowerCase()}`]
+          : []),
+      ]);
+
       setModalOpen(false);
       resetForm();
     } catch (err: unknown) {
@@ -116,6 +132,10 @@ export default function AdminFaultCodesPage() {
     }
     try {
       await deleteFaultCode({ id });
+      void triggerRevalidate([
+        "/ariza-kodlari",
+        `/ariza-kodlari/${itemCode.toLowerCase()}`,
+      ]);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Silme işlemi başarısız.");
     }

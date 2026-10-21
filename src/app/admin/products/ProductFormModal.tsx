@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/dialog";
 import { slugify } from "@/app/admin/admin-utils";
 import { scanProductImage } from "./product-assistant";
+import { triggerRevalidate } from "@/lib/revalidate";
 import { useMobileDialogViewport } from "./use-mobile-dialog-viewport";
 import { ModernImageZoom } from "@/components/ModernImageZoom";
 import type { OemAssistantData } from "@/lib/ai/oem-assistant";
@@ -407,6 +408,19 @@ function ProductFormContent({
       } else {
         await createProduct(payload);
       }
+
+      const brandSlug = brand.trim() ? slugify(brand.trim()) : null;
+      void triggerRevalidate([
+        "/",
+        "/parcalar",
+        `/parcalar/${generatedSlug}`,
+        ...(product && product.slug !== generatedSlug
+          ? [`/parcalar/${product.slug}`]
+          : []),
+        ...(category?.slug ? [`/kategoriler/${category.slug}`] : []),
+        ...(brandSlug ? [`/markalar/${brandSlug}`] : []),
+      ]);
+
       onClose();
     } catch (error) {
       console.error("Parça kaydedilemedi:", error);

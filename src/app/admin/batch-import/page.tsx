@@ -23,6 +23,7 @@ import {
 import { sanitizeTurkishText } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { triggerRevalidate } from "@/lib/revalidate";
 
 type StatusFilter = "all" | "success" | "skipped" | "error" | "pending";
 
@@ -591,6 +592,7 @@ export default function BatchImportPage() {
     } finally {
       poolActiveRef.current = false;
       setPhase(shouldStopRef.current ? "paused" : "idle");
+      void triggerRevalidate(["/", "/parcalar"]);
     }
   };
 

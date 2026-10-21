@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { slugifyTurkish } from "@/lib/utils";
+import { triggerRevalidate } from "@/lib/revalidate";
 import BlogRichTextEditor from "./BlogRichTextEditor";
 import BlogSettingsTab from "./BlogSettingsTab";
 import {
@@ -135,6 +136,7 @@ function BlogEditorForm({
     setError("");
     try {
       await deleteBlog({ id: blog._id });
+      void triggerRevalidate(["/", "/blog", `/blog/${blog.slug}`]);
       onDeleted?.();
       router.replace("/admin/blogs");
     } catch (err) {
@@ -190,11 +192,14 @@ function BlogEditorForm({
         isPublished: form.isPublished,
       };
 
+      const finalSlug = blog ? blog.slug : slugifyTurkish(title);
       if (blog) {
         await updateBlog({ id: blog._id, slug: blog.slug, ...payload });
       } else {
-        await createBlog({ slug: slugifyTurkish(title), ...payload });
+        await createBlog({ slug: finalSlug, ...payload });
       }
+
+      void triggerRevalidate(["/", "/blog", `/blog/${finalSlug}`]);
 
       router.replace("/admin/blogs");
     } catch (err) {

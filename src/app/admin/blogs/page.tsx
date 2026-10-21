@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import BlogListRow from "./BlogListRow";
 import { toErrorMessage } from "./blog-editor-shared";
+import { triggerRevalidate } from "@/lib/revalidate";
 
 function filterChipClass(active: boolean) {
   return `rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -106,10 +107,12 @@ export default function AdminBlogsPage() {
 
   const handleTogglePublish = async (id: Id<"blogs">) => {
     if (pendingId) return;
+    const item = blogs?.find((b) => b._id === id);
     setPendingId(id);
     setError("");
     try {
       await togglePublish({ id });
+      void triggerRevalidate(["/", "/blog", ...(item ? [`/blog/${item.slug}`] : [])]);
     } catch (err) {
       setError(toErrorMessage(err, "Yayın durumu değiştirilemedi."));
     } finally {
@@ -123,10 +126,12 @@ export default function AdminBlogsPage() {
       return;
     }
 
+    const item = blogs?.find((b) => b._id === id);
     setPendingId(id);
     setError("");
     try {
       await deleteBlog({ id });
+      void triggerRevalidate(["/", "/blog", ...(item ? [`/blog/${item.slug}`] : [])]);
     } catch (err) {
       setError(toErrorMessage(err, "Yazı silinemedi."));
     } finally {

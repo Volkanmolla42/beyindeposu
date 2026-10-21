@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { triggerRevalidate } from "@/lib/revalidate";
 import {
   subscribeToViewMode,
   getSavedViewMode,
@@ -136,6 +137,7 @@ export default function AdminProductsPage() {
     setActionError("");
     try {
       await toggleStock({ id: p._id, inStock: !p.inStock });
+      void triggerRevalidate(["/", "/parcalar", `/parcalar/${p.slug}`]);
     } catch (err) {
       console.error("Stok güncelleme hatası:", err);
       setActionError("Stok güncellenemedi. Tekrar deneyin.");
@@ -181,6 +183,7 @@ export default function AdminProductsPage() {
     setActionError("");
     try {
       await deleteProduct({ id: p._id });
+      void triggerRevalidate(["/", "/parcalar", `/parcalar/${p.slug}`]);
     } catch (error) {
       console.error("Parça silinemedi:", error);
       setActionError("Parça silinemedi. Tekrar deneyin.");

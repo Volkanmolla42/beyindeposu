@@ -32,6 +32,7 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { slugify } from "@/app/admin/admin-utils";
 import { uploadImageToConvex, uploadLocalVideo } from "@/lib/image-upload";
 import { useObjectUrlPreview } from "@/lib/use-object-url-preview";
+import { triggerRevalidate } from "@/lib/revalidate";
 
 type Service = Doc<"services"> & { image: string };
 
@@ -172,8 +173,14 @@ export default function AdminServicesPage() {
   };
 
   const handleToggleActive = async (id: Id<"services">) => {
+    const item = services?.find((s) => s._id === id);
     try {
       await toggleActive({ id });
+      void triggerRevalidate([
+        "/",
+        "/tamirveservis",
+        ...(item ? [`/tamirveservis/${item.slug}`] : []),
+      ]);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Aktiflik durumu değiştirilemedi.");
     }
@@ -183,8 +190,14 @@ export default function AdminServicesPage() {
     if (!confirm(`"${serviceTitle}" servisini silmek istediğinize emin misiniz?`)) {
       return;
     }
+    const item = services?.find((s) => s._id === id);
     try {
       await deleteService({ id });
+      void triggerRevalidate([
+        "/",
+        "/tamirveservis",
+        ...(item ? [`/tamirveservis/${item.slug}`] : []),
+      ]);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Silme işlemi başarısız oldu.");
     }
@@ -225,9 +238,10 @@ export default function AdminServicesPage() {
         allFeatures.push(newFeatureInput.trim());
       }
 
+      const finalSlug = slug.trim().toLowerCase();
       const payload = {
         title: title.trim(),
-        slug: slug.trim().toLowerCase(),
+        slug: finalSlug,
         shortDesc: shortDesc.trim(),
         fullDesc: fullDesc.trim(),
         imageStorageId,
@@ -245,6 +259,15 @@ export default function AdminServicesPage() {
       } else {
         await createService(payload);
       }
+
+      void triggerRevalidate([
+        "/",
+        "/tamirveservis",
+        `/tamirveservis/${finalSlug}`,
+        ...(editingItem && editingItem.slug !== finalSlug
+          ? [`/tamirveservis/${editingItem.slug}`]
+          : []),
+      ]);
 
       setModalOpen(false);
       resetForm();
