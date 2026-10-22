@@ -1,7 +1,7 @@
 import { createPageMetadata } from "@/lib/seo";
 import { getPublicCategories } from "@/lib/seo-data";
-import TaxonomyIndexPage from "@/components/TaxonomyIndexPage";
-export const revalidate = 300;
+import CatalogDirectoryPage from "@/components/CatalogDirectoryPage";
+
 
 export const metadata = createPageMetadata({
   title: "Kategoriler",
@@ -13,7 +13,7 @@ export default async function CategoriesPage() {
   const categories = await getPublicCategories();
 
   return (
-    <TaxonomyIndexPage
+    <CatalogDirectoryPage
       title="Parça Kategorileri"
       badge="BEYİN DEPOSU KATALOG"
       description="ECU motor beyinleri, ABS pompaları, şanzıman modülleri ve tüm oto elektronik ünitelerini kategorilere göre inceleyin."
@@ -25,8 +25,8 @@ export default async function CategoriesPage() {
         title: category.name,
         image: category.image &&
           /^(?:data:image\/webp;)|\.webp(?:[?#]|$)/i.test(category.image)
-            ? category.image
-            : null,
+          ? category.image
+          : null,
         filterHref: `/parcalar?kategori=${encodeURIComponent(category.slug)}`,
         detailHref: `/kategoriler/${encodeURIComponent(category.slug)}`,
       }))}

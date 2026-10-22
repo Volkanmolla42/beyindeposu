@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Settings2 } from "lucide-react";
 import { useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import BlogCategoryManager from "./BlogCategoryManager";
 import BlogCoverField from "./BlogCoverField";
 import BlogExcerptField from "./BlogExcerptField";
 import BlogTitleField from "./BlogTitleField";
@@ -35,6 +36,7 @@ export default function BlogSettingsTab({
   onError,
 }: BlogSettingsTabProps) {
   const [newCategory, setNewCategory] = useState<string | null>(null);
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
   const createBlogCategory = useMutation(api.blogCategories.create);
   const category = form.category || categories[0] || "";
   const categoryOptions =
@@ -76,14 +78,24 @@ export default function BlogSettingsTab({
                 Kategori
               </label>
               {newCategory === null && (
-                <button
-                  type="button"
-                  onClick={() => setNewCategory("")}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 transition-colors hover:text-amber-800"
-                >
-                  <Plus className="h-3 w-3" />
-                  Yeni
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCategoryManagerOpen(true)}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 transition-colors hover:text-slate-800"
+                  >
+                    <Settings2 className="h-3 w-3" />
+                    Yönet
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNewCategory("")}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 transition-colors hover:text-amber-800"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Yeni
+                  </button>
+                </div>
               )}
             </div>
 
@@ -146,6 +158,11 @@ export default function BlogSettingsTab({
                 )}
               </select>
             )}
+            {category && !categories.includes(category) && (
+              <p className="mt-2 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 text-xs font-semibold text-amber-800">
+                Yeni kategori olarak kaydedilecek: &quot;{category}&quot;
+              </p>
+            )}
           </section>
 
           <section className={`${BLOG_PANEL} p-5`}>
@@ -201,6 +218,17 @@ export default function BlogSettingsTab({
           </div>
         </section>
       </div>
+
+      <BlogCategoryManager
+        open={categoryManagerOpen}
+        onOpenChange={setCategoryManagerOpen}
+        onRenamed={(oldTitle, newTitle) => {
+          if (form.category === oldTitle) updateField("category", newTitle);
+        }}
+        onDeleted={(title) => {
+          if (form.category === title) updateField("category", "");
+        }}
+      />
     </div>
   );
 }

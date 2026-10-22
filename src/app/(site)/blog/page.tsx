@@ -6,8 +6,6 @@ import { absoluteUrl, SEO_IMAGE, SITE_NAME } from "@/lib/seo";
 import { listBlogCards, listBlogCategories } from "@/lib/blog-data";
 import BlogListClient from "./BlogListClient";
 
-export const revalidate = 300;
-
 const BASE_TITLE = "Kronik Arızalar ve Çözümleri | Beyin Deposu Blog";
 const BASE_DESCRIPTION =
   "Oto beyin, mekatronik, şanzıman ve elektronik sistemlerde sık karşılaşılan arızalar, teşhis yöntemleri ve garantili laboratuvar çözümleri.";

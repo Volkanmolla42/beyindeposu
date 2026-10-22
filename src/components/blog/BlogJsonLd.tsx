@@ -1,6 +1,7 @@
 import "server-only";
 import type { BlogDetail } from "@/lib/blog-data";
 import {
+  buildFaqJsonLd,
   ORGANIZATION_JSON_LD,
   SITE_NAME,
   SITE_URL,
@@ -80,6 +81,8 @@ export default function BlogJsonLd({ blog }: { blog: BlogDetail }) {
     ],
   };
 
+  const faqSchema = buildFaqJsonLd(blog.faqs);
+
   return (
     <>
       <script
@@ -90,6 +93,12 @@ export default function BlogJsonLd({ blog }: { blog: BlogDetail }) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbs) }}
       />
+      {faqSchema ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(faqSchema) }}
+        />
+      ) : null}
     </>
   );
 }

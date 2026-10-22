@@ -14,8 +14,6 @@ import {
 } from "@/lib/seo";
 import BlogArticle from "./BlogArticle";
 
-export const revalidate = 300;
-
 interface Props {
   params: Promise<{ slug: string }>;
 }

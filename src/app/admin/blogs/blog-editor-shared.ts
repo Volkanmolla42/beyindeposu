@@ -11,6 +11,7 @@ export interface BlogFormData {
   coverImage: string;
   tags: string;
   isPublished: boolean;
+  faqs: Array<{ question: string; answer: string }>;
 }
 
 export type UpdateBlogField = <K extends keyof BlogFormData>(
@@ -27,6 +28,7 @@ export const EMPTY_BLOG_FORM: BlogFormData = {
   coverImage: "",
   tags: "",
   isPublished: true,
+  faqs: [],
 };
 
 export const BLOG_PANEL = "rounded-2xl border border-slate-200 bg-white shadow-xs";
@@ -51,6 +53,7 @@ export function formFromBlog(blog: Blog): BlogFormData {
     coverImage: blog.coverImage,
     tags: blog.tags ? blog.tags.join(", ") : "",
     isPublished: blog.isPublished,
+    faqs: blog.faqs ?? [],
   };
 }
 

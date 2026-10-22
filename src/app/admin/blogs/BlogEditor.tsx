@@ -7,17 +7,21 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import {
   AlertTriangle,
+  Bot,
   FileText,
+  HelpCircle,
   Loader2,
   Save,
   Settings2,
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { slugifyTurkish } from "@/lib/utils";
 import { triggerRevalidate } from "@/lib/revalidate";
-import BlogRichTextEditor from "./BlogRichTextEditor";
+import { AdminMarkdownEditorField } from "@/components/admin/AdminMarkdownEditorField";
+import { AdminFaqManager } from "@/components/admin/AdminFaqManager";
 import BlogSettingsTab from "./BlogSettingsTab";
 import {
   BLOG_PANEL,
@@ -31,7 +35,7 @@ import {
   type UpdateBlogField,
 } from "./blog-editor-shared";
 
-type EditorTab = "content" | "settings";
+type EditorTab = "settings" | "content" | "faqs";
 
 function tabButtonClass(active: boolean) {
   return `inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition-colors ${segmentedButtonClass(active)}`;
@@ -113,6 +117,11 @@ function BlogEditorForm({
   const [isDeleting, startDeleteTransition] = useTransition();
   const [error, setError] = useState("");
 
+  // AI Wizard State
+  const [aiTopic, setAiTopic] = useState("");
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiNotice, setAiNotice] = useState<string | null>(null);
+
   const categoriesData = useQuery(api.blogCategories.list);
   const createBlog = useMutation(api.blogs.create);
   const updateBlog = useMutation(api.blogs.update);
@@ -124,6 +133,54 @@ function BlogEditorForm({
 
   const updateField: UpdateBlogField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleGenerateAiBlog = async () => {
+    if (!aiTopic.trim()) {
+      setError("Lütfen bir blog konusu veya anahtar kelime girin.");
+      return;
+    }
+    setError("");
+    setAiNotice(null);
+    setIsGeneratingAi(true);
+
+    try {
+      const res = await fetch("/api/ai/generate-blog-post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: aiTopic.trim(),
+          existingCategories: categories,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || "Blog yazısı üretilemedi.");
+      }
+
+      const data = result.data;
+      if (data.title) updateField("title", data.title);
+      if (data.excerpt) updateField("excerpt", data.excerpt);
+      if (data.category) updateField("category", data.category);
+      if (Array.isArray(data.tags)) updateField("tags", data.tags.join(", "));
+      if (data.content) updateField("content", data.content);
+      if (Array.isArray(data.faqs)) updateField("faqs", data.faqs);
+
+      if (data.isNewCategory) {
+        setAiNotice(
+          `Mevcut kategorilerde tam eşleşme bulunamadı. Yazı kaydedildiğinde "${data.category}" adıyla yeni kategori otomatik oluşturulacak.`,
+        );
+      } else {
+        setAiNotice(`Kategori otomatik eşleştirildi: "${data.category}"`);
+      }
+
+      setTab("content");
+    } catch (err) {
+      setError(toErrorMessage(err, "Yapay zeka ile blog üretilemedi."));
+    } finally {
+      setIsGeneratingAi(false);
+    }
   };
 
   const handleDelete = () => {
@@ -179,6 +236,10 @@ function BlogEditorForm({
       return;
     }
 
+    const validFaqs = form.faqs
+      .map((f) => ({ question: f.question.trim(), answer: f.answer.trim() }))
+      .filter((f) => f.question.length > 0 && f.answer.length > 0);
+
     setError("");
 
     startTransition(async () => {
@@ -190,6 +251,7 @@ function BlogEditorForm({
           content,
           coverImageStorageId,
           tags: parseTags(form.tags),
+          faqs: validFaqs.length > 0 ? validFaqs : undefined,
           isPublished: form.isPublished,
         };
 
@@ -211,6 +273,50 @@ function BlogEditorForm({
 
   return (
     <div className="space-y-4">
+      {/* Top AI Blog Wizard Bar */}
+      <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:p-5 shadow-2xs space-y-2.5">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="relative flex-1">
+            <Input
+              value={aiTopic}
+              onChange={(e) => setAiTopic(e.target.value)}
+              placeholder="Blog konusu veya arıza girin: örn. Golf 7 DSG DQ200 mekatronik basınç tüpü arızası..."
+              className="h-11 rounded-xl border-amber-300 bg-white text-sm pr-4 focus-visible:ring-amber-300"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void handleGenerateAiBlog();
+                }
+              }}
+            />
+          </div>
+          <Button
+            type="button"
+            disabled={isGeneratingAi || !aiTopic.trim()}
+            onClick={handleGenerateAiBlog}
+            className="h-11 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold px-5 text-sm shrink-0 shadow-xs"
+          >
+            {isGeneratingAi ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin text-slate-950" />
+                AI Makaleyi Hazırlıyor…
+              </>
+            ) : (
+              <>
+                <Bot className="mr-2 h-4 w-4 text-slate-950" />
+                AI ile Blog Yazısı Üret
+              </>
+            )}
+          </Button>
+        </div>
+
+        {aiNotice && (
+          <p className="text-xs font-semibold text-amber-900 bg-amber-100/80 px-3 py-1.5 rounded-lg">
+            {aiNotice}
+          </p>
+        )}
+      </div>
+
       <AdminPageHeader
         title={blog ? "Blog Yazısını Düzenle" : "Yeni Blog Yazısı"}
         tabs={
@@ -236,6 +342,20 @@ function BlogEditorForm({
             >
               <FileText className="h-3.5 w-3.5" />
               İçerik
+              {form.content ? (
+                <span className="ml-1 rounded-full bg-emerald-100 px-1.5 py-0.2 text-[10px] font-semibold text-emerald-800">
+                  Dolu
+                </span>
+              ) : null}
+            </button>
+            <button
+              type="button"
+              aria-pressed={tab === "faqs"}
+              onClick={() => setTab("faqs")}
+              className={tabButtonClass(tab === "faqs")}
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+              SSS ({form.faqs.length})
             </button>
           </div>
         }
@@ -280,16 +400,7 @@ function BlogEditorForm({
       )}
 
       <form id="blog-form" onSubmit={handleSave} className="space-y-4">
-        <div className={tab === "content" ? "" : "hidden"}>
-          <section className={`${BLOG_PANEL} overflow-hidden`}>
-            <BlogRichTextEditor
-              initialContent={form.content}
-              onChange={(markdown) => updateField("content", markdown)}
-            />
-          </section>
-        </div>
-
-        <div className={tab === "settings" ? "" : "hidden"}>
+        {tab === "settings" && (
           <BlogSettingsTab
             form={form}
             slug={slugPreview}
@@ -297,7 +408,30 @@ function BlogEditorForm({
             categories={categories}
             onError={(message) => setError(message)}
           />
-        </div>
+        )}
+
+        {tab === "content" && (
+          <section className={`${BLOG_PANEL} p-5 lg:p-6`}>
+            <AdminMarkdownEditorField
+              value={form.content}
+              onChange={(content) => updateField("content", content)}
+              rows={22}
+              minHeightClass="min-h-[500px]"
+              label="Makale İçeriği (Markdown)"
+              placeholder="## Genel Bakış ve Elektronik Mimari&#10;Makale detayları...&#10;&#10;## Kronik Arıza Belirtileri&#10;- **Hata Kodu P0300:** Ateşleme kesintisi..."
+            />
+          </section>
+        )}
+
+        {tab === "faqs" && (
+          <section className={`${BLOG_PANEL} p-5 sm:p-6`}>
+            <AdminFaqManager
+              faqs={form.faqs}
+              onChange={(faqs) => updateField("faqs", faqs)}
+              description="Google arama sonuçlarında FAQPage şeması ve sayfa içi SSS akordiyonu olarak listelenir."
+            />
+          </section>
+        )}
       </form>
     </div>
   );

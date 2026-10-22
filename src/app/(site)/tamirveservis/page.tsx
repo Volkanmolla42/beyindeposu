@@ -16,10 +16,9 @@ import {
 import HeroBanner from "@/components/ui/HeroBanner";
 import { Button } from "@/components/ui/button";
 import ProblemCta from "@/components/ProblemCta";
+import TrustBadgeStrip from "@/components/TrustBadgeStrip";
 import { createPageMetadata, serializeJsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { listPublicServices } from "@/lib/services-data";
-
-export const revalidate = 300;
 
 export const metadata: Metadata = createPageMetadata({
   title: "Tamir & Servis | Oto Beyin, Mekatronik ve Elektronik Onarımı",
@@ -55,18 +54,22 @@ const bottomFeatures = [
   {
     icon: Clock,
     title: "Hızlı Servis",
+    description: "Aynı gün tespit ve teslimat",
   },
   {
     icon: Wrench,
     title: "Kaliteli İşçilik",
+    description: "Laboratuvar test standartları",
   },
   {
     icon: CircleDollarSign,
     title: "Uygun Fiyat",
+    description: "Şeffaf onarım & parça maliyeti",
   },
   {
     icon: HeartHandshake,
     title: "Müşteri Memnuniyeti",
+    description: "Garantili teknik destek",
   },
 ];
 
@@ -133,23 +136,7 @@ export default async function TamirVeServisPage() {
       />
 
       {/* 4 İkonlu Bilgi Kartı */}
-      <section className="border-b border-slate-200 bg-white py-6 shadow-xs">
-        <div className="container">
-          <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
-            {topFeatures.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-3.5">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-amber-400/30 bg-amber-50 text-amber-600">
-                  <item.icon className="h-6 w-6" aria-hidden="true" />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-sm font-bold text-slate-900">{item.title}</h4>
-                  <p className="truncate text-xs text-slate-500">{item.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <TrustBadgeStrip items={topFeatures} />
 
       {/* Hizmetlerimiz Bölümü */}
       <section id="hizmetlerimiz" className="container scroll-mt-24 py-14 sm:py-20">
@@ -224,17 +211,11 @@ export default async function TamirVeServisPage() {
         <ProblemCta />
 
         {/* Alt 4 Bilgi Kartı */}
-        <div className="mt-8 grid grid-cols-2 gap-3.5 sm:grid-cols-4 sm:gap-4">
-          {bottomFeatures.map((item, idx) => (
-            <div
-              key={idx}
-              className="flex items-center justify-center gap-2.5 rounded-2xl border border-slate-200/90 bg-white p-4 text-slate-800 shadow-xs transition-shadow hover:shadow-sm"
-            >
-              <item.icon className="h-5 w-5 shrink-0 text-amber-500" aria-hidden="true" />
-              <span className="text-xs font-semibold sm:text-sm">{item.title}</span>
-            </div>
-          ))}
-        </div>
+        <TrustBadgeStrip
+          items={bottomFeatures}
+          variant="cards"
+          className="mt-8"
+        />
       </section>
     </div>
   );

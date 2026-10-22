@@ -49,6 +49,17 @@ export const create = mutation({
     popular: v.boolean(),
     order: v.number(),
     isActive: v.optional(v.boolean()),
+    content: v.optional(v.string()),
+    metaTitle: v.optional(v.string()),
+    metaDescription: v.optional(v.string()),
+    faqs: v.optional(
+      v.array(
+        v.object({
+          question: v.string(),
+          answer: v.string(),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -68,6 +79,17 @@ export const update = mutation({
     popular: v.boolean(),
     order: v.number(),
     isActive: v.optional(v.boolean()),
+    content: v.optional(v.string()),
+    metaTitle: v.optional(v.string()),
+    metaDescription: v.optional(v.string()),
+    faqs: v.optional(
+      v.array(
+        v.object({
+          question: v.string(),
+          answer: v.string(),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);

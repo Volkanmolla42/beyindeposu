@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, BookOpen, Plus, Search, X } from "lucide-react";
+import { AlertTriangle, BookOpen, Plus, Search, Settings2, X } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import BlogCategoryManager from "./BlogCategoryManager";
 import BlogListRow from "./BlogListRow";
 import { toErrorMessage } from "./blog-editor-shared";
 import { triggerRevalidate } from "@/lib/revalidate";
@@ -79,6 +80,7 @@ export default function AdminBlogsPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
   const [category, setCategory] = useState<string | null>(null);
+  const [categoryManagerOpen, setCategoryManagerOpen] = useState(false);
   const [pendingId, setPendingId] = useState<Id<"blogs"> | null>(null);
   const [error, setError] = useState("");
 
@@ -205,6 +207,14 @@ export default function AdminBlogsPage() {
               {item}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setCategoryManagerOpen(true)}
+            className="inline-flex items-center gap-1 rounded-full border border-dashed border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:border-amber-400 hover:text-amber-700"
+          >
+            <Settings2 className="h-3.5 w-3.5" />
+            Kategorileri yönet
+          </button>
         </div>
       </div>
 
@@ -227,6 +237,17 @@ export default function AdminBlogsPage() {
           </div>
         )}
       </div>
+
+      <BlogCategoryManager
+        open={categoryManagerOpen}
+        onOpenChange={setCategoryManagerOpen}
+        onRenamed={(oldTitle, newTitle) =>
+          setCategory((current) => (current === oldTitle ? newTitle : current))
+        }
+        onDeleted={(title) =>
+          setCategory((current) => (current === title ? null : current))
+        }
+      />
     </div>
   );
 }

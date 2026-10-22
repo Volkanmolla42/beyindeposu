@@ -1,119 +1,37 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import Image from "next/image";
-import { Plus, Search, Edit2, Trash2, Cpu, ImageIcon, X } from "lucide-react";
+import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Doc } from "@convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { slugify, LOCAL_BRAND_LOGOS } from "@/app/admin/admin-utils";
+import { LOCAL_BRAND_LOGOS } from "@/app/admin/admin-utils";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { triggerRevalidate } from "@/lib/revalidate";
+import { BrandFormModal } from "./BrandFormModal";
 
 type Brand = Doc<"brands">;
 
 export default function AdminBrandsPage() {
   const [brandSearch, setBrandSearch] = useState("");
-
-  // Brand Modal & Form State
-  const [isPending, startTransition] = useTransition();
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
-  const [brandLogoOverride, setBrandLogoUrl] = useState<string | null>(null);
-  const [brandPopular, setBrandPopular] = useState(false);
-  const [brandIsActive, setBrandIsActive] = useState<boolean>(true);
-  const [brandError, setBrandError] = useState("");
 
   // Queries & Mutations
   const brands = useQuery(api.brands.list, { onlyActive: false });
-  const createBrand = useMutation(api.brands.create);
-  const updateBrand = useMutation(api.brands.update);
   const deleteBrand = useMutation(api.brands.deleteBrand);
 
   const handleOpenAddBrand = () => {
     setEditingBrand(null);
-    setBrandLogoUrl(null);
-    setBrandPopular(false);
-    setBrandIsActive(true);
-    setBrandError("");
     setBrandModalOpen(true);
   };
 
   const handleOpenEditBrand = (b: Brand) => {
     setEditingBrand(b);
-    setBrandLogoUrl(b.logoUrl ?? LOCAL_BRAND_LOGOS[b.slug] ?? "");
-    setBrandPopular(b.popular ?? false);
-    setBrandIsActive(b.isActive !== false);
-    setBrandError("");
     setBrandModalOpen(true);
-  };
-
-  const handleSaveBrand = (e: React.SubmitEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = (formData.get("name") as string)?.trim() || "";
-    const slugInput = (formData.get("slug") as string)?.trim() || "";
-    const orderInput = Number(formData.get("order")) || 1;
-
-    if (!name) {
-      setBrandError("Marka adı zorunludur.");
-      return;
-    }
-    const finalSlug = slugify(slugInput || name);
-    if (!finalSlug) {
-      setBrandError("Geçerli bir URL slug girin.");
-      return;
-    }
-
-    setBrandError("");
-    startTransition(async () => {
-      try {
-        const logoUrl =
-          brandLogoOverride ??
-          LOCAL_BRAND_LOGOS[finalSlug] ??
-          "";
-
-        const payload = {
-          name,
-          slug: finalSlug,
-          logoUrl: logoUrl.trim(),
-          popular: brandPopular,
-          order: orderInput,
-          isActive: brandIsActive,
-        };
-        if (editingBrand) {
-          await updateBrand({ id: editingBrand._id, ...payload });
-        } else {
-          await createBrand(payload);
-        }
-
-        void triggerRevalidate([
-          "/",
-          "/parcalar",
-          "/markalar",
-          `/markalar/${finalSlug}`,
-          ...(editingBrand && editingBrand.slug !== finalSlug
-            ? [`/markalar/${editingBrand.slug}`]
-            : []),
-        ]);
-
-        setBrandModalOpen(false);
-      } catch (err: unknown) {
-        setBrandError(
-          err instanceof Error
-            ? err.message
-            : "Marka kaydedilirken bir hata oluştu.",
-        );
-      }
-    });
   };
 
   const handleDeleteBrand = async (b: Brand) => {
@@ -182,79 +100,69 @@ export default function AdminBrandsPage() {
             Markalar yükleniyor…
           </div>
         ) : filteredBrands.length === 0 ? (
-          <div className="col-span-full flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-white p-8 text-center">
-            <Cpu className="h-8 w-8 text-slate-300" />
-            <p className="text-sm text-slate-600">
-              {brandSearch
-                ? "Aramanıza uygun marka bulunamadı."
-                : "Henüz marka eklenmedi."}
-            </p>
-            {brandSearch && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setBrandSearch("")}
-                className="h-11 rounded-full"
-              >
-                Aramayı temizle
-              </Button>
-            )}
+          <div
+            role="status"
+            className="col-span-full rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500"
+          >
+            {brandSearch
+              ? "Arama kriterine uygun marka bulunamadı."
+              : "Henüz marka eklenmemiş."}
           </div>
         ) : (
           filteredBrands.map((b) => (
             <div
               key={b._id}
-              className="flex min-w-0 flex-col justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs transition-colors hover:border-slate-300 sm:p-5"
+              className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs"
             >
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-2">
-                  {b.logoUrl ? (
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 p-2 border border-slate-100">
+                  {b.logoUrl || LOCAL_BRAND_LOGOS[b.slug] ? (
                     <Image
-                      src={b.logoUrl}
-                      alt={`${b.name} logosu`}
-                      width={48}
-                      height={48}
+                      src={b.logoUrl || LOCAL_BRAND_LOGOS[b.slug]}
+                      alt={b.name}
+                      width={36}
+                      height={36}
                       unoptimized
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                      }}
+                      className="max-h-8 max-w-8 object-contain"
                     />
                   ) : (
-                    <Cpu className="w-5 h-5 text-slate-400" />
+                    <span className="text-base font-bold text-slate-400">
+                      {b.name.charAt(0)}
+                    </span>
                   )}
                 </div>
-
-                <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-base font-semibold text-slate-900">
-                    {b.name}
-                  </h2>
-                  <p className="truncate font-mono text-xs text-slate-500">
-                    {b.slug}
-                  </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                      Sıra: {b.order ?? 1}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-semibold text-slate-900">
+                      {b.name}
                     </span>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                        b.isActive !== false
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {b.isActive !== false ? "Aktif" : "Pasif"}
+                    {b.popular && (
+                      <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                        Popüler
+                      </span>
+                    )}
+                    {b.isActive === false && (
+                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                        Pasif
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <span className="font-mono text-[11px] text-slate-400">
+                      /{b.slug}
                     </span>
+                    <span>•</span>
+                    <span>Sıra: {b.order ?? 1}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-1 border-t border-slate-100 pt-2.5">
+              <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
                   aria-label={`${b.name} markasını düzenle`}
                   onClick={() => handleOpenEditBrand(b)}
-                  className="flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-amber-50 hover:text-amber-600 focus-visible:outline-2 focus-visible:outline-amber-500"
+                  className="flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-2 focus-visible:outline-amber-500"
                 >
                   <Edit2 className="h-4 w-4" />
                 </button>
@@ -272,177 +180,13 @@ export default function AdminBrandsPage() {
         )}
       </div>
 
-      {/* Brand Modal */}
-      <Dialog
+      {/* Brand Form Modal */}
+      <BrandFormModal
         open={brandModalOpen}
-        onOpenChange={(open) => {
-          if (!isPending) setBrandModalOpen(open);
-        }}
-      >
-        <DialogContent
-          aria-describedby={undefined}
-          className="fixed inset-x-0 bottom-0 top-auto flex max-h-[92dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-4 overflow-y-auto overscroll-contain rounded-t-3xl rounded-b-none border-0 bg-white p-5 text-slate-900 sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[calc(100%_-_2rem)] sm:max-w-md sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl sm:border sm:border-slate-200 sm:p-6"
-        >
-          <DialogHeader className="pr-12 text-left">
-            <DialogTitle className="text-lg font-bold text-slate-900">
-              {editingBrand ? "Markayı düzenle" : "Yeni marka"}
-            </DialogTitle>
-          </DialogHeader>
-
-          {brandError && (
-            <div
-              role="alert"
-              className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-800"
-            >
-              {brandError}
-            </div>
-          )}
-
-          <form key={editingBrand?._id ?? "new"} onSubmit={handleSaveBrand} className="space-y-5 pt-1 text-sm">
-            <fieldset disabled={isPending} className="space-y-5">
-              <div>
-                <label
-                  htmlFor="brand-name"
-                  className="mb-1.5 block font-medium text-slate-700"
-                >
-                  Marka adı *
-                </label>
-                <Input
-                  id="brand-name"
-                  name="name"
-                  required
-                  placeholder="Örn: Volkswagen, Renault, BMW"
-                  defaultValue={editingBrand?.name ?? ""}
-                  className="h-12 rounded-xl border-slate-300 bg-white text-base! sm:text-sm!"
-                />
-              </div>
-
-              <div>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <label
-                    htmlFor="brand-slug"
-                    className="block font-medium text-slate-700"
-                  >
-                    URL slug (İsteğe bağlı)
-                  </label>
-                  <span className="text-[10px] text-slate-400">
-                    Boş bırakılırsa otomatik üretilir
-                  </span>
-                </div>
-                <Input
-                  id="brand-slug"
-                  name="slug"
-                  placeholder="volkswagen, renault, bmw"
-                  defaultValue={editingBrand?.slug ?? ""}
-                  className="h-12 rounded-xl border-slate-300 bg-slate-50 font-mono text-base! text-slate-700! sm:text-sm!"
-                />
-              </div>
-
-              {/* Brand Logo Upload & Auto Preview */}
-              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 space-y-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <label className="flex items-center gap-2 font-medium text-slate-800">
-                    <ImageIcon className="h-4 w-4 text-slate-500" />
-                    <span>Marka logosu</span>
-                  </label>
-                  <span className="text-xs text-slate-500">Vektör logo</span>
-                </div>
-
-                {brandLogoOverride || editingBrand?.logoUrl ? (
-                  <div className="flex items-center gap-3 pt-1">
-                    <div className="relative w-14 h-14 rounded-md border border-slate-200 bg-white p-2 flex items-center justify-center">
-                      <Image
-                        key={brandLogoOverride ?? editingBrand?.logoUrl ?? ""}
-                        src={brandLogoOverride ?? editingBrand?.logoUrl ?? ""}
-                        alt="Logo Preview"
-                        width={56}
-                        height={56}
-                        unoptimized
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none";
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setBrandLogoUrl("")}
-                        aria-label="Logoyu kaldır"
-                        className="absolute right-1 top-1 flex h-10 w-10 items-center justify-center rounded-full bg-slate-800/80 text-white hover:bg-red-600"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="space-y-1 text-sm">
-                      <span className="text-emerald-700 font-semibold block">
-                        Logo seçildi
-                      </span>
-                      <span className="block max-w-[200px] truncate font-mono text-xs text-slate-500">
-                        {brandLogoOverride ?? editingBrand?.logoUrl}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm leading-relaxed text-slate-500">
-                    Marka adına göre logo eşleşir.
-                  </p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 items-center gap-3">
-                <div>
-                  <label
-                    htmlFor="brand-order"
-                    className="mb-1.5 block font-medium text-slate-700"
-                  >
-                    Sıralama
-                  </label>
-                  <Input
-                    id="brand-order"
-                    name="order"
-                    type="number"
-                    defaultValue={editingBrand?.order ?? (brands?.length || 0) + 1}
-                    className="h-12 rounded-xl border-slate-300 bg-white text-base! sm:text-sm!"
-                  />
-                </div>
-
-                <div className="pt-2 sm:pt-4">
-                  <label className="flex min-h-12 cursor-pointer items-center gap-2 font-medium text-slate-800">
-                    <input
-                      type="checkbox"
-                      checked={brandIsActive}
-                      onChange={(e) => setBrandIsActive(e.target.checked)}
-                      className="h-5 w-5 rounded text-amber-500 accent-amber-500"
-                    />
-                    <span>Yayında</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="sticky bottom-0 flex gap-3 border-t border-slate-200 bg-white pt-4 pb-[max(0.25rem,env(safe-area-inset-bottom))] sm:justify-end">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setBrandModalOpen(false)}
-                  className="h-12 flex-1 rounded-full sm:flex-none"
-                >
-                  İptal
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isPending}
-                  className="h-12 flex-1 rounded-full px-6 sm:flex-none"
-                >
-                  {isPending
-                    ? "Kaydediliyor…"
-                    : editingBrand
-                      ? "Güncelle"
-                      : "Markayı kaydet"}
-                </Button>
-              </div>
-            </fieldset>
-          </form>
-        </DialogContent>
-      </Dialog>
+        onOpenChange={setBrandModalOpen}
+        brand={editingBrand}
+        nextOrder={(brands?.length || 0) + 1}
+      />
     </div>
   );
 }

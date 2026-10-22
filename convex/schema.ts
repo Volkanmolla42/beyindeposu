@@ -41,6 +41,15 @@ export default defineSchema({
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
     metaKeywords: v.optional(v.string()),
+    content: v.optional(v.string()),
+    faqs: v.optional(
+      v.array(
+        v.object({
+          question: v.string(),
+          answer: v.string(),
+        }),
+      ),
+    ),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
   })
@@ -55,6 +64,17 @@ export default defineSchema({
     popular: v.boolean(),
     order: v.number(),
     isActive: v.optional(v.boolean()),
+    content: v.optional(v.string()),
+    metaTitle: v.optional(v.string()),
+    metaDescription: v.optional(v.string()),
+    faqs: v.optional(
+      v.array(
+        v.object({
+          question: v.string(),
+          answer: v.string(),
+        }),
+      ),
+    ),
   })
     .index("by_slug", ["slug"])
     .index("by_popular", ["popular"])
@@ -195,11 +215,20 @@ export default defineSchema({
     category: v.string(),
     isPublished: v.boolean(),
     tags: v.optional(v.array(v.string())),
+    faqs: v.optional(
+      v.array(
+        v.object({
+          question: v.string(),
+          answer: v.string(),
+        }),
+      ),
+    ),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_slug", ["slug"])
     .index("by_isPublished", ["isPublished"])
+    .index("by_category", ["category"])
     .index("by_published_category", ["isPublished", "category"]),
 
   blogCategories: defineTable({

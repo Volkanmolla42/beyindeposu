@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { triggerRevalidate } from "@/lib/revalidate";
 
 export default function AdminSettingsPage() {
   const contactData = useQuery(api.settings.getContactSettings);
@@ -65,6 +66,7 @@ export default function AdminSettingsPage() {
           postalCode,
         });
 
+        void triggerRevalidate([{ path: "/", type: "layout" }]);
         setSuccessMessage("İletişim ayarları başarıyla kaydedildi.");
         setTimeout(() => setSuccessMessage(null), 5000);
       } catch (err: unknown) {

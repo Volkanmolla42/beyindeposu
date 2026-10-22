@@ -67,6 +67,15 @@ export const create = mutation({
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
     metaKeywords: v.optional(v.string()),
+    content: v.optional(v.string()),
+    faqs: v.optional(
+      v.array(
+        v.object({
+          question: v.string(),
+          answer: v.string(),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -99,6 +108,15 @@ export const update = mutation({
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
     metaKeywords: v.optional(v.string()),
+    content: v.optional(v.string()),
+    faqs: v.optional(
+      v.array(
+        v.object({
+          question: v.string(),
+          answer: v.string(),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);

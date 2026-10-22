@@ -81,6 +81,7 @@ For multi-step tasks, state a brief plan:
 - **ALWAYS apply `ponytail` principles:** avoid over-engineering, unnecessary dependencies, and speculative abstractions.
 - **ALWAYS apply `unslop` principles:** remove artificial AI commentary, redundant boilerplate, and verbose fluff.
 - **NEVER introduce backwards compatibility hacks or redirect workarounds.** Directly remove and clean up outdated code and deprecated routes.
+- **NEVER create or keep passthrough wrappers / trampoline abstractions:** Never write wrapper components or proxy functions whose sole purpose is forwarding props/args to another component or function (e.g. `ArticleRenderer` wrapping `MarkdownRenderer` or `getPublicBrands` calling `getBrands`). Always use the underlying function or component directly at the call site and delete the wrapper immediately.
 - **NEVER perform actions in the Convex Production environment without explicit user confirmation.**
 - **NEVER run `npx tsc` or `npm run build` unnecessarily.**  Only run verification when TypeScript/JavaScript source code was actually modified and needs verification, or when the user explicitly asks for it.
 

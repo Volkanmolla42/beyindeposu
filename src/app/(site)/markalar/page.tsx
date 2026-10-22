@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { getPublicBrands } from "@/lib/seo-data";
 import { createPageMetadata, SITE_NAME } from "@/lib/seo";
-import TaxonomyIndexPage from "@/components/TaxonomyIndexPage";
-export const revalidate = 300;
+import CatalogDirectoryPage from "@/components/CatalogDirectoryPage";
+
 
 export const metadata: Metadata = createPageMetadata({
   title: `Araç Markaları | ${SITE_NAME}`,
@@ -15,7 +15,7 @@ export default async function MarkalarPage() {
   const brands = await getPublicBrands();
 
   return (
-    <TaxonomyIndexPage
+    <CatalogDirectoryPage
       title="Araç Markaları"
       badge="BEYİN DEPOSU UYUMLULUK"
       description="Tüm binek ve ticari araç markalarına uyumlu test edilmiş, garantili orijinal oto beyinleri ve elektronik modülleri."

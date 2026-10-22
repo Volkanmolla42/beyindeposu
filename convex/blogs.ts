@@ -242,6 +242,14 @@ export const create = mutation({
     category: v.string(),
     isPublished: v.boolean(),
     tags: v.optional(v.array(v.string())),
+    faqs: v.optional(
+      v.array(
+        v.object({
+          question: v.string(),
+          answer: v.string(),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -260,15 +268,32 @@ export const create = mutation({
     }
 
     const now = Date.now();
+    const categoryTitle = args.category.trim();
+
+    // Auto-create category in blogCategories if it doesn't exist
+    if (categoryTitle) {
+      const existingCategory = await ctx.db
+        .query("blogCategories")
+        .withIndex("by_title", (q) => q.eq("title", categoryTitle))
+        .first();
+      if (!existingCategory) {
+        await ctx.db.insert("blogCategories", {
+          title: categoryTitle,
+          createdAt: now,
+        });
+      }
+    }
+
     return await ctx.db.insert("blogs", {
       title: args.title.trim(),
       slug,
       excerpt: args.excerpt.trim(),
       content: args.content.trim(),
       coverImageStorageId: args.coverImageStorageId,
-      category: args.category.trim(),
+      category: categoryTitle,
       isPublished: args.isPublished,
       tags: args.tags ?? [],
+      faqs: args.faqs,
       createdAt: now,
       updatedAt: now,
     });
@@ -286,6 +311,14 @@ export const update = mutation({
     category: v.string(),
     isPublished: v.boolean(),
     tags: v.optional(v.array(v.string())),
+    faqs: v.optional(
+      v.array(
+        v.object({
+          question: v.string(),
+          answer: v.string(),
+        }),
+      ),
+    ),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -308,15 +341,31 @@ export const update = mutation({
     }
 
     const now = Date.now();
+    const categoryTitle = data.category.trim();
+
+    if (categoryTitle) {
+      const existingCategory = await ctx.db
+        .query("blogCategories")
+        .withIndex("by_title", (q) => q.eq("title", categoryTitle))
+        .first();
+      if (!existingCategory) {
+        await ctx.db.insert("blogCategories", {
+          title: categoryTitle,
+          createdAt: now,
+        });
+      }
+    }
+
     await ctx.db.patch(id, {
       title: data.title.trim(),
       slug,
       excerpt: data.excerpt.trim(),
       content: data.content.trim(),
       coverImageStorageId: data.coverImageStorageId,
-      category: data.category.trim(),
+      category: categoryTitle,
       isPublished: data.isPublished,
       tags: data.tags ?? [],
+      faqs: data.faqs,
       updatedAt: now,
     });
 

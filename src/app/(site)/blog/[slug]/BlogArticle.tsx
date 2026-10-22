@@ -3,7 +3,8 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import HeroBanner from "@/components/ui/HeroBanner";
 import SupportCta from "@/components/SupportCta";
-import ArticleRenderer from "@/components/blog/ArticleRenderer";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import FaqAccordion from "@/components/FaqAccordion";
 import type { BlogDetail, BlogRelatedCard } from "@/lib/blog-data";
 import { calculateReadTime } from "@/lib/utils";
 
@@ -20,7 +21,7 @@ interface BlogArticleProps {
 }
 
 export default function BlogArticle({ blog, relatedBlogs }: BlogArticleProps) {
-  const { title, excerpt, content, coverImage, category, tags, createdAt, updatedAt } =
+  const { title, excerpt, content, coverImage, category, tags, faqs, createdAt, updatedAt } =
     blog;
 
   const dateStr = dateFormatter.format(new Date(createdAt));
@@ -55,11 +56,26 @@ export default function BlogArticle({ blog, relatedBlogs }: BlogArticleProps) {
             </>
           )}
         </div>
-        <ArticleRenderer content={content} />
+        <MarkdownRenderer content={content} />
+
+        {/* Sıkça Sorulan Sorular (FAQ) */}
+        <FaqAccordion
+          items={faqs}
+          title="Konu Hakkında Merak Edilenler"
+          subtitle="Sıkça Sorulan Sorular"
+          id="blog-faq-title"
+          className="my-10"
+        />
 
         <div className="my-10 p-5 sm:p-6 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center gap-4 sm:gap-5">
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-300 flex items-center justify-center text-slate-950 font-bold text-base sm:text-lg shrink-0 shadow-md">
-            BD
+          <div className="relative w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden border border-slate-200/90 bg-white p-1.5 shrink-0 shadow-xs">
+            <Image
+              src="/images/logo-mark.webp"
+              alt="Beyin Deposu"
+              width={56}
+              height={56}
+              className="h-full w-full object-contain"
+            />
           </div>
           <div className="flex-1 min-w-0">
             <span className="text-3xs font-bold text-amber-600 uppercase tracking-wider block mb-0.5">

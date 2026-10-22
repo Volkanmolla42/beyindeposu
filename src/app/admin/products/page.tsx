@@ -119,6 +119,17 @@ export default function AdminProductsPage() {
   const products = pageData?.page;
   const isDone = pageData?.isDone ?? true;
 
+  const getRelatedCatalogPaths = (p: Product) => {
+    const brandSlug = brands?.find((brand) => brand.name === p.brand)?.slug;
+    const categorySlug = categories?.find(
+      (category) => category._id === p.categoryId,
+    )?.slug;
+    return [
+      ...(brandSlug ? [`/markalar/${brandSlug}`] : []),
+      ...(categorySlug ? [`/kategoriler/${categorySlug}`] : []),
+    ];
+  };
+
   // Mutations
   const deleteProduct = useMutation(api.products.deleteProduct);
   const toggleStock = useMutation(api.products.toggleStock);
@@ -130,7 +141,12 @@ export default function AdminProductsPage() {
     setActionError("");
     try {
       await toggleStock({ id: p._id, inStock: !p.inStock });
-      void triggerRevalidate(["/", "/parcalar", `/parcalar/${p.slug}`]);
+      void triggerRevalidate([
+        "/",
+        "/parcalar",
+        `/parcalar/${p.slug}`,
+        ...getRelatedCatalogPaths(p),
+      ]);
     } catch (err) {
       console.error("Stok güncelleme hatası:", err);
       setActionError("Stok güncellenemedi. Tekrar deneyin.");
@@ -175,7 +191,12 @@ export default function AdminProductsPage() {
     setActionError("");
     try {
       await deleteProduct({ id: p._id });
-      void triggerRevalidate(["/", "/parcalar", `/parcalar/${p.slug}`]);
+      void triggerRevalidate([
+        "/",
+        "/parcalar",
+        `/parcalar/${p.slug}`,
+        ...getRelatedCatalogPaths(p),
+      ]);
     } catch (error) {
       console.error("Parça silinemedi:", error);
       setActionError("Parça silinemedi. Tekrar deneyin.");

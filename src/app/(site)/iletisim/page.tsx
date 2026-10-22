@@ -16,6 +16,7 @@ import { formatPhoneNumber, getWhatsAppUrl } from "@/lib/whatsapp";
 import { createPageMetadata, serializeJsonLd, SITE_NAME, SITE_URL } from "@/lib/seo";
 import { getSiteContactSettings } from "@/lib/services-data";
 import HeroBanner from "@/components/ui/HeroBanner";
+import FeatureCardGrid from "@/components/FeatureCardGrid";
 
 export const metadata: Metadata = createPageMetadata({
   title: "İletişim & Servis",
@@ -26,6 +27,27 @@ export const metadata: Metadata = createPageMetadata({
 
 export default async function IletisimPage() {
   const contact = await getSiteContactSettings();
+
+  const contactServices = [
+    {
+      icon: Cpu,
+      title: "Beyin Tamir & Kodlama",
+      description:
+        "Motor, ABS, airbag, konfor ve şanzıman kontrol ünitelerinin devre onarımı, klonlama ve araç uyumlu kodlama işlemleri.",
+    },
+    {
+      icon: Settings,
+      title: "Yarı Otomatik & Mekatronik",
+      description:
+        "DSG, EDC, Powershift ve robotize şanzıman mekatronik kart tamiri, basınç tüpü revizyonu ve adaptasyon testleri.",
+    },
+    {
+      icon: Wrench,
+      title: "Elektrik - Elektronik & Mekanik Servis",
+      description:
+        "Araç tesisat arıza tespiti, CAN-bus haberleşme kontrolleri, sensör teşhisi ve mekanik bakım onarım hizmetleri.",
+    },
+  ];
 
   const productsCount = "15.000’den fazla";
   const displayPhone = contact.phoneNumber;
@@ -119,37 +141,7 @@ export default async function IletisimPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
-                <Cpu className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-semibold text-slate-900">Beyin Tamir & Kodlama</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Motor, ABS, airbag, konfor ve şanzıman kontrol ünitelerinin devre onarımı, klonlama ve araç uyumlu kodlama işlemleri.
-              </p>
-            </div>
-
-            <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
-                <Settings className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-semibold text-slate-900">Yarı Otomatik & Mekatronik</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                DSG, EDC, Powershift ve robotize şanzıman mekatronik kart tamiri, basınç tüpü revizyonu ve adaptasyon testleri.
-              </p>
-            </div>
-
-            <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
-                <Wrench className="h-5 w-5" />
-              </div>
-              <h3 className="text-base font-semibold text-slate-900">Elektrik - Elektronik & Mekanik Servis</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Araç tesisat arıza tespiti, CAN-bus haberleşme kontrolleri, sensör teşhisi ve mekanik bakım onarım hizmetleri.
-              </p>
-            </div>
-          </div>
+          <FeatureCardGrid items={contactServices} columns={3} />
         </section>
 
         <section id="iletisim" className="space-y-6">

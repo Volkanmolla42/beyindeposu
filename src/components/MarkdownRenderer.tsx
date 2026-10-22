@@ -1,168 +1,116 @@
-import React from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface MarkdownRendererProps {
   content: string;
+  className?: string;
 }
 
-export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+export function MarkdownRenderer({ content, className = "" }: MarkdownRendererProps) {
   if (!content) return null;
 
-  // Split content into blocks by double newlines
-  const lines = content.split("\n");
-  const elements: React.ReactNode[] = [];
-  let tableRows: string[][] = [];
-  let inTable = false;
-  let listItems: string[] = [];
-
-  const flushList = () => {
-    if (listItems.length > 0) {
-      elements.push(
-        <ul key={`ul-${elements.length}`} className="my-3 space-y-1.5 pl-1">
-          {listItems.map((item, idx) => (
-            <li key={idx} className="flex items-start gap-2 text-xs text-slate-700 leading-relaxed">
-              <span className="text-amber-500 font-bold mt-0.5">•</span>
-              <div>{renderInline(item)}</div>
-            </li>
-          ))}
-        </ul>
-      );
-      listItems = [];
-    }
-  };
-
-  const flushTable = () => {
-    if (tableRows.length > 0) {
-      const [header, , ...body] = tableRows;
-      elements.push(
-        <div key={`table-${elements.length}`} className="my-4 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs">
-          <table className="w-full text-left text-xs">
-            {header && (
-              <thead className="bg-slate-100/80 text-slate-800 font-bold border-b border-slate-200">
-                <tr>
-                  {header.map((col, cIdx) => (
-                    <th key={cIdx} className="px-3.5 py-2.5 whitespace-nowrap">
-                      {renderInline(col.trim())}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-            )}
+  return (
+    <div className={`leading-relaxed text-slate-800 text-sm sm:text-base space-y-4 ${className}`}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        disallowedElements={["img"]}
+        components={{
+          h1: ({ children }) => (
+            <h1 className="font-bold tracking-tight text-slate-950 leading-tight text-2xl sm:text-3xl mt-8 mb-4">
+              {children}
+            </h1>
+          ),
+          h2: ({ children }) => (
+            <h2 className="font-bold tracking-tight text-slate-900 border-b border-slate-200 pb-2 text-xl sm:text-2xl mt-10 mb-4 flex items-center gap-2.5">
+              <span className="w-1.5 h-5 bg-amber-400 rounded-full inline-block shrink-0" />
+              <span>{children}</span>
+            </h2>
+          ),
+          h3: ({ children }) => (
+            <h3 className="font-bold text-slate-900 text-lg sm:text-xl mt-6 mb-2">
+              {children}
+            </h3>
+          ),
+          h4: ({ children }) => (
+            <h4 className="font-bold text-slate-900 text-base sm:text-lg mt-5 mb-2">
+              {children}
+            </h4>
+          ),
+          p: ({ children }) => (
+            <p className="text-slate-700 leading-relaxed my-3">
+              {children}
+            </p>
+          ),
+          ul: ({ children }) => (
+            <ul className="space-y-1.5 list-disc list-outside pl-5 text-slate-700 marker:text-amber-500 my-4">
+              {children}
+            </ul>
+          ),
+          ol: ({ children }) => (
+            <ol className="space-y-1.5 list-decimal list-outside pl-5 text-slate-700 marker:font-bold marker:text-amber-600 my-4">
+              {children}
+            </ol>
+          ),
+          li: ({ children }) => (
+            <li className="pl-1 leading-relaxed">{children}</li>
+          ),
+          strong: ({ children }) => (
+            <strong className="font-bold text-slate-950">{children}</strong>
+          ),
+          em: ({ children }) => (
+            <em className="italic text-slate-800">{children}</em>
+          ),
+          code: ({ children }) => (
+            <code className="font-mono text-xs font-bold bg-slate-900 text-amber-400 px-2 py-0.5 rounded-md border border-slate-800 inline-block">
+              {children}
+            </code>
+          ),
+          blockquote: ({ children }) => (
+            <blockquote className="my-4 pl-4 border-l-4 border-amber-400 bg-amber-50/40 py-2 pr-4 rounded-r-xl italic text-slate-800">
+              {children}
+            </blockquote>
+          ),
+          table: ({ children }) => (
+            <div className="my-5 overflow-hidden rounded-2xl border border-slate-200 shadow-2xs bg-white">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                  {children}
+                </table>
+              </div>
+            </div>
+          ),
+          thead: ({ children }) => (
+            <thead className="bg-slate-100 border-b border-slate-200 text-slate-900 font-bold text-xs uppercase tracking-wider">
+              {children}
+            </thead>
+          ),
+          tbody: ({ children }) => (
             <tbody className="divide-y divide-slate-100 text-slate-700">
-              {body.map((row, rIdx) => (
-                <tr key={rIdx} className="hover:bg-slate-50/60 transition-colors">
-                  {row.map((cell, cIdx) => (
-                    <td key={cIdx} className="px-3.5 py-2.5 whitespace-nowrap">
-                      {renderInline(cell.trim())}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              {children}
             </tbody>
-          </table>
-        </div>
-      );
-      tableRows = [];
-      inTable = false;
-    }
-  };
-
-  for (let i = 0; i < lines.length; i++) {
-    const rawLine = lines[i];
-    const trimmed = rawLine.trim();
-
-    // Table row detection
-    if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
-      flushList();
-      inTable = true;
-      const cells = trimmed
-        .split("|")
-        .slice(1, -1)
-        .map((c) => c.trim());
-      // Skip separator row like | --- | --- |
-      if (cells.every((c) => /^[-:\s]+$/.test(c))) {
-        tableRows.push(["---"]);
-      } else {
-        tableRows.push(cells);
-      }
-      continue;
-    } else if (inTable) {
-      flushTable();
-    }
-
-    // List item detection (- item or * item)
-    if (/^[-*]\s+/.test(trimmed)) {
-      listItems.push(trimmed.replace(/^[-*]\s+/, ""));
-      continue;
-    } else {
-      flushList();
-    }
-
-    if (!trimmed) {
-      continue;
-    }
-
-    // H2 Heading
-    if (trimmed.startsWith("## ")) {
-      elements.push(
-        <h2
-          key={`h2-${i}`}
-          className="text-sm sm:text-base font-bold text-slate-900 mt-6 mb-2.5 pt-2 border-b border-slate-200 pb-1.5 flex items-center gap-2"
-        >
-          <span className="w-1.5 h-4 rounded-full bg-amber-500 shrink-0" />
-          <span>{renderInline(trimmed.replace(/^##\s+/, ""))}</span>
-        </h2>
-      );
-      continue;
-    }
-
-    // H3 Heading
-    if (trimmed.startsWith("### ")) {
-      elements.push(
-        <h3
-          key={`h3-${i}`}
-          className="text-xs sm:text-sm font-bold text-slate-800 mt-4 mb-2 flex items-center gap-1.5"
-        >
-          {renderInline(trimmed.replace(/^###\s+/, ""))}
-        </h3>
-      );
-      continue;
-    }
-
-    // Regular Paragraph
-    elements.push(
-      <p key={`p-${i}`} className="my-2.5 text-xs text-slate-700 leading-relaxed">
-        {renderInline(trimmed)}
-      </p>
-    );
-  }
-
-  flushList();
-  flushTable();
-
-  return <div className="space-y-1">{elements}</div>;
+          ),
+          tr: ({ children }) => (
+            <tr className="hover:bg-amber-50/40 transition-colors">
+              {children}
+            </tr>
+          ),
+          th: ({ children }) => (
+            <th className="px-4 py-2.5 font-bold text-slate-900 whitespace-nowrap">
+              {children}
+            </th>
+          ),
+          td: ({ children }) => (
+            <td className="px-4 py-2.5 text-slate-700 leading-relaxed align-top">
+              {children}
+            </td>
+          ),
+          hr: () => <hr className="my-6 border-t border-slate-200" />,
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
 }
 
-// Inline renderer for **bold**, `code`, etc.
-function renderInline(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
-  return parts.map((part, index) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return (
-        <strong key={index} className="font-bold text-slate-900">
-          {part.slice(2, -2)}
-        </strong>
-      );
-    }
-    if (part.startsWith("`") && part.endsWith("`")) {
-      return (
-        <code
-          key={index}
-          className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[11px] text-amber-600 font-semibold"
-        >
-          {part.slice(1, -1)}
-        </code>
-      );
-    }
-    return part;
-  });
-}
+export default MarkdownRenderer;

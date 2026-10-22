@@ -25,7 +25,7 @@ export default function ProductCard({ product, preload = false, variant = "defau
 
   return (
     <article className={isCatalog
-      ? "product-card-clean group grid grid-cols-[6.25rem_minmax(0,1fr)] grid-rows-[auto_auto] gap-x-3 gap-y-3 p-3 sm:flex sm:flex-col sm:justify-between sm:p-4"
+      ? "product-card-clean group grid grid-cols-[7.5rem_minmax(0,1fr)] grid-rows-[auto_auto] gap-x-2.5 gap-y-2.5 p-2.5 sm:flex sm:flex-col sm:justify-between sm:p-4"
       : "product-card-clean group flex flex-col justify-between p-4 sm:p-5"}
     >
       <div className={isCatalog ? "contents sm:block" : undefined}>
@@ -62,11 +62,6 @@ export default function ProductCard({ product, preload = false, variant = "defau
             <p className="mt-1 truncate text-xs font-medium text-slate-600 sm:text-sm">
               {subtitle}
             </p>
-            <div className="flex flex-wrap items-center gap-1.5 pt-1.5">
-              <Badge variant="secondary" className="max-w-full whitespace-normal text-left text-xs leading-tight">
-                {product.condition}
-              </Badge>
-            </div>
           </div>
         ) : (
           <div className="space-y-1">

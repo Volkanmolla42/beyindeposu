@@ -23,6 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import TrustBadgeStrip from "@/components/TrustBadgeStrip";
+import FeatureCardGrid from "@/components/FeatureCardGrid";
 
 export type FaultCodeItem = {
   code: string;
@@ -77,6 +79,52 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
     e.preventDefault();
   };
 
+  const obdBadges = [
+    {
+      icon: CarFront,
+      title: "Tüm Marka ve Modeller",
+      description: "Kapsamlı veri tabanı",
+    },
+    {
+      icon: FileText,
+      title: "Kod Anlamları",
+      description: "Detaylı açıklamalar",
+    },
+    {
+      icon: AlertTriangle,
+      title: "Arıza Sebepleri",
+      description: "Olası nedenler",
+    },
+    {
+      icon: CheckCircle2,
+      title: "Çözüm Önerileri",
+      description: "Doğru müdahale",
+    },
+  ];
+
+  const obdBenefits = [
+    {
+      icon: Zap,
+      title: "Doğrudan Arıza Tespiti",
+      description: "Deneme yanılma yapmadan arızanın kaynağını doğrudan tespit eder.",
+    },
+    {
+      icon: TrendingDown,
+      title: "Maliyet Kontrolü",
+      description: "Gereksiz parça değişimlerinin ve uzun servis sürelerinin önüne geçer.",
+    },
+    {
+      icon: ShieldCheck,
+      title: "Hedefe Yönelik Onarım",
+      description: "Sorunlu sensör, hat veya kontrol modülüne doğrudan müdahale edilir.",
+    },
+    {
+      icon: Activity,
+      title: "Performans Koruma",
+      description: "Erken teşhis ile motor ve şanzımanda kalıcı hasar oluşmasını engeller.",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-slate-50">
       <HeroBanner
@@ -87,51 +135,7 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
         description="Aracınızın arıza kodlarını öğrenin, anlamlarını keşfedin, doğru çözüme ulaşın."
       />
 
-      <section className="border-b border-slate-200/80 bg-white py-6 shadow-xs">
-        <div className="container">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="flex items-center gap-3.5 p-2">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
-                <CarFront className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-sm font-bold text-slate-900 truncate">Tüm Marka ve Modeller</h2>
-                <p className="text-xs text-slate-500 truncate">Kapsamlı veri tabanı</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3.5 p-2">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
-                <FileText className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-sm font-bold text-slate-900 truncate">Kod Anlamları</h2>
-                <p className="text-xs text-slate-500 truncate">Detaylı açıklamalar</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3.5 p-2">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
-                <AlertTriangle className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-sm font-bold text-slate-900 truncate">Arıza Sebepleri</h2>
-                <p className="text-xs text-slate-500 truncate">Olası nedenler</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3.5 p-2">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
-                <CheckCircle2 className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="text-sm font-bold text-slate-900 truncate">Çözüm Önerileri</h2>
-                <p className="text-xs text-slate-500 truncate">Doğru müdahale</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <TrustBadgeStrip items={obdBadges} />
 
       <section className="py-10 sm:py-14">
         <div className="container space-y-8">
@@ -141,7 +145,7 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Arıza kodu veya anahtar kelime ara (örn: P0100, P0420, sensör)..."
+                placeholder="P0100, P0420 veya sensör ara..."
                 aria-label="Arıza kodu veya anahtar kelime ara"
                 className="h-14 w-full rounded-2xl border border-slate-300 bg-white pl-5 pr-28 text-base font-medium text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-amber-500 focus:outline-none focus:ring-4 focus:ring-amber-500/20 transition-all"
               />
@@ -168,10 +172,8 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
               </div>
             </form>
 
-            <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
-              <span className="text-xs font-medium text-slate-500 mr-1">Filtre:</span>
+            <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               {[
-                { id: "ALL", label: `Tümü (${counts.ALL})` },
                 { id: "P", label: `P - Motor (${counts.P})` },
                 { id: "C", label: `C - Şasi (${counts.C})` },
                 { id: "B", label: `B - Gövde (${counts.B})` },
@@ -180,12 +182,13 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
                 <button
                   key={cat.id}
                   type="button"
-                  onClick={() => setSelectedCategory(cat.id)}
+                  onClick={() => setSelectedCategory((prev) => (prev === cat.id ? "ALL" : cat.id))}
                   aria-pressed={selectedCategory === cat.id}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-all cursor-pointer ${selectedCategory === cat.id
-                      ? "bg-slate-900 text-amber-400 shadow-xs"
-                      : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
-                    }`}
+                  className={`inline-flex shrink-0 min-h-9 items-center whitespace-nowrap rounded-full px-3.5 text-xs font-semibold transition-colors cursor-pointer ${
+                    selectedCategory === cat.id
+                      ? "bg-amber-500 text-slate-950 shadow-sm"
+                      : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-100"
+                  }`}
                 >
                   {cat.label}
                 </button>
@@ -263,10 +266,10 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
                     className="group flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs transition-all hover:border-amber-400 hover:shadow-md active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                   >
                     <div className="flex items-center gap-3.5 min-w-0">
-                      <span className="shrink-0 rounded-xl bg-slate-950 px-3 py-1.5 font-mono text-sm font-bold text-amber-400 transition-colors group-hover:bg-amber-500 group-hover:text-slate-950">
+                      <span className="shrink-0 rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-1.5 font-mono text-sm font-bold text-amber-900 transition-colors group-hover:border-amber-400 group-hover:bg-amber-100">
                         {item.code}
                       </span>
-                      <p className="truncate text-sm font-medium text-slate-800 group-hover:text-slate-950">
+                      <p className="min-w-0 text-sm font-medium leading-snug text-slate-800 break-words group-hover:text-slate-950">
                         {item.title}
                       </p>
                     </div>
@@ -333,47 +336,7 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
               </p>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-2xs text-center transition-all hover:border-amber-400 hover:shadow-sm">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 mb-4">
-                  <Zap className="h-6 w-6" />
-                </div>
-                <h4 className="text-base font-bold text-slate-900">Doğrudan Arıza Tespiti</h4>
-                <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-                  Deneme yanılma yapmadan arızanın kaynağını doğrudan tespit eder.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-2xs text-center transition-all hover:border-amber-400 hover:shadow-sm">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 mb-4">
-                  <TrendingDown className="h-6 w-6" />
-                </div>
-                <h4 className="text-base font-bold text-slate-900">Maliyet Kontrolü</h4>
-                <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-                  Gereksiz parça değişimlerinin ve uzun servis sürelerinin önüne geçer.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-2xs text-center transition-all hover:border-amber-400 hover:shadow-sm">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 mb-4">
-                  <ShieldCheck className="h-6 w-6" />
-                </div>
-                <h4 className="text-base font-bold text-slate-900">Hedefe Yönelik Onarım</h4>
-                <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-                  Sorunlu sensör, hat veya kontrol modülüne doğrudan müdahale edilir.
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-2xs text-center transition-all hover:border-amber-400 hover:shadow-sm">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 mb-4">
-                  <Activity className="h-6 w-6" />
-                </div>
-                <h4 className="text-base font-bold text-slate-900">Performans Koruma</h4>
-                <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-                  Erken teşhis ile motor ve şanzımanda kalıcı hasar oluşmasını engeller.
-                </p>
-              </div>
-            </div>
+            <FeatureCardGrid items={obdBenefits} columns={4} />
           </div>
         </div>
       </section>
@@ -384,7 +347,7 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
             <div className="space-y-4">
               <DialogHeader>
                 <div>
-                  <span className="inline-block rounded-xl bg-slate-950 px-3.5 py-1.5 font-mono text-base font-bold text-amber-400">
+                  <span className="inline-block rounded-lg border border-amber-300/50 bg-amber-50 px-3.5 py-1.5 font-mono text-base font-bold text-amber-900">
                     {activeCode.code}
                   </span>
                 </div>

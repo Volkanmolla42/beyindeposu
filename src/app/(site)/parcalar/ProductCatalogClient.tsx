@@ -409,7 +409,7 @@ export default function ProductCatalogClient() {
             ) : pageData === undefined ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 sm:gap-4" aria-label="Parçalar yükleniyor">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="product-card-clean grid min-h-36 grid-cols-[6rem_minmax(0,1fr)] gap-3 p-3 sm:flex sm:min-h-80 sm:flex-col sm:p-4">
+                  <div key={i} className="product-card-clean grid min-h-36 grid-cols-[7.5rem_minmax(0,1fr)] gap-2.5 p-2.5 sm:flex sm:min-h-80 sm:flex-col sm:p-4">
                     <div className="aspect-square animate-pulse rounded-xl bg-slate-100 sm:mb-4 sm:aspect-4/3 sm:w-full" />
                     <div className="space-y-2 self-center sm:w-full">
                       <div className="h-4 w-4/5 animate-pulse rounded bg-slate-100" />

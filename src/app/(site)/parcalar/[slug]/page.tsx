@@ -13,8 +13,6 @@ import { PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/product-images";
 import { ProductDetailSkeleton } from "@/components/RouteSkeletons";
 import ProductDetailClient from "./ProductDetailClient";
 
-export const revalidate = 300;
-
 type ProductRouteProps = {
   params: Promise<{ slug: string }>;
 };

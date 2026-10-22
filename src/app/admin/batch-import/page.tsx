@@ -592,7 +592,12 @@ export default function BatchImportPage() {
     } finally {
       poolActiveRef.current = false;
       setPhase(shouldStopRef.current ? "paused" : "idle");
-      void triggerRevalidate(["/", "/parcalar"]);
+      void triggerRevalidate([
+        "/",
+        "/parcalar",
+        { path: "/markalar/[slug]", type: "page" },
+        { path: "/kategoriler/[slug]", type: "page" },
+      ]);
     }
   };
 

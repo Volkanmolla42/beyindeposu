@@ -3,8 +3,6 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convex/_generated/api";
 import FaultCodesClient from "./FaultCodesClient";
 
-export const revalidate = 300;
-
 export const metadata: Metadata = {
   title: "OBD Arıza Kodları ve Anlamları | Beyin Deposu",
   description:

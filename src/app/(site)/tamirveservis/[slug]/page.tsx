@@ -29,8 +29,6 @@ import {
 } from "@/lib/seo";
 import { getWhatsAppUrl } from "@/lib/whatsapp";
 
-export const revalidate = 300;
-
 interface Props {
   params: Promise<{ slug: string }>;
 }
