@@ -17,7 +17,7 @@ const STATIC_PATHS = [
   "/markalar",
   "/ariza-kodlari",
   "/blog",
-  "/hakkimizda",
+  "/iletisim",
   "/gizlilik",
 ];
 const SITEMAP_URL_LIMIT = 50_000;

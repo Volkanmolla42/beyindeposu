@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useSyncExternalStore } from "react";
+import { useState, useRef, useSyncExternalStore } from "react";
 import { ProductImage } from "@/components/ProductImage";
 import {
   Plus,
@@ -37,11 +37,12 @@ import {
   type LightboxState,
 } from "./ProductLightboxModal";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 type Product = Doc<"products">;
 export default function AdminProductsPage() {
   const [searchProduct, setSearchProduct] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(searchProduct);
   const [selectedBrandFilter, setSelectedBrandFilter] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState("");
   const [draftStatus, setDraftStatus] = useState<"all" | "draft" | "published">(
@@ -74,14 +75,6 @@ export default function AdminProductsPage() {
   const resetPage = () => {
     setPagination(null);
   };
-
-  // Arama girdisini 300ms gecikmeli sorguya ilet (Convex query optimizasyonu)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchProduct);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchProduct]);
 
   // Product Modals State
   const [addProductModalOpen, setAddProductModalOpen] = useState(false);
@@ -157,7 +150,6 @@ export default function AdminProductsPage() {
 
   const handleClearFilters = () => {
     setSearchProduct("");
-    setDebouncedSearch("");
     setSelectedCategoryFilter("");
     setSelectedBrandFilter("");
     setDraftStatus("all");
@@ -378,7 +370,6 @@ export default function AdminProductsPage() {
                 aria-label="Aramayı temizle"
                 onClick={() => {
                   setSearchProduct("");
-                  setDebouncedSearch("");
                   resetPage();
                 }}
                 className="absolute right-1 top-1 h-10 w-10 rounded-full"

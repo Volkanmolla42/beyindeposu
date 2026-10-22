@@ -332,7 +332,7 @@ function ProductFormContent({
     }
   };
 
-  const handleSaveProduct = async (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (pendingTask.current) return;
     if (!title.trim() || !oemNumber.trim() || !brand.trim()) {

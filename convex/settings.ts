@@ -2,13 +2,6 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAdmin } from "./authz";
 
-const DEFAULT_SETTINGS = {
-  phoneNumber: "0530 906 70 34",
-  email: "beyindeposu34@gmail.com",
-  workingHours: "Her gün: 08:30 - 18:00",
-  address: "Maltepe, Yedikule Çırpıcı Yolu Topkapı Ticaret Merkezi D:1st Section B Blok,126, 34010 Zeytinburnu/İstanbul",
-};
-
 export const getContactSettings = query({
   args: {},
   handler: async (ctx) => {
@@ -19,16 +12,25 @@ export const getContactSettings = query({
 
     if (!doc) {
       return {
-        ...DEFAULT_SETTINGS,
+        phoneNumber: "",
+        email: "",
+        workingHours: "",
+        address: "",
+        city: "",
+        district: "",
+        postalCode: "",
         updatedAt: undefined,
       };
     }
 
     return {
-      phoneNumber: doc.phoneNumber || DEFAULT_SETTINGS.phoneNumber,
-      email: doc.email || DEFAULT_SETTINGS.email,
-      workingHours: doc.workingHours || DEFAULT_SETTINGS.workingHours,
-      address: doc.address || DEFAULT_SETTINGS.address,
+      phoneNumber: doc.phoneNumber || "",
+      email: doc.email || "",
+      workingHours: doc.workingHours || "",
+      address: doc.address || "",
+      city: doc.city || "",
+      district: doc.district || "",
+      postalCode: doc.postalCode || "",
       updatedAt: doc.updatedAt,
     };
   },
@@ -40,6 +42,9 @@ export const updateContactSettings = mutation({
     email: v.string(),
     workingHours: v.string(),
     address: v.string(),
+    city: v.optional(v.string()),
+    district: v.optional(v.string()),
+    postalCode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -48,6 +53,9 @@ export const updateContactSettings = mutation({
     const email = args.email.trim();
     const workingHours = args.workingHours.trim();
     const address = args.address.trim();
+    const city = args.city?.trim() || "";
+    const district = args.district?.trim() || "";
+    const postalCode = args.postalCode?.trim() || "";
 
     if (!phoneNumber) throw new Error("Telefon numarası boş bırakılamaz.");
     if (!email) throw new Error("E-posta adresi boş bırakılamaz.");
@@ -66,6 +74,9 @@ export const updateContactSettings = mutation({
         email,
         workingHours,
         address,
+        city,
+        district,
+        postalCode,
         updatedAt: now,
       });
       return existing._id;
@@ -76,6 +87,9 @@ export const updateContactSettings = mutation({
         email,
         workingHours,
         address,
+        city,
+        district,
+        postalCode,
         updatedAt: now,
       });
     }

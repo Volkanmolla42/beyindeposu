@@ -12,6 +12,7 @@ import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import BlogListRow from "./BlogListRow";
 import { toErrorMessage } from "./blog-editor-shared";
 import { triggerRevalidate } from "@/lib/revalidate";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 function filterChipClass(active: boolean) {
   return `rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -76,12 +77,13 @@ function EmptyState({
 
 export default function AdminBlogsPage() {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
   const [category, setCategory] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<Id<"blogs"> | null>(null);
   const [error, setError] = useState("");
 
   const blogs = useQuery(api.blogs.listAdmin, {
-    search: search.trim() || undefined,
+    search: debouncedSearch.trim() || undefined,
   });
   const categoriesData = useQuery(api.blogCategories.list);
   const deleteBlog = useMutation(api.blogs.deleteBlog);

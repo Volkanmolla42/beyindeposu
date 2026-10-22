@@ -73,7 +73,7 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
   const isSearching = searchInput.trim().length > 0 || selectedCategory !== "ALL";
   const hasNoCodes = codes.length === 0;
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
   };
 

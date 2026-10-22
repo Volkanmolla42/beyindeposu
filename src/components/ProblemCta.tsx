@@ -25,7 +25,7 @@ export default function ProblemCta() {
           Uzman ekibimizden destek alın. Aracınız için en doğru çözümü birlikte bulalım.
         </p>
         <Button asChild variant="default" size="lg" className="rounded-full shadow-md font-semibold">
-          <Link href="/hakkimizda">
+          <Link href="/iletisim">
             <span>Hemen İletişime Geç</span>
             <ArrowRight className="h-4 w-4" />
           </Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useTransition } from "react";
 import { Plus, Search, Edit2, Trash2, FileCode2, FileText, AlertTriangle, Star } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
@@ -15,47 +15,36 @@ import {
 } from "@/components/ui/dialog";
 import AdminPageHeader from "@/components/admin/AdminPageHeader";
 import { triggerRevalidate } from "@/lib/revalidate";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 type FaultCode = Doc<"faultCodes">;
 
 export default function AdminFaultCodesPage() {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<FaultCode | null>(null);
-  const [code, setCode] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [isPopular, setIsPopular] = useState(false);
   const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
-  const saveInProgress = useRef(false);
+  const [isPending, startTransition] = useTransition();
+  const descRef = useRef<HTMLTextAreaElement>(null);
 
-  const faultCodes = useQuery(api.faultCodes.list, { search: search.trim() || undefined });
+  const faultCodes = useQuery(api.faultCodes.list, { search: debouncedSearch.trim() || undefined });
   const createFaultCode = useMutation(api.faultCodes.create);
   const updateFaultCode = useMutation(api.faultCodes.update);
   const deleteFaultCode = useMutation(api.faultCodes.deleteFaultCode);
   const togglePopular = useMutation(api.faultCodes.togglePopular);
 
-  const resetForm = () => {
+  const handleOpenAdd = () => {
     setEditingItem(null);
-    setCode("");
-    setTitle("");
-    setDescription("");
     setIsPopular(false);
     setError("");
-  };
-
-  const handleOpenAdd = () => {
-    resetForm();
     setModalOpen(true);
   };
 
   const handleOpenEdit = (item: FaultCode) => {
     setEditingItem(item);
-    setCode(item.code);
-    setTitle(item.title);
-    setDescription(item.description ?? "");
     setIsPopular(item.isPopular ?? false);
     setError("");
     setModalOpen(true);
@@ -74,56 +63,55 @@ export default function AdminFaultCodesPage() {
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (saveInProgress.current) return;
-    if (!code.trim()) {
+    const formData = new FormData(e.currentTarget);
+    const code = (formData.get("code") as string)?.trim().toUpperCase() || "";
+    const title = (formData.get("title") as string)?.trim() || "";
+    const description = (formData.get("description") as string)?.trim() || undefined;
+
+    if (!code) {
       setError("Arıza kodu zorunludur (örn: P0100).");
       return;
     }
-    if (!title.trim()) {
+    if (!title) {
       setError("Arıza başlığı / anlamı zorunludur.");
       return;
     }
 
-    saveInProgress.current = true;
-    setSaving(true);
     setError("");
 
-    try {
-      const cleanCode = code.trim().toUpperCase();
-      const payload = {
-        code: cleanCode,
-        title: title.trim(),
-        description: description.trim() || undefined,
-        isPopular,
-      };
+    startTransition(async () => {
+      try {
+        const payload = {
+          code,
+          title,
+          description,
+          isPopular,
+        };
 
-      if (editingItem) {
-        await updateFaultCode({
-          id: editingItem._id,
-          ...payload,
-        });
-      } else {
-        await createFaultCode(payload);
+        if (editingItem) {
+          await updateFaultCode({
+            id: editingItem._id,
+            ...payload,
+          });
+        } else {
+          await createFaultCode(payload);
+        }
+
+        void triggerRevalidate([
+          "/ariza-kodlari",
+          `/ariza-kodlari/${code.toLowerCase()}`,
+          ...(editingItem && editingItem.code !== code
+            ? [`/ariza-kodlari/${editingItem.code.toLowerCase()}`]
+            : []),
+        ]);
+
+        setModalOpen(false);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Kayıt sırasında bir hata oluştu.");
       }
-
-      void triggerRevalidate([
-        "/ariza-kodlari",
-        `/ariza-kodlari/${cleanCode.toLowerCase()}`,
-        ...(editingItem && editingItem.code !== cleanCode
-          ? [`/ariza-kodlari/${editingItem.code.toLowerCase()}`]
-          : []),
-      ]);
-
-      setModalOpen(false);
-      resetForm();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Kayıt sırasında bir hata oluştu.");
-    } finally {
-      setSaving(false);
-      saveInProgress.current = false;
-    }
+    });
   };
 
   const handleDelete = async (id: Id<"faultCodes">, itemCode: string) => {
@@ -260,7 +248,7 @@ export default function AdminFaultCodesPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col">
+          <form key={editingItem?._id ?? "new"} onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col">
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
               {error && (
                 <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
@@ -279,8 +267,8 @@ export default function AdminFaultCodesPage() {
                   </label>
                   <Input
                     id="fault-code"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    name="code"
+                    defaultValue={editingItem?.code ?? ""}
                     placeholder="Örn: P0100"
                     aria-required="true"
                     className="rounded-xl border-slate-300 font-mono"
@@ -297,8 +285,8 @@ export default function AdminFaultCodesPage() {
                   </label>
                   <Input
                     id="fault-title"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    name="title"
+                    defaultValue={editingItem?.title ?? ""}
                     placeholder="Örn: Hava akış sensörü (MAF) devresi arızası"
                     aria-required="true"
                     className="rounded-xl border-slate-300"
@@ -330,9 +318,11 @@ Olası Nedenler:
 
 Çözüm Önerisi:
 •`;
-                      setDescription((prev) =>
-                        prev ? `${prev}\n\n${template}` : template,
-                      );
+                      if (descRef.current) {
+                        descRef.current.value = descRef.current.value
+                          ? `${descRef.current.value}\n\n${template}`
+                          : template;
+                      }
                     }}
                     className="h-7 gap-1.5 px-2 text-[11px] font-semibold text-amber-700 hover:bg-amber-50 hover:text-amber-800"
                   >
@@ -342,8 +332,9 @@ Olası Nedenler:
                 </div>
                 <textarea
                   id="fault-description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  name="description"
+                  ref={descRef}
+                  defaultValue={editingItem?.description ?? ""}
                   placeholder="Arıza açıklaması, belirtileri, olası nedenleri ve çözüm önerilerini buraya yazabilirsiniz..."
                   rows={6}
                   className="mt-2 w-full rounded-xl border border-slate-300 p-3 font-sans text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200"
@@ -387,8 +378,8 @@ Olası Nedenler:
               >
                 İptal
               </Button>
-              <Button type="submit" disabled={saving} className="cursor-pointer">
-                {saving
+              <Button type="submit" disabled={isPending} className="cursor-pointer">
+                {isPending
                   ? "Kaydediliyor..."
                   : editingItem
                     ? "Güncelle"

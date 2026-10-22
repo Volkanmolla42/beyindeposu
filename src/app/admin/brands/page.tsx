@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useTransition } from "react";
 import Image from "next/image";
 import { Plus, Search, Edit2, Trash2, Cpu, ImageIcon, X } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
@@ -24,21 +24,11 @@ export default function AdminBrandsPage() {
   const [brandSearch, setBrandSearch] = useState("");
 
   // Brand Modal & Form State
-  const [saving, setSaving] = useState(false);
-  const saveInProgress = useRef(false);
+  const [isPending, startTransition] = useTransition();
   const [brandModalOpen, setBrandModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
-  const [brandName, setBrandName] = useState("");
-  const [brandSlug, setBrandSlug] = useState("");
-  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [brandLogoOverride, setBrandLogoUrl] = useState<string | null>(null);
-  const brandLogoUrl =
-    brandLogoOverride ??
-    LOCAL_BRAND_LOGOS[brandSlug || slugify(brandName)] ??
-    LOCAL_BRAND_LOGOS[slugify(brandName)] ??
-    "";
   const [brandPopular, setBrandPopular] = useState(false);
-  const [brandOrder, setBrandOrder] = useState<number>(1);
   const [brandIsActive, setBrandIsActive] = useState<boolean>(true);
   const [brandError, setBrandError] = useState("");
 
@@ -48,89 +38,82 @@ export default function AdminBrandsPage() {
   const updateBrand = useMutation(api.brands.update);
   const deleteBrand = useMutation(api.brands.deleteBrand);
 
-  const resetBrandForm = () => {
+  const handleOpenAddBrand = () => {
     setEditingBrand(null);
-    setBrandName("");
-    setBrandSlug("");
-    setSlugManuallyEdited(false);
     setBrandLogoUrl(null);
     setBrandPopular(false);
-    setBrandOrder((brands?.length || 0) + 1);
     setBrandIsActive(true);
     setBrandError("");
-  };
-
-  const handleOpenAddBrand = () => {
-    resetBrandForm();
     setBrandModalOpen(true);
   };
 
   const handleOpenEditBrand = (b: Brand) => {
     setEditingBrand(b);
-    setBrandName(b.name);
-    setBrandSlug(b.slug);
-    setSlugManuallyEdited(true);
     setBrandLogoUrl(b.logoUrl ?? LOCAL_BRAND_LOGOS[b.slug] ?? "");
     setBrandPopular(b.popular ?? false);
-    setBrandOrder(b.order ?? 1);
     setBrandIsActive(b.isActive !== false);
     setBrandError("");
     setBrandModalOpen(true);
   };
 
-  const handleSaveBrand = async (e: React.FormEvent) => {
+  const handleSaveBrand = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (saveInProgress.current) return;
-    if (!brandName.trim()) {
+    const formData = new FormData(e.currentTarget);
+    const name = (formData.get("name") as string)?.trim() || "";
+    const slugInput = (formData.get("slug") as string)?.trim() || "";
+    const orderInput = Number(formData.get("order")) || 1;
+
+    if (!name) {
       setBrandError("Marka adı zorunludur.");
       return;
     }
-    const finalSlug = slugify(brandSlug.trim() || brandName);
+    const finalSlug = slugify(slugInput || name);
     if (!finalSlug) {
       setBrandError("Geçerli bir URL slug girin.");
       return;
     }
 
-    saveInProgress.current = true;
-    setSaving(true);
     setBrandError("");
-    try {
-      const payload = {
-        name: brandName.trim(),
-        slug: finalSlug,
-        logoUrl: brandLogoUrl.trim(),
-        popular: brandPopular,
-        order: brandOrder,
-        isActive: brandIsActive,
-      };
-      if (editingBrand) {
-        await updateBrand({ id: editingBrand._id, ...payload });
-      } else {
-        await createBrand(payload);
+    startTransition(async () => {
+      try {
+        const logoUrl =
+          brandLogoOverride ??
+          LOCAL_BRAND_LOGOS[finalSlug] ??
+          "";
+
+        const payload = {
+          name,
+          slug: finalSlug,
+          logoUrl: logoUrl.trim(),
+          popular: brandPopular,
+          order: orderInput,
+          isActive: brandIsActive,
+        };
+        if (editingBrand) {
+          await updateBrand({ id: editingBrand._id, ...payload });
+        } else {
+          await createBrand(payload);
+        }
+
+        void triggerRevalidate([
+          "/",
+          "/parcalar",
+          "/markalar",
+          `/markalar/${finalSlug}`,
+          ...(editingBrand && editingBrand.slug !== finalSlug
+            ? [`/markalar/${editingBrand.slug}`]
+            : []),
+        ]);
+
+        setBrandModalOpen(false);
+      } catch (err: unknown) {
+        setBrandError(
+          err instanceof Error
+            ? err.message
+            : "Marka kaydedilirken bir hata oluştu.",
+        );
       }
-
-      void triggerRevalidate([
-        "/",
-        "/parcalar",
-        "/markalar",
-        `/markalar/${finalSlug}`,
-        ...(editingBrand && editingBrand.slug !== finalSlug
-          ? [`/markalar/${editingBrand.slug}`]
-          : []),
-      ]);
-
-      setBrandModalOpen(false);
-      resetBrandForm();
-    } catch (err: unknown) {
-      setBrandError(
-        err instanceof Error
-          ? err.message
-          : "Marka kaydedilirken bir hata oluştu.",
-      );
-    } finally {
-      saveInProgress.current = false;
-      setSaving(false);
-    }
+    });
   };
 
   const handleDeleteBrand = async (b: Brand) => {
@@ -293,7 +276,7 @@ export default function AdminBrandsPage() {
       <Dialog
         open={brandModalOpen}
         onOpenChange={(open) => {
-          if (!saveInProgress.current) setBrandModalOpen(open);
+          if (!isPending) setBrandModalOpen(open);
         }}
       >
         <DialogContent
@@ -315,8 +298,8 @@ export default function AdminBrandsPage() {
             </div>
           )}
 
-          <form onSubmit={handleSaveBrand} className="space-y-5 pt-1 text-sm">
-            <fieldset disabled={saving} className="space-y-5">
+          <form key={editingBrand?._id ?? "new"} onSubmit={handleSaveBrand} className="space-y-5 pt-1 text-sm">
+            <fieldset disabled={isPending} className="space-y-5">
               <div>
                 <label
                   htmlFor="brand-name"
@@ -326,16 +309,10 @@ export default function AdminBrandsPage() {
                 </label>
                 <Input
                   id="brand-name"
+                  name="name"
                   required
                   placeholder="Örn: Volkswagen, Renault, BMW"
-                  value={brandName}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setBrandName(val);
-                    if (!slugManuallyEdited) {
-                      setBrandSlug(slugify(val));
-                    }
-                  }}
+                  defaultValue={editingBrand?.name ?? ""}
                   className="h-12 rounded-xl border-slate-300 bg-white text-base! sm:text-sm!"
                 />
               </div>
@@ -346,21 +323,17 @@ export default function AdminBrandsPage() {
                     htmlFor="brand-slug"
                     className="block font-medium text-slate-700"
                   >
-                    URL slug *
+                    URL slug (İsteğe bağlı)
                   </label>
                   <span className="text-[10px] text-slate-400">
-                    Otomatik üretilir
+                    Boş bırakılırsa otomatik üretilir
                   </span>
                 </div>
                 <Input
                   id="brand-slug"
-                  required
+                  name="slug"
                   placeholder="volkswagen, renault, bmw"
-                  value={brandSlug}
-                  onChange={(e) => {
-                    setSlugManuallyEdited(true);
-                    setBrandSlug(e.target.value.toLowerCase());
-                  }}
+                  defaultValue={editingBrand?.slug ?? ""}
                   className="h-12 rounded-xl border-slate-300 bg-slate-50 font-mono text-base! text-slate-700! sm:text-sm!"
                 />
               </div>
@@ -375,12 +348,12 @@ export default function AdminBrandsPage() {
                   <span className="text-xs text-slate-500">Vektör logo</span>
                 </div>
 
-                {brandLogoUrl ? (
+                {brandLogoOverride || editingBrand?.logoUrl ? (
                   <div className="flex items-center gap-3 pt-1">
                     <div className="relative w-14 h-14 rounded-md border border-slate-200 bg-white p-2 flex items-center justify-center">
                       <Image
-                        key={brandLogoUrl}
-                        src={brandLogoUrl}
+                        key={brandLogoOverride ?? editingBrand?.logoUrl ?? ""}
+                        src={brandLogoOverride ?? editingBrand?.logoUrl ?? ""}
                         alt="Logo Preview"
                         width={56}
                         height={56}
@@ -404,7 +377,7 @@ export default function AdminBrandsPage() {
                         Logo seçildi
                       </span>
                       <span className="block max-w-[200px] truncate font-mono text-xs text-slate-500">
-                        {brandLogoUrl}
+                        {brandLogoOverride ?? editingBrand?.logoUrl}
                       </span>
                     </div>
                   </div>
@@ -425,9 +398,9 @@ export default function AdminBrandsPage() {
                   </label>
                   <Input
                     id="brand-order"
+                    name="order"
                     type="number"
-                    value={brandOrder}
-                    onChange={(e) => setBrandOrder(Number(e.target.value))}
+                    defaultValue={editingBrand?.order ?? (brands?.length || 0) + 1}
                     className="h-12 rounded-xl border-slate-300 bg-white text-base! sm:text-sm!"
                   />
                 </div>
@@ -456,10 +429,10 @@ export default function AdminBrandsPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={saving}
+                  disabled={isPending}
                   className="h-12 flex-1 rounded-full px-6 sm:flex-none"
                 >
-                  {saving
+                  {isPending
                     ? "Kaydediliyor…"
                     : editingBrand
                       ? "Güncelle"

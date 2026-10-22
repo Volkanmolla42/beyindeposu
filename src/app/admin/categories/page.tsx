@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useTransition } from "react";
 import Image from "next/image";
 import {
   Layers,
@@ -33,24 +33,11 @@ export default function AdminCategoriesPage() {
   const [catSearch, setCatSearch] = useState("");
 
   // Category Modal & Form State
-  const [saving, setSaving] = useState(false);
-  const saveInProgress = useRef(false);
+  const [isPending, startTransition] = useTransition();
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [catName, setCatName] = useState("");
-  const [catSlug, setCatSlug] = useState("");
-  const [catSlugManuallyEdited, setCatSlugManuallyEdited] = useState(false);
-  const [catDescription, setCatDescription] = useState("");
   const [catImageOverride, setCatPreviewImage] = useState<string | null>(null);
-  const catPreviewImage =
-    catImageOverride ??
-    LOCAL_CATEGORY_IMAGES[catSlug || slugify(catName)] ??
-    "";
-  const [catOrder, setCatOrder] = useState<number>(1);
   const [catIsActive, setCatIsActive] = useState<boolean>(true);
-  const [catMetaTitle, setCatMetaTitle] = useState("");
-  const [catMetaDescription, setCatMetaDescription] = useState("");
-  const [catMetaKeywords, setCatMetaKeywords] = useState("");
   const [categoryError, setCategoryError] = useState<string>("");
 
   // Queries & Mutations
@@ -59,100 +46,83 @@ export default function AdminCategoriesPage() {
   const updateCategory = useMutation(api.categories.update);
   const deleteCategory = useMutation(api.categories.deleteCategory);
 
-  const resetCategoryForm = () => {
-    setCatName("");
-    setCatSlug("");
-    setCatSlugManuallyEdited(false);
-    setCatDescription("");
-    setCatPreviewImage(null);
-    setCatOrder((categories?.length || 0) + 1);
-    setCatIsActive(true);
-    setCatMetaTitle("");
-    setCatMetaDescription("");
-    setCatMetaKeywords("");
-    setEditingCategory(null);
-    setCategoryError("");
-  };
-
   const handleOpenAddCategory = () => {
-    resetCategoryForm();
+    setEditingCategory(null);
+    setCatPreviewImage(null);
+    setCatIsActive(true);
+    setCategoryError("");
     setCategoryModalOpen(true);
   };
 
   const handleOpenEditCategory = (c: Category) => {
     setEditingCategory(c);
-    setCatName(c.name);
-    setCatSlug(c.slug);
-    setCatSlugManuallyEdited(true);
-    setCatDescription(c.description || "");
     setCatPreviewImage(c.imageUrl ?? null);
-    setCatOrder(c.order ?? 1);
     setCatIsActive(c.isActive ?? true);
-    setCatMetaTitle(c.metaTitle || "");
-    setCatMetaDescription(c.metaDescription || "");
-    setCatMetaKeywords(c.metaKeywords || "");
     setCategoryError("");
     setCategoryModalOpen(true);
   };
 
-  const handleSaveCategory = async (e: React.FormEvent) => {
+  const handleSaveCategory = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (saveInProgress.current) return;
     setCategoryError("");
 
-    const generatedSlug = slugify(catSlug.trim() || catName);
-    if (!catName.trim() || !generatedSlug) {
+    const formData = new FormData(e.currentTarget);
+    const name = (formData.get("name") as string)?.trim() || "";
+    const slugInput = (formData.get("slug") as string)?.trim() || "";
+    const generatedSlug = slugify(slugInput || name);
+    const description = (formData.get("description") as string)?.trim() || "";
+    const order = Number(formData.get("order")) || 1;
+    const metaTitle = (formData.get("metaTitle") as string)?.trim() || "";
+    const metaDescription = (formData.get("metaDescription") as string)?.trim() || "";
+    const metaKeywords = (formData.get("metaKeywords") as string)?.trim() || "";
+
+    if (!name || !generatedSlug) {
       setCategoryError("Kategori adı ve geçerli bir URL slug girin.");
       return;
     }
 
-    saveInProgress.current = true;
-    setSaving(true);
-    setCategoryError("");
-    try {
-      const payload = {
-        name: catName.trim(),
-        slug: generatedSlug,
-        description: catDescription.trim(),
-        imageUrl: catPreviewImage,
-        order: Number(catOrder),
-        isActive: catIsActive,
-        metaTitle: catMetaTitle.trim(),
-        metaDescription: catMetaDescription.trim(),
-        metaKeywords: catMetaKeywords.trim(),
-      };
+    startTransition(async () => {
+      try {
+        const payload = {
+          name,
+          slug: generatedSlug,
+          description,
+          imageUrl: catImageOverride ?? (editingCategory?.slug ? LOCAL_CATEGORY_IMAGES[editingCategory.slug] : "") ?? "",
+          order,
+          isActive: catIsActive,
+          metaTitle,
+          metaDescription,
+          metaKeywords,
+        };
 
-      if (editingCategory) {
-        await updateCategory({
-          id: editingCategory._id,
-          ...payload,
-        });
-      } else {
-        await createCategory(payload);
+        if (editingCategory) {
+          await updateCategory({
+            id: editingCategory._id,
+            ...payload,
+          });
+        } else {
+          await createCategory(payload);
+        }
+
+        void triggerRevalidate([
+          "/",
+          "/parcalar",
+          "/kategoriler",
+          `/kategoriler/${generatedSlug}`,
+          ...(editingCategory && editingCategory.slug !== generatedSlug
+            ? [`/kategoriler/${editingCategory.slug}`]
+            : []),
+        ]);
+
+        setCategoryModalOpen(false);
+      } catch (err: unknown) {
+        setCategoryError(
+          err instanceof Error
+            ? err.message
+            : "Kategori kaydedilirken hata oluştu.",
+        );
       }
-
-      void triggerRevalidate([
-        "/",
-        "/parcalar",
-        "/kategoriler",
-        `/kategoriler/${generatedSlug}`,
-        ...(editingCategory && editingCategory.slug !== generatedSlug
-          ? [`/kategoriler/${editingCategory.slug}`]
-          : []),
-      ]);
-
-      setCategoryModalOpen(false);
-      resetCategoryForm();
-    } catch (err: unknown) {
-      setCategoryError(
-        err instanceof Error
-          ? err.message
-          : "Kategori kaydedilirken hata oluştu.",
-      );
-    } finally {
-      saveInProgress.current = false;
-      setSaving(false);
-    }
+    });
   };
 
   const handleDeleteCategory = async (cat: Category) => {
@@ -315,7 +285,7 @@ export default function AdminCategoriesPage() {
       <Dialog
         open={categoryModalOpen}
         onOpenChange={(open) => {
-          if (!saveInProgress.current) setCategoryModalOpen(open);
+          if (!isPending) setCategoryModalOpen(open);
         }}
       >
         <DialogContent
@@ -338,10 +308,11 @@ export default function AdminCategoriesPage() {
           )}
 
           <form
+            key={editingCategory?._id ?? "new"}
             onSubmit={handleSaveCategory}
             className="space-y-5 pt-1 text-sm"
           >
-            <fieldset disabled={saving} className="space-y-5">
+            <fieldset disabled={isPending} className="space-y-5">
               <div>
                 <label
                   htmlFor="category-name"
@@ -351,16 +322,10 @@ export default function AdminCategoriesPage() {
                 </label>
                 <Input
                   id="category-name"
+                  name="name"
                   required
                   placeholder="Örn: Motor beyinleri, ECU"
-                  value={catName}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setCatName(val);
-                    if (!catSlugManuallyEdited) {
-                      setCatSlug(slugify(val));
-                    }
-                  }}
+                  defaultValue={editingCategory?.name ?? ""}
                   className="h-12 rounded-xl border-slate-300 bg-white text-base! sm:text-sm!"
                 />
               </div>
@@ -371,21 +336,17 @@ export default function AdminCategoriesPage() {
                     htmlFor="category-slug"
                     className="block font-medium text-slate-700"
                   >
-                    URL slug *
+                    URL slug (İsteğe bağlı)
                   </label>
                   <span className="text-[10px] text-slate-400">
-                    Otomatik üretilir
+                    Boş bırakılırsa otomatik üretilir
                   </span>
                 </div>
                 <Input
                   id="category-slug"
-                  required
+                  name="slug"
                   placeholder="motor-beyinleri-ecu"
-                  value={catSlug}
-                  onChange={(e) => {
-                    setCatSlugManuallyEdited(true);
-                    setCatSlug(e.target.value.toLowerCase());
-                  }}
+                  defaultValue={editingCategory?.slug ?? ""}
                   className="h-12 rounded-xl border-slate-300 bg-slate-50 font-mono text-base! text-slate-700! sm:text-sm!"
                 />
               </div>
@@ -400,11 +361,11 @@ export default function AdminCategoriesPage() {
                   <span className="text-xs text-slate-500">WebP görsel</span>
                 </div>
 
-                {catPreviewImage ? (
+                {catImageOverride || editingCategory?.imageUrl ? (
                   <div className="flex items-center gap-3 pt-1">
                     <div className="relative w-14 h-14 rounded-md border border-slate-200 overflow-hidden bg-white p-1">
                       <Image
-                        src={catPreviewImage}
+                        src={catImageOverride ?? editingCategory?.imageUrl ?? ""}
                         alt="Kategori görseli"
                         width={56}
                         height={56}
@@ -427,7 +388,7 @@ export default function AdminCategoriesPage() {
                         Görsel seçildi
                       </span>
                       <span className="block max-w-[200px] truncate font-mono text-xs text-slate-500">
-                        {catPreviewImage}
+                        {catImageOverride ?? editingCategory?.imageUrl}
                       </span>
                     </div>
                   </div>
@@ -447,8 +408,9 @@ export default function AdminCategoriesPage() {
                 </label>
                 <Input
                   id="category-description"
-                  value={catDescription}
-                  onChange={(e) => setCatDescription(e.target.value)}
+                  name="description"
+                  defaultValue={editingCategory?.description ?? ""}
+                  placeholder="Kategori hakkında kısa açıklama"
                   className="h-12 rounded-xl border-slate-300 bg-white text-base! sm:text-sm!"
                 />
               </div>
@@ -463,10 +425,10 @@ export default function AdminCategoriesPage() {
                   </label>
                   <Input
                     id="category-order"
+                    name="order"
                     aria-label="Kategori sırası"
                     type="number"
-                    value={catOrder}
-                    onChange={(e) => setCatOrder(Number(e.target.value))}
+                    defaultValue={editingCategory?.order ?? (categories?.length || 0) + 1}
                     className="h-12 rounded-xl border-slate-300 bg-white text-base! sm:text-sm!"
                   />
                 </div>
@@ -500,9 +462,9 @@ export default function AdminCategoriesPage() {
                   </label>
                   <Input
                     id="category-meta-title"
+                    name="metaTitle"
                     placeholder="Motor beyinleri ve ECU modülleri | Beyin Deposu"
-                    value={catMetaTitle}
-                    onChange={(e) => setCatMetaTitle(e.target.value)}
+                    defaultValue={editingCategory?.metaTitle ?? ""}
                     className="h-12 rounded-xl border-slate-300 bg-white text-base! sm:text-sm!"
                   />
                 </div>
@@ -516,9 +478,25 @@ export default function AdminCategoriesPage() {
                   </label>
                   <Input
                     id="category-meta-description"
+                    name="metaDescription"
                     placeholder="Kategori ve parça bilgisi"
-                    value={catMetaDescription}
-                    onChange={(e) => setCatMetaDescription(e.target.value)}
+                    defaultValue={editingCategory?.metaDescription ?? ""}
+                    className="h-12 rounded-xl border-slate-300 bg-white text-base! sm:text-sm!"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="category-meta-keywords"
+                    className="mb-1.5 block font-medium text-slate-700"
+                  >
+                    Anahtar Kelimeler (Virgülle ayrılmış)
+                  </label>
+                  <Input
+                    id="category-meta-keywords"
+                    name="metaKeywords"
+                    placeholder="ecu, motor beyni, beyin tamiri"
+                    defaultValue={editingCategory?.metaKeywords ?? ""}
                     className="h-12 rounded-xl border-slate-300 bg-white text-base! sm:text-sm!"
                   />
                 </div>
@@ -535,10 +513,10 @@ export default function AdminCategoriesPage() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={saving}
+                  disabled={isPending}
                   className="h-12 flex-1 rounded-full px-6 sm:flex-none"
                 >
-                  {saving
+                  {isPending
                     ? "Kaydediliyor…"
                     : editingCategory
                       ? "Güncelle"

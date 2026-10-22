@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -42,22 +42,14 @@ export default function AdminServicesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Service | null>(null);
 
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
-  const [shortDesc, setShortDesc] = useState("");
-  const [fullDesc, setFullDesc] = useState("");
   const [imageStorageId, setImageStorageId] = useState<Id<"_storage"> | "">("");
   const [image, setImage] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [features, setFeatures] = useState<string[]>([]);
   const [newFeatureInput, setNewFeatureInput] = useState("");
-  const [order, setOrder] = useState<number>(1);
-  const [isActive, setIsActive] = useState(true);
 
   const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
-  const saveInProgress = useRef(false);
+  const [isPending, startTransition] = useTransition();
   const [uploading, setUploading] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -89,7 +81,7 @@ export default function AdminServicesPage() {
     setUploadingVideo(true);
     setError("");
     try {
-      const uploadedUrl = await uploadLocalVideo(file, slug || title);
+      const uploadedUrl = await uploadLocalVideo(file, editingItem?.slug || "service");
       setVideoUrl(uploadedUrl);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Video yüklenirken bir hata oluştu.");
@@ -113,19 +105,12 @@ export default function AdminServicesPage() {
   const resetForm = () => {
     clearPreview();
     setEditingItem(null);
-    setTitle("");
-    setSlug("");
-    setSlugManuallyEdited(false);
-    setShortDesc("");
-    setFullDesc("");
     setImageStorageId("");
     setImage("");
     setVideoUrl("");
     if (videoInputRef.current) videoInputRef.current.value = "";
     setFeatures([]);
     setNewFeatureInput("");
-    setOrder((services?.length || 0) + 1);
-    setIsActive(true);
     setError("");
   };
 
@@ -137,28 +122,14 @@ export default function AdminServicesPage() {
   const handleOpenEdit = (item: Service) => {
     clearPreview();
     setEditingItem(item);
-    setTitle(item.title);
-    setSlug(item.slug);
-    setSlugManuallyEdited(true);
-    setShortDesc(item.shortDesc);
-    setFullDesc(item.fullDesc);
     setImageStorageId(item.imageStorageId);
     setImage(item.image);
     setVideoUrl(item.videoUrl ?? "");
     if (videoInputRef.current) videoInputRef.current.value = "";
     setFeatures([...item.features]);
     setNewFeatureInput("");
-    setOrder(item.order);
-    setIsActive(item.isActive);
     setError("");
     setModalOpen(true);
-  };
-
-  const handleTitleChange = (val: string) => {
-    setTitle(val);
-    if (!slugManuallyEdited) {
-      setSlug(slugify(val));
-    }
   };
 
   const handleAddFeature = () => {
@@ -203,23 +174,34 @@ export default function AdminServicesPage() {
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (saveInProgress.current) return;
+    const form = e.currentTarget;
+    const formData = new FormData(form);
 
-    if (!title.trim()) {
+    const title = (formData.get("title") as string)?.trim() || "";
+    let slug = (formData.get("slug") as string)?.trim().toLowerCase() || "";
+    if (!slug && title) {
+      slug = slugify(title);
+    }
+    const shortDesc = (formData.get("shortDesc") as string)?.trim() || "";
+    const fullDesc = (formData.get("fullDesc") as string)?.trim() || "";
+    const order = parseInt((formData.get("order") as string) || "1", 10) || 1;
+    const isActive = formData.get("isActive") === "on";
+
+    if (!title) {
       setError("Servis başlığı zorunludur.");
       return;
     }
-    if (!slug.trim()) {
+    if (!slug) {
       setError("Bağlantı adresi (slug) zorunludur.");
       return;
     }
-    if (!shortDesc.trim()) {
+    if (!shortDesc) {
       setError("Kısa açıklama zorunludur.");
       return;
     }
-    if (!fullDesc.trim()) {
+    if (!fullDesc) {
       setError("Detaylı açıklama zorunludur.");
       return;
     }
@@ -228,55 +210,51 @@ export default function AdminServicesPage() {
       return;
     }
 
-    saveInProgress.current = true;
-    setSaving(true);
     setError("");
 
-    try {
-      const allFeatures = [...features];
-      if (newFeatureInput.trim()) {
-        allFeatures.push(newFeatureInput.trim());
+    startTransition(async () => {
+      try {
+        const allFeatures = [...features];
+        if (newFeatureInput.trim()) {
+          allFeatures.push(newFeatureInput.trim());
+        }
+
+        const payload = {
+          title,
+          slug,
+          shortDesc,
+          fullDesc,
+          imageStorageId,
+          videoUrl: videoUrl || undefined,
+          features: allFeatures.map((f) => f.trim()).filter(Boolean),
+          order,
+          isActive,
+        };
+
+        if (editingItem) {
+          await updateService({
+            id: editingItem._id,
+            ...payload,
+          });
+        } else {
+          await createService(payload);
+        }
+
+        void triggerRevalidate([
+          "/",
+          "/tamirveservis",
+          `/tamirveservis/${slug}`,
+          ...(editingItem && editingItem.slug !== slug
+            ? [`/tamirveservis/${editingItem.slug}`]
+            : []),
+        ]);
+
+        setModalOpen(false);
+        resetForm();
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Kayıt sırasında bir hata oluştu.");
       }
-
-      const finalSlug = slug.trim().toLowerCase();
-      const payload = {
-        title: title.trim(),
-        slug: finalSlug,
-        shortDesc: shortDesc.trim(),
-        fullDesc: fullDesc.trim(),
-        imageStorageId,
-        videoUrl: videoUrl || undefined,
-        features: allFeatures.map((f) => f.trim()).filter(Boolean),
-        order: Number(order) || 1,
-        isActive,
-      };
-
-      if (editingItem) {
-        await updateService({
-          id: editingItem._id,
-          ...payload,
-        });
-      } else {
-        await createService(payload);
-      }
-
-      void triggerRevalidate([
-        "/",
-        "/tamirveservis",
-        `/tamirveservis/${finalSlug}`,
-        ...(editingItem && editingItem.slug !== finalSlug
-          ? [`/tamirveservis/${editingItem.slug}`]
-          : []),
-      ]);
-
-      setModalOpen(false);
-      resetForm();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Kayıt sırasında bir hata oluştu.");
-    } finally {
-      setSaving(false);
-      saveInProgress.current = false;
-    }
+    });
   };
 
   const filteredServices = (services ?? []).filter((s) => {
@@ -432,7 +410,11 @@ export default function AdminServicesPage() {
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={handleSave} className="space-y-4 pt-2">
+          <form
+            key={editingItem?._id ?? "new"}
+            onSubmit={handleSave}
+            className="space-y-4 pt-2"
+          >
             {error && (
               <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-600">
                 {error}
@@ -449,8 +431,8 @@ export default function AdminServicesPage() {
                 </label>
                 <Input
                   id="service-title"
-                  value={title}
-                  onChange={(e) => handleTitleChange(e.target.value)}
+                  name="title"
+                  defaultValue={editingItem?.title ?? ""}
                   placeholder="Örn: ABS Tamiri"
                   required
                   className="rounded-xl"
@@ -466,13 +448,9 @@ export default function AdminServicesPage() {
                 </label>
                 <Input
                   id="service-slug"
-                  value={slug}
-                  onChange={(e) => {
-                    setSlug(e.target.value);
-                    setSlugManuallyEdited(true);
-                  }}
+                  name="slug"
+                  defaultValue={editingItem?.slug ?? ""}
                   placeholder="abs-tamiri"
-                  required
                   className="rounded-xl font-mono text-xs"
                 />
               </div>
@@ -487,8 +465,8 @@ export default function AdminServicesPage() {
               </label>
               <Input
                 id="service-short-desc"
-                value={shortDesc}
-                onChange={(e) => setShortDesc(e.target.value)}
+                name="shortDesc"
+                defaultValue={editingItem?.shortDesc ?? ""}
                 placeholder="Örn: ABS beyin, sensör ve hidrolik ünitesi tamir ve onarımı"
                 required
                 className="rounded-xl"
@@ -504,8 +482,8 @@ export default function AdminServicesPage() {
               </label>
               <Textarea
                 id="service-full-desc"
-                value={fullDesc}
-                onChange={(e) => setFullDesc(e.target.value)}
+                name="fullDesc"
+                defaultValue={editingItem?.fullDesc ?? ""}
                 rows={4}
                 placeholder="Aracınızda yanan ikaz ışıkları ve test aşamaları hakkında detaylı bilgi..."
                 required
@@ -584,9 +562,9 @@ export default function AdminServicesPage() {
                 </label>
                 <Input
                   id="service-order"
+                  name="order"
                   type="number"
-                  value={order}
-                  onChange={(e) => setOrder(parseInt(e.target.value, 10) || 1)}
+                  defaultValue={editingItem?.order ?? (services?.length || 0) + 1}
                   className="rounded-xl"
                 />
               </div>
@@ -750,8 +728,8 @@ export default function AdminServicesPage() {
               <input
                 type="checkbox"
                 id="isActive"
-                checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
+                name="isActive"
+                defaultChecked={editingItem ? editingItem.isActive : true}
                 className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
               />
               <label htmlFor="isActive" className="text-xs font-medium text-slate-800 cursor-pointer">
@@ -770,10 +748,10 @@ export default function AdminServicesPage() {
               </Button>
               <Button
                 type="submit"
-                disabled={saving}
+                disabled={isPending}
                 className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold rounded-xl"
               >
-                {saving ? "Kaydediliyor..." : editingItem ? "Güncelle" : "Kaydet"}
+                {isPending ? "Kaydediliyor..." : editingItem ? "Güncelle" : "Kaydet"}
               </Button>
             </div>
           </form>

@@ -205,7 +205,7 @@ Uygulama kabuğu, projenin tüm sayfalarını saran temel iskelettir:
     - `full`: Ana sayfa (`min-h-[calc(100svh-72px)]`).
     - `half` (Varsayılan): Tüm alt sayfalar (`min-h-[calc(55svh-36px)] min-h-[440px] sm:min-h-[480px] py-14 sm:py-20`).
   - Görsel karartması (`opacity-65 sm:opacity-75`) ve sol-sağ metin kontrast gradyanı tek merkezden yönetilir.
-- **Kullanıldığı Sayfalar:** Ana Sayfa (`/`), Parçalar (`/parcalar`), Kategoriler (`/kategoriler`), Markalar (`/markalar`), Blog Listesi (`/blog`), Blog Detayı (`/blog/[slug]`), OBD Arıza Kodları (`/ariza-kodlari`), Hakkımızda (`/hakkimizda`).
+- **Kullanıldığı Sayfalar:** Ana Sayfa (`/`), Parçalar (`/parcalar`), Kategoriler (`/kategoriler`), Markalar (`/markalar`), Blog Listesi (`/blog`), Blog Detayı (`/blog/[slug]`), OBD Arıza Kodları (`/ariza-kodlari`), İletişim (`/iletisim`).
 
 ---
 

@@ -10,6 +10,7 @@ import Link from "next/link";
 import { ProductImage } from "@/components/ProductImage";
 import { trackAnalytics, useAnalyticsConsent } from "@/lib/analytics";
 import { getProductImageAlt, getProductImageSource } from "@/lib/product-images";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 interface OemSearchBarProps {
   className?: string;
@@ -22,19 +23,12 @@ export default function OemSearchBar({
 }: OemSearchBarProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedTerm, setDebouncedTerm] = useState("");
+  const debouncedTerm = useDebouncedValue(searchTerm.trim());
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const consent = useAnalyticsConsent();
   const analyticsEnabled = consent.enabled && consent.choice === "granted" && !consent.privacySignal;
   const lastSearch = useRef("");
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedTerm(searchTerm.trim());
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
 
   const searchResults = useQuery(
     api.products.search,
@@ -54,7 +48,7 @@ export default function OemSearchBar({
     return () => clearTimeout(timer);
   }, [debouncedTerm, searchTerm, searchResults, isOpen, analyticsEnabled]);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
       router.push(`/parcalar?q=${encodeURIComponent(searchTerm.trim())}`);

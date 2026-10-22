@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import {
   Phone,
   Mail,
@@ -22,66 +22,56 @@ export default function AdminSettingsPage() {
   const contactData = useQuery(api.settings.getContactSettings);
   const updateSettings = useMutation(api.settings.updateContactSettings);
 
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [email, setEmail] = useState("");
-  const [workingHours, setWorkingHours] = useState("");
-  const [address, setAddress] = useState("");
-
-  const [isSaving, setIsSaving] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [prevContactData, setPrevContactData] = useState(contactData);
-  if (contactData && prevContactData !== contactData) {
-    setPrevContactData(contactData);
-    setPhoneNumber(contactData.phoneNumber);
-    setEmail(contactData.email);
-    setWorkingHours(contactData.workingHours);
-    setAddress(contactData.address);
-  }
-
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    const cleanPhone = phoneNumber.trim();
-    const cleanEmail = email.trim();
-    const cleanHours = workingHours.trim();
-    const cleanAddress = address.trim();
+    const formData = new FormData(e.currentTarget);
+    const phoneNumber = (formData.get("phoneNumber") as string)?.trim() || "";
+    const email = (formData.get("email") as string)?.trim() || "";
+    const workingHours = (formData.get("workingHours") as string)?.trim() || "";
+    const address = (formData.get("address") as string)?.trim() || "";
+    const city = (formData.get("city") as string)?.trim() || "";
+    const district = (formData.get("district") as string)?.trim() || "";
+    const postalCode = (formData.get("postalCode") as string)?.trim() || "";
 
-    if (!cleanPhone) {
+    if (!phoneNumber) {
       setErrorMessage("Telefon numarası zorunludur.");
       return;
     }
-    if (!cleanEmail) {
+    if (!email) {
       setErrorMessage("E-posta adresi zorunludur.");
       return;
     }
-    if (!cleanAddress) {
+    if (!address) {
       setErrorMessage("Adres zorunludur.");
       return;
     }
 
-    try {
-      setIsSaving(true);
-      await updateSettings({
-        phoneNumber: cleanPhone,
-        email: cleanEmail,
-        workingHours: cleanHours,
-        address: cleanAddress,
-      });
+    startTransition(async () => {
+      try {
+        await updateSettings({
+          phoneNumber,
+          email,
+          workingHours,
+          address,
+          city,
+          district,
+          postalCode,
+        });
 
-      setSuccessMessage("İletişim ayarları başarıyla kaydedildi. Değişiklikler anında tüm sitede yayında.");
-      setTimeout(() => {
-        setSuccessMessage(null);
-      }, 5000);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Ayarlar kaydedilirken bir hata oluştu.";
-      setErrorMessage(msg);
-    } finally {
-      setIsSaving(false);
-    }
+        setSuccessMessage("İletişim ayarları başarıyla kaydedildi.");
+        setTimeout(() => setSuccessMessage(null), 5000);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Ayarlar kaydedilirken bir hata oluştu.";
+        setErrorMessage(msg);
+      }
+    });
   };
 
   const isLoading = contactData === undefined;
@@ -119,7 +109,7 @@ export default function AdminSettingsPage() {
               <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
             </div>
           ) : (
-            <form onSubmit={handleSave} className="mt-5 space-y-5">
+            <form key={contactData?.updatedAt ?? "contact-form"} onSubmit={handleSubmit} className="mt-5 space-y-5">
               {/* Telefon ve WhatsApp Numarası */}
               <div className="space-y-1.5">
                 <label htmlFor="phoneNumber" className="flex items-center gap-2 text-xs font-medium text-slate-700">
@@ -128,10 +118,10 @@ export default function AdminSettingsPage() {
                 </label>
                 <Input
                   id="phoneNumber"
+                  name="phoneNumber"
                   type="text"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="Örn: 0530 906 70 34"
+                  defaultValue={contactData?.phoneNumber ?? ""}
+                  placeholder="Telefon numarası girin"
                   required
                 />
               </div>
@@ -144,10 +134,10 @@ export default function AdminSettingsPage() {
                 </label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Örn: beyindeposu34@gmail.com"
+                  defaultValue={contactData?.email ?? ""}
+                  placeholder="E-posta adresi girin"
                   required
                 />
               </div>
@@ -160,10 +150,10 @@ export default function AdminSettingsPage() {
                 </label>
                 <Input
                   id="workingHours"
+                  name="workingHours"
                   type="text"
-                  value={workingHours}
-                  onChange={(e) => setWorkingHours(e.target.value)}
-                  placeholder="Örn: Her gün: 08:30 - 18:00"
+                  defaultValue={contactData?.workingHours ?? ""}
+                  placeholder="Çalışma saatleri girin"
                 />
               </div>
 
@@ -171,16 +161,56 @@ export default function AdminSettingsPage() {
               <div className="space-y-1.5">
                 <label htmlFor="address" className="flex items-center gap-2 text-xs font-medium text-slate-700">
                   <MapPin className="h-4 w-4 text-amber-500" />
-                  <span>Fiziksel Mağaza / Depo Adresi</span>
+                  <span>Fiziksel Mağaza / Depo Adresi (Cadde / Sokak / Kapı No)</span>
                 </label>
                 <Textarea
                   id="address"
+                  name="address"
                   rows={3}
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Örn: Maltepe, Yedikule Çırpıcı Yolu Topkapı Ticaret Merkezi..."
+                  defaultValue={contactData?.address ?? ""}
+                  placeholder="Açık adresinizi girin"
                   required
                 />
+              </div>
+
+              {/* İlçe, İl (Şehir), Posta Kodu */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="space-y-1.5">
+                  <label htmlFor="district" className="text-xs font-medium text-slate-700">
+                    İlçe
+                  </label>
+                  <Input
+                    id="district"
+                    name="district"
+                    type="text"
+                    defaultValue={contactData?.district ?? ""}
+                    placeholder="Örn: Zeytinburnu"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="city" className="text-xs font-medium text-slate-700">
+                    İl / Şehir
+                  </label>
+                  <Input
+                    id="city"
+                    name="city"
+                    type="text"
+                    defaultValue={contactData?.city ?? ""}
+                    placeholder="Örn: İstanbul"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="postalCode" className="text-xs font-medium text-slate-700">
+                    Posta Kodu
+                  </label>
+                  <Input
+                    id="postalCode"
+                    name="postalCode"
+                    type="text"
+                    defaultValue={contactData?.postalCode ?? ""}
+                    placeholder="Örn: 34010"
+                  />
+                </div>
               </div>
 
               {contactData?.updatedAt && (
@@ -194,10 +224,10 @@ export default function AdminSettingsPage() {
                 <Button
                   type="submit"
                   variant="default"
-                  disabled={isSaving}
+                  disabled={isPending}
                   className="flex items-center gap-2"
                 >
-                  {isSaving ? (
+                  {isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <span>Kaydediliyor…</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -11,36 +11,37 @@ export default function LoginPage() {
   const router = useRouter();
   const { signIn } = useAuthActions();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
+
+    const formData = new FormData(e.currentTarget);
+    const email = (formData.get("email") as string)?.trim();
+    const password = (formData.get("password") as string) || "";
+
     if (!email || !password) {
       setError("Lütfen e-posta ve şifrenizi girin.");
       return;
     }
 
-    setLoading(true);
-    setError(null);
-
-    try {
-      await signIn("password", {
-        email: email.trim(),
-        password,
-        flow: "signIn",
-      });
-      router.push("/admin");
-      router.refresh();
-    } catch (err) {
-      console.error("Giriş hatası:", err);
-      setError("Hatalı e-posta veya şifre.");
-    } finally {
-      setLoading(false);
-    }
+    startTransition(async () => {
+      try {
+        await signIn("password", {
+          email,
+          password,
+          flow: "signIn",
+        });
+        router.push("/admin");
+        router.refresh();
+      } catch (err) {
+        console.error("Giriş hatası:", err);
+        setError("Hatalı e-posta veya şifre.");
+      }
+    });
   };
 
   return (
@@ -79,12 +80,11 @@ export default function LoginPage() {
               </label>
               <input
                 id="email"
+                name="email"
                 type="email"
                 required
                 autoFocus
                 autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
               />
             </div>
@@ -99,11 +99,10 @@ export default function LoginPage() {
               <div className="relative mt-1">
                 <input
                   id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   required
                   autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   className="block w-full rounded-lg border border-slate-300 px-3 py-2 pr-10 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900"
                 />
                 <button
@@ -123,10 +122,10 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={isPending}
               className="w-full rounded-full bg-amber-500 py-2.5 px-4 text-sm font-medium text-white shadow-sm hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-50 transition-colors cursor-pointer"
             >
-              {loading ? "Giriş yapılıyor..." : "Giriş yap"}
+              {isPending ? "Giriş yapılıyor..." : "Giriş yap"}
             </button>
           </form>
 

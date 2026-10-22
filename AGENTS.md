@@ -88,7 +88,6 @@ Convex agent skills for common tasks can be installed by running
 <!-- convex-ai-end -->
 
 
-
 ASLA GİT PUSH GİBİ TEHLİKELİ GİT KOMUTLARI KULLANMA.
 HER ZAMAN PONYTAİL SKİLİNİ KULLAN.
 HER ZAMAN UNSLOP SKİLİNİ KULLAN.

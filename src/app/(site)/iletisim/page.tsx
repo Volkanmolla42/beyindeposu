@@ -2,11 +2,14 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  Cpu,
   ExternalLink,
   Mail,
   MapPin,
   Phone,
+  Settings,
   Truck,
+  Wrench,
 } from "lucide-react";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import { formatPhoneNumber, getWhatsAppUrl } from "@/lib/whatsapp";
@@ -15,13 +18,13 @@ import { getSiteContactSettings } from "@/lib/services-data";
 import HeroBanner from "@/components/ui/HeroBanner";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Hakkımızda ve iletişim",
+  title: "İletişim & Servis",
   description:
-    "20 yılı aşkın süredir oto elektronik parça tedarik ediyoruz. Kataloğumuzda 15.000’den fazla parça var.",
-  path: "/hakkimizda",
+    "Beyin satışı, beyin tamir & kodlama, yarı otomatik & mekatronik ve elektrik-elektronik servis hizmetlerimiz için bize ulaşın.",
+  path: "/iletisim",
 });
 
-export default async function HakkimizdaPage() {
+export default async function IletisimPage() {
   const contact = await getSiteContactSettings();
 
   const productsCount = "15.000’den fazla";
@@ -34,16 +37,16 @@ export default async function HakkimizdaPage() {
     "@context": "https://schema.org",
     "@type": "AutoPartsStore",
     name: SITE_NAME,
-    url: `${SITE_URL}/hakkimizda`,
+    url: `${SITE_URL}/iletisim`,
     image: new URL("/images/logo-mark.webp", SITE_URL).toString(),
     telephone: displayPhone,
     email: displayEmail,
     address: {
       "@type": "PostalAddress",
       streetAddress: displayAddress,
-      addressLocality: "Zeytinburnu",
-      addressRegion: "İstanbul",
-      postalCode: "34010",
+      ...(contact.district ? { addressLocality: contact.district } : {}),
+      ...(contact.city ? { addressRegion: contact.city } : {}),
+      ...(contact.postalCode ? { postalCode: contact.postalCode } : {}),
       addressCountry: "TR",
     },
   };
@@ -57,9 +60,9 @@ export default async function HakkimizdaPage() {
       <HeroBanner
         src="/images/hero-rebrand.jpg"
         alt="Beyin Deposu Atölye"
-        eyebrow="Hakkımızda"
-        title="20 yılı aşkın süredir oto elektronik parça tedarik ediyoruz."
-        description="Orijinal çıkma, sıfır ve revizyonlu oto beyinleri, kontrol üniteleri ve hassas elektronik bileşenlerde profesyonel çözümler."
+        eyebrow="İletişim & Servis"
+        title="Oto Beyin Satış, Garantili Tamir ve Servis Hizmetleri"
+        description="Beyin tamir & kodlama, yarı otomatik mekatronik onarımı, elektrik-elektronik ve mekanik bakım servis hizmetlerimizle yanınızdayız."
       />
 
       <div className="container max-w-5xl py-14 space-y-16">
@@ -105,6 +108,49 @@ export default async function HakkimizdaPage() {
             </div>
           </div>
         </div>
+
+        <section className="space-y-6">
+          <div className="max-w-2xl space-y-2">
+            <h2 className="text-2xl font-medium tracking-tight text-slate-900 sm:text-3xl">
+              Tamir, Servis ve Kodlama Hizmetlerimiz
+            </h2>
+            <p className="text-sm text-slate-600">
+              Sadece oto beyin ve parça satışı değil; donanımlı laboratuvarımızda garantili onarım, kodlama ve servis hizmeti sunuyoruz.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
+                <Cpu className="h-5 w-5" />
+              </div>
+              <h3 className="text-base font-semibold text-slate-900">Beyin Tamir & Kodlama</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Motor, ABS, airbag, konfor ve şanzıman kontrol ünitelerinin devre onarımı, klonlama ve araç uyumlu kodlama işlemleri.
+              </p>
+            </div>
+
+            <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
+                <Settings className="h-5 w-5" />
+              </div>
+              <h3 className="text-base font-semibold text-slate-900">Yarı Otomatik & Mekatronik</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                DSG, EDC, Powershift ve robotize şanzıman mekatronik kart tamiri, basınç tüpü revizyonu ve adaptasyon testleri.
+              </p>
+            </div>
+
+            <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
+                <Wrench className="h-5 w-5" />
+              </div>
+              <h3 className="text-base font-semibold text-slate-900">Elektrik - Elektronik & Mekanik Servis</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Araç tesisat arıza tespiti, CAN-bus haberleşme kontrolleri, sensör teşhisi ve mekanik bakım onarım hizmetleri.
+              </p>
+            </div>
+          </div>
+        </section>
 
         <section id="iletisim" className="space-y-6">
           <div className="max-w-2xl space-y-2">

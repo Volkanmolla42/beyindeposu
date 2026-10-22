@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/popover";
 import { playAdminNotificationSound } from "@/app/admin/admin-utils";
 import { getProductImageSource } from "@/lib/product-images";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 function formatCalendarDate(timestamp: number) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -70,6 +71,7 @@ function AdminChatsContent() {
       () => requestedConversationId as Id<"conversations"> | null,
     );
   const [chatSearch, setChatSearch] = useState("");
+  const debouncedChatSearch = useDebouncedValue(chatSearch);
   const [chatStatusFilter, setChatStatusFilter] = useState<string>(() =>
     requestedConversationId ? "all" : "active",
   );
@@ -95,7 +97,7 @@ function AdminChatsContent() {
   // Queries
   const conversations = useQuery(api.chats.listConversations, {
     status: chatStatusFilter === "all" ? undefined : chatStatusFilter,
-    searchTerm: chatSearch || undefined,
+    searchTerm: debouncedChatSearch || undefined,
   });
 
   const selectedChatId = selectedChatIdState;
@@ -174,7 +176,7 @@ function AdminChatsContent() {
     }
   }, [activeChatMessages]);
 
-  const handleSendAdminMessage = async (e: React.FormEvent) => {
+  const handleSendAdminMessage = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!adminMessageInput.trim() || !selectedChatId || isSending) return;
 

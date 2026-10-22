@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
@@ -109,8 +109,8 @@ function BlogEditorForm({
     blog ? formFromBlog(blog) : { ...EMPTY_BLOG_FORM },
   );
   const [tab, setTab] = useState<EditorTab>("settings");
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [isDeleting, startDeleteTransition] = useTransition();
   const [error, setError] = useState("");
 
   const categoriesData = useQuery(api.blogCategories.list);
@@ -126,26 +126,26 @@ function BlogEditorForm({
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleDelete = async () => {
-    if (!blog || deleting) return;
+  const handleDelete = () => {
+    if (!blog || isDeleting) return;
     if (!confirm(`"${blog.title}" yazısını silmek istediğinize emin misiniz?`)) {
       return;
     }
 
-    setDeleting(true);
     setError("");
-    try {
-      await deleteBlog({ id: blog._id });
-      void triggerRevalidate(["/", "/blog", `/blog/${blog.slug}`]);
-      onDeleted?.();
-      router.replace("/admin/blogs");
-    } catch (err) {
-      setError(toErrorMessage(err, "Yazı silinemedi."));
-      setDeleting(false);
-    }
+    startDeleteTransition(async () => {
+      try {
+        await deleteBlog({ id: blog._id });
+        void triggerRevalidate(["/", "/blog", `/blog/${blog.slug}`]);
+        onDeleted?.();
+        router.replace("/admin/blogs");
+      } catch (err) {
+        setError(toErrorMessage(err, "Yazı silinemedi."));
+      }
+    });
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     const title = form.title.trim();
     const categoryValue = category.trim();
@@ -167,7 +167,8 @@ function BlogEditorForm({
       setError("Bir kategori seçin veya yeni bir kategori ekleyin.");
       return;
     }
-    if (!form.coverImageStorageId) {
+    const coverImageStorageId = form.coverImageStorageId;
+    if (!coverImageStorageId) {
       setTab("settings");
       setError("Bir kapak görseli yükleyin.");
       return;
@@ -178,35 +179,34 @@ function BlogEditorForm({
       return;
     }
 
-    setSaving(true);
     setError("");
 
-    try {
-      const payload = {
-        title,
-        category: categoryValue,
-        excerpt,
-        content,
-        coverImageStorageId: form.coverImageStorageId,
-        tags: parseTags(form.tags),
-        isPublished: form.isPublished,
-      };
+    startTransition(async () => {
+      try {
+        const payload = {
+          title,
+          category: categoryValue,
+          excerpt,
+          content,
+          coverImageStorageId,
+          tags: parseTags(form.tags),
+          isPublished: form.isPublished,
+        };
 
-      const finalSlug = blog ? blog.slug : slugifyTurkish(title);
-      if (blog) {
-        await updateBlog({ id: blog._id, slug: blog.slug, ...payload });
-      } else {
-        await createBlog({ slug: finalSlug, ...payload });
+        const finalSlug = blog ? blog.slug : slugifyTurkish(title);
+        if (blog) {
+          await updateBlog({ id: blog._id, slug: blog.slug, ...payload });
+        } else {
+          await createBlog({ slug: finalSlug, ...payload });
+        }
+
+        void triggerRevalidate(["/", "/blog", `/blog/${finalSlug}`]);
+
+        router.replace("/admin/blogs");
+      } catch (err) {
+        setError(toErrorMessage(err, "Kaydedilirken bir hata oluştu."));
       }
-
-      void triggerRevalidate(["/", "/blog", `/blog/${finalSlug}`]);
-
-      router.replace("/admin/blogs");
-    } catch (err) {
-      setError(toErrorMessage(err, "Kaydedilirken bir hata oluştu."));
-    } finally {
-      setSaving(false);
-    }
+    });
   };
 
   return (
@@ -245,25 +245,25 @@ function BlogEditorForm({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => void handleDelete()}
-                disabled={saving || deleting}
+                onClick={handleDelete}
+                disabled={isPending || isDeleting}
                 className="text-rose-600 hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700"
               >
-                {deleting ? (
+                {isDeleting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Trash2 className="h-4 w-4" />
                 )}
-                {deleting ? "Siliniyor..." : "Sil"}
+                {isDeleting ? "Siliniyor..." : "Sil"}
               </Button>
             )}
-            <Button type="submit" form="blog-form" disabled={saving || deleting}>
-              {saving ? (
+            <Button type="submit" form="blog-form" disabled={isPending || isDeleting}>
+              {isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              {saving ? "Kaydediliyor..." : blog ? "Güncelle" : "Kaydet"}
+              {isPending ? "Kaydediliyor..." : blog ? "Güncelle" : "Kaydet"}
             </Button>
           </div>
         }

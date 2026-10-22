@@ -10,12 +10,12 @@ import { Menu, Search, X } from "lucide-react";
 const navLinks = [
   { href: "/", label: "Ana sayfa" },
   { href: "/parcalar", label: "Parçalar" },
-  { href: "/tamirveservis", label: "Tamir & Servis" },
-  { href: "/hakkimizda", label: "Hakkımızda" },
   { href: "/kategoriler", label: "Kategoriler" },
   { href: "/markalar", label: "Markalar" },
-  { href: "/ariza-kodlari", label: "Arıza Kodları" },
-  { href: "/blog", label: "Blog" },
+  { href: "/tamirveservis", label: "Tamir & Servis" },
+  { href: "/ariza-kodlari", label: "OBD Kodları" },
+  { href: "/blog", label: "Arızalar & Çözümler" },
+  { href: "/iletisim", label: "İletişim" },
 ];
 
 export default function Header() {
@@ -24,7 +24,7 @@ export default function Header() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
 
-  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSearchSubmit = (event: React.SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (searchInput.trim()) {
       router.push(`/parcalar?q=${encodeURIComponent(searchInput.trim())}`);

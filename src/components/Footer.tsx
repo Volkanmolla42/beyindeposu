@@ -59,13 +59,16 @@ export default function Footer() {
             <p className="text-xs font-medium text-slate-400">
               Oto elektronik ve kontrol üniteleri
             </p>
+            <p className="text-xs text-slate-400">
+              Garantili tamir, servis ve bakım hizmetleri
+            </p>
           </div>
 
           <div>
             <h2 className="mb-3 text-sm font-semibold tracking-wide text-white">Kurumsal</h2>
             <ul className="space-y-2 text-sm text-slate-400">
-              <li><Link href="/hakkimizda" className="transition-colors hover:text-amber-400">Hakkımızda</Link></li>
-              <li><Link href="/hakkimizda#kalite" className="transition-colors hover:text-amber-400">Parça kontrolü ve garanti</Link></li>
+              <li><Link href="/iletisim" className="transition-colors hover:text-amber-400">İletişim</Link></li>
+              <li><Link href="/iletisim#kalite" className="transition-colors hover:text-amber-400">Parça kontrolü ve garanti</Link></li>
             </ul>
           </div>
 
@@ -83,9 +86,41 @@ export default function Footer() {
           <div>
             <h2 className="mb-3 text-sm font-semibold tracking-wide text-white">İletişim</h2>
             <ul className="space-y-2.5 text-sm text-slate-400">
-              {phone && <li className="flex items-center gap-2"><Phone className="h-4 w-4 shrink-0 text-amber-400" /><span>{phone}</span></li>}
-              {email && <li className="flex items-center gap-2"><Mail className="h-4 w-4 shrink-0 text-amber-400" /><span className="break-all">{email}</span></li>}
-              {address && <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /><span>{address}</span></li>}
+              {phone && (
+                <li className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 shrink-0 text-amber-400" />
+                  <a
+                    href={`tel:${phone.replace(/[^0-9+]/g, "")}`}
+                    className="transition-colors hover:text-amber-400"
+                  >
+                    {phone}
+                  </a>
+                </li>
+              )}
+              {email && (
+                <li className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 shrink-0 text-amber-400" />
+                  <a
+                    href={`mailto:${email}`}
+                    className="break-all transition-colors hover:text-amber-400"
+                  >
+                    {email}
+                  </a>
+                </li>
+              )}
+              {address && (
+                <li className="flex items-start gap-2">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+                  <a
+                    href={`https://maps.google.com/maps?q=${encodeURIComponent(address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-colors hover:text-amber-400"
+                  >
+                    {address}
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
         </div>

@@ -79,7 +79,7 @@ function HeroSection() {
             </Link>
           </Button>
           <Button asChild variant="darkOutline" size="lg">
-            <Link href="/hakkimizda">Hizmetlerimiz ve İletişim</Link>
+            <Link href="/tamirveservis">Tamir & Servis</Link>
           </Button>
         </>
       }

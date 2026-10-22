@@ -91,7 +91,7 @@ export default async function ServiceDetailPage({ params }: Props) {
   if (!service) notFound();
 
   const otherServices = allServices.filter((s) => s.slug !== service.slug);
-  const phoneNumber = contactSettings?.phoneNumber || "0530 906 70 34";
+  const phoneNumber = contactSettings?.phoneNumber || "";
   const whatsappUrl = getWhatsAppUrl(
     {
       message: `Merhaba Beyin Deposu, ${service.title} hizmeti için randevu ve bilgi almak istiyorum.`,

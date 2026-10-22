@@ -189,7 +189,7 @@ export default function ProductCatalogClient() {
     return "Parçalar";
   }, [selectedCategories, selectedBrands, selectedModels, activeSearch, activeCategory]);
 
-  const handleFilterSubmit = (e: React.FormEvent) => {
+  const handleFilterSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     updateCatalogParams({ q: oemSearch.trim() || null });
   };

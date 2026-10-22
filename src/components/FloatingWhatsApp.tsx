@@ -11,19 +11,19 @@ import { useContactSettings } from "@/hooks/useContactSettings";
 export default function FloatingWhatsApp() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [message, setMessage] = useState("");
   const { phoneNumber } = useContactSettings();
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const message = (formData.get("whatsapp-message") as string)?.trim() || "";
     const url = getWhatsAppUrl(
-      message.trim() ? { message: message.trim() } : undefined,
+      message ? { message } : undefined,
       phoneNumber
     );
     trackAnalytics("whatsapp_click");
     window.open(url, "_blank", "noopener,noreferrer");
     setOpen(false);
-    setMessage("");
   };
 
   if (pathname?.startsWith("/admin") || pathname === "/login" || pathname === "/parcalar") {
@@ -63,8 +63,6 @@ export default function FloatingWhatsApp() {
               id="whatsapp-chat-message"
               name="whatsapp-message"
               type="text"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
               placeholder="Mesaj yazın…"
               aria-label="WhatsApp mesajı"
               className="min-w-0 flex-1 text-xs border border-slate-300 rounded-xl px-3.5 py-2 focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"

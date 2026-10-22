@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useEffect, useRef, useSyncExternalStore } from "react";
+import { useCallback, useState, useEffect, useRef, useSyncExternalStore, useTransition } from "react";
 import { trackAnalytics } from "@/lib/analytics";
 import { getProductImageAlt, getProductImageSource } from "@/lib/product-images";
 import { usePathname } from "next/navigation";
@@ -101,13 +101,9 @@ export default function LiveChatWidget() {
   const [visitorId, setVisitorId] = useVisitorStorageValue("beyindeposu_visitor_id");
   const [savedVisitorName, setSavedVisitorName] = useVisitorStorageValue("beyindeposu_visitor_name");
   const [savedVisitorPhone, setSavedVisitorPhone] = useVisitorStorageValue("beyindeposu_visitor_phone");
-  const [visitorNameDraft, setVisitorNameDraft] = useState<string | null>(null);
-  const [visitorPhoneDraft, setVisitorPhoneDraft] = useState<string | null>(null);
-  const visitorName = visitorNameDraft ?? savedVisitorName;
-  const visitorPhone = visitorPhoneDraft ?? savedVisitorPhone;
   const [includeProduct, setIncludeProduct] = useState<boolean>(true);
   const [inputMessage, setInputMessage] = useState("");
-  const [isStarting, setIsStarting] = useState(false);
+  const [isStarting, startTransition] = useTransition();
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMsgCountRef = useRef<number>(0);
@@ -166,13 +162,18 @@ export default function LiveChatWidget() {
     }
   }, [isOpen, conversationId, visitorId, activeConversation?.unreadCountVisitor, markAsReadMutation]);
 
-  const handleStartChat = async (e: React.FormEvent) => {
+  const handleStartChat = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!visitorId) return;
 
-    setIsStarting(true);
-    if (visitorName.trim()) setSavedVisitorName(visitorName.trim());
-    if (visitorPhone.trim()) setSavedVisitorPhone(visitorPhone.trim());
+    const formData = new FormData(e.currentTarget);
+    const visitorName = (formData.get("visitor-name") as string)?.trim() || "";
+    const visitorPhone = (formData.get("visitor-phone") as string)?.trim() || "";
+    const message = (formData.get("visitor-message") as string)?.trim() || "";
+
+    if (visitorName) setSavedVisitorName(visitorName);
+    if (visitorPhone) setSavedVisitorPhone(visitorPhone);
+
     let productCardPayload = undefined;
     if (isProductPage && currentProduct && includeProduct) {
       productCardPayload = {
@@ -184,26 +185,24 @@ export default function LiveChatWidget() {
       };
     }
 
-    try {
-      await getOrCreateConversation({
-        visitorId,
-        visitorName: visitorName.trim() || undefined,
-        visitorPhone: visitorPhone.trim() || undefined,
-        productCard: productCardPayload,
-        initialMessage: inputMessage.trim() || undefined,
-      });
+    startTransition(async () => {
+      try {
+        await getOrCreateConversation({
+          visitorId,
+          visitorName: visitorName || undefined,
+          visitorPhone: visitorPhone || undefined,
+          productCard: productCardPayload,
+          initialMessage: message || undefined,
+        });
 
-      trackAnalytics("chat_start");
-
-      setInputMessage("");
-    } catch (err) {
-      console.error("Start chat error:", err);
-    } finally {
-      setIsStarting(false);
-    }
+        trackAnalytics("chat_start");
+      } catch (err) {
+        console.error("Start chat error:", err);
+      }
+    });
   };
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!inputMessage.trim() || !conversationId) return;
 
@@ -331,8 +330,7 @@ export default function LiveChatWidget() {
                       id="chat-visitor-name"
                       name="visitor-name"
                       aria-label="Ad soyad"
-                      value={visitorName}
-                      onChange={(e) => setVisitorNameDraft(e.target.value)}
+                      defaultValue={savedVisitorName}
                       className="bg-white text-xs h-9"
                     />
                   </div>
@@ -347,8 +345,7 @@ export default function LiveChatWidget() {
                       aria-label="Telefon numarası"
                       type="tel"
                       placeholder="0534 000 00 00"
-                      value={visitorPhone}
-                      onChange={(e) => setVisitorPhoneDraft(e.target.value)}
+                      defaultValue={savedVisitorPhone}
                       className="bg-white text-xs h-9"
                     />
                   </div>
@@ -362,8 +359,6 @@ export default function LiveChatWidget() {
                       name="visitor-message"
                       aria-label="Mesajınız"
                       placeholder="Parça kodu veya sorunuzu yazın"
-                      value={inputMessage}
-                      onChange={(e) => setInputMessage(e.target.value)}
                       className="bg-white text-xs h-9"
                     />
                   </div>

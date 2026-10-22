@@ -8,6 +8,9 @@ export interface ContactSettings {
   email: string;
   workingHours: string;
   address: string;
+  city: string;
+  district: string;
+  postalCode: string;
 }
 
 const defaultContactSettings: ContactSettings = {
@@ -16,6 +19,9 @@ const defaultContactSettings: ContactSettings = {
   email: "",
   workingHours: "",
   address: "",
+  city: "",
+  district: "",
+  postalCode: "",
 };
 
 const ContactSettingsContext = createContext<ContactSettings>(defaultContactSettings);
@@ -35,6 +41,9 @@ export function ContactSettingsProvider({
     email: settings?.email || defaultContactSettings.email,
     workingHours: settings?.workingHours || defaultContactSettings.workingHours,
     address: settings?.address || defaultContactSettings.address,
+    city: settings?.city || defaultContactSettings.city,
+    district: settings?.district || defaultContactSettings.district,
+    postalCode: settings?.postalCode || defaultContactSettings.postalCode,
   };
 
   return (
