@@ -1,8 +1,10 @@
-# CLAUDE.md
+# AGENTS.md
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+Behavioral guidelines to reduce common LLM coding mistakes and enforce strict quality standards.
 
 **Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+---
 
 ## 1. Think Before Coding
 
@@ -14,6 +16,8 @@ Before implementing:
 - If a simpler approach exists, say so. Push back when warranted.
 - If something is unclear, stop. Name what's confusing. Ask.
 
+---
+
 ## 2. Simplicity First
 
 **Minimum code that solves the problem. Nothing speculative.**
@@ -24,23 +28,34 @@ Before implementing:
 - No error handling for impossible scenarios.
 - If you write 200 lines and it could be 50, rewrite it.
 
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+Ask yourself: *"Would a senior engineer say this is overcomplicated?"* If yes, simplify.
 
-## 3. Surgical Changes
+---
 
-**Touch only what you must. Clean up only your own mess.**
+## 3. Surgical Changes & Style vs. Anti-Pattern Distinction
+
+**Touch only what you must. Clean up only your own mess. Never propagate broken patterns.**
 
 When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
+- Don't touch or refactor unrelated code that isn't broken.
+- When your changes create orphans: remove imports/variables/functions that YOUR changes made unused.
+- The test: Every changed line should trace directly to the user's request.
 
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
+### Style (Syntax) vs. Anti-Pattern (Technical Flaw) Distinction
+The "match existing style" rule is NEVER an excuse to mimic outdated architecture or propagate anti-patterns:
 
-The test: Every changed line should trace directly to the user's request.
+1. **Style & Preference (MATCH THE EXISTING FILE):**
+   - Follow the existing file's subjective choices that do not harm correctness or performance:
+     - Naming conventions (`camelCase`, `PascalCase`), function declarations vs. arrow functions (`function` vs `const () =>`), import ordering.
+     - Never impose arbitrary personal syntax preferences onto the codebase.
+2. **Flaws & Anti-Patterns (NEVER MIMIC OR COPY):**
+   - Measurable defects are technical debt, not "style choices":
+     - Unnecessary re-render cascades, excessive component-level state, deprecated/removed APIs, N+1 or unindexed database queries, security/authorization oversights.
+     - *"The existing file does it this way"* is NEVER a valid reason to replicate bad patterns into new code.
+3. **The Broken Window Rule (Stop & Ask):**
+   - If adding a feature requires building directly on top of an existing anti-pattern: do not expand the broken window. Stop. Surface the architectural flaw and the modern alternative to the user, and ask for confirmation.
+
+---
 
 ## 4. Goal-Driven Execution
 
@@ -49,7 +64,7 @@ The test: Every changed line should trace directly to the user's request.
 Transform tasks into verifiable goals:
 - "Add validation" → "Write tests for invalid inputs, then make them pass"
 - "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
+- "Refactor X" → "Ensure tests and builds pass before and after"
 
 For multi-step tasks, state a brief plan:
 ```
@@ -58,11 +73,19 @@ For multi-step tasks, state a brief plan:
 3. [Step] → verify: [check]
 ```
 
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+---
+
+## 5. Strict Guardrails & Safety Rules
+
+- **NEVER use dangerous git commands like `git push` or `git reset --hard`.**
+- **ALWAYS apply `ponytail` principles:** avoid over-engineering, unnecessary dependencies, and speculative abstractions.
+- **ALWAYS apply `unslop` principles:** remove artificial AI commentary, redundant boilerplate, and verbose fluff.
+- **NEVER introduce backwards compatibility hacks or redirect workarounds.** Directly remove and clean up outdated code and deprecated routes.
+- **NEVER perform actions in the Convex Production environment without explicit user confirmation.**
+- **NEVER run `npx tsc` or `npm run build` unnecessarily.**  Only run verification when TypeScript/JavaScript source code was actually modified and needs verification, or when the user explicitly asks for it.
 
 ---
 
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
@@ -87,40 +110,65 @@ Convex agent skills for common tasks can be installed by running
 
 <!-- convex-ai-end -->
 
+---
 
-ASLA GİT PUSH GİBİ TEHLİKELİ GİT KOMUTLARI KULLANMA.
-HER ZAMAN PONYTAİL SKİLİNİ KULLAN.
-HER ZAMAN UNSLOP SKİLİNİ KULLAN.
-asla geriye dönük uyumluluk yapma.
-asla convex prodda onay almadan işlem yapma. asla.
+## 6. Next.js 16 Rules & Strict Prohibitions (NEVER DO)
 
-## Next.js 16 Kuralları ve Kesin Yasaklar (NEVER DO)
+### 1. Synchronous Request API Access Is Strictly Forbidden
+- `params` and `searchParams` are Promises. Never read `params.id` or `searchParams.q` synchronously. Always use `await props.params` and `await props.searchParams` (or `use(params)` in Client Components).
+- `cookies()`, `headers()`, and `draftMode()` are Promises. Never call `cookies().get()` synchronously; always use `(await cookies()).get()`.
+- Route metadata and generation functions (`generateMetadata`, `opengraph-image`, `icon`, `sitemap`) receive parameters as Promises (`await params`, `await id`).
 
-### 1. Senkron Request API Erişimi Kesinlikle Yasak
-- `params` ve `searchParams` Promise'tir. Asla `params.id` veya `searchParams.q` senkron okunamaz. Her zaman `await props.params` ve `await props.searchParams` kullanılmalı (Client Component'te `use(params)`).
-- `cookies()`, `headers()`, `draftMode()` Promise'tir. Asla `cookies().get()` çağrılamaz; her zaman `(await cookies()).get()` şeklinde async kullanılmalı.
-- `generateMetadata`, `opengraph-image`, `icon` ve `sitemap` fonksiyonlarında gelen `params` ve `id` değerleri async karşılanmalı (`await params`, `await id`).
+### 2. Server Action Security Violations Are Strictly Forbidden
+- Never rely on page-level auth or redirect checks to guard Server Actions. Server Actions are independent, public POST endpoints; every action must self-authenticate (`auth()`) and verify resource ownership (authorization/IDOR prevention).
+- Never trust client-supplied user IDs or object payloads; always resolve the acting identity directly from the authenticated session.
+- Never return raw database records to the client; return only the minimal DTO fields required by the UI.
+- Never attempt to run Server Actions in parallel using `Promise.all` on the client; the action dispatcher serializes executions.
 
-### 2. Server Action Güvenlik İhmalleri Kesinlikle Yasak
-- Sayfa düzeyindeki auth/redirect kontrollerine güvenerek Server Action yazmak yasak. Server Action'lar bağımsız genel POST uç noktalarıdır; her action kendi içinde `auth()` ve sahiplik (authorization/IDOR) doğrulaması yapmalıdır.
-- Client'tan gönderilen kullanıcı ID veya nesne verilerine asla güvenilmez; işlem yapan kullanıcı kimliği doğrudan session'dan alınmalıdır.
-- Ham veritabanı kayıtları client'a döndürülmez, sadece arayüzün ihtiyaç duyduğu DTO alanları döndürülmelidir.
-- Client tarafından `Promise.all` ile Server Action çağrıları paralel yapılmaya çalışılmaz; dispatcher istekleri sırayla yürütür.
+### 3. Usage of Deprecated or Removed APIs Is Forbidden
+- `middleware.ts` is now `proxy.ts` (exported function named `proxy`). Edge runtime is not supported in `proxy`; runtime is `nodejs`.
+- `next/legacy/image` and `images.domains` are removed. Use `next/image` with `images.remotePatterns`.
+- `priority` on images is removed; use `preload={true}` on LCP elements.
+- `@deprecated FormEvent` is forbidden in form handlers; use React 19 standard `React.SubmitEvent<HTMLFormElement>`.
+- `next lint` and the `eslint` key in `next.config` are removed; run `eslint` directly.
+- `serverRuntimeConfig` and `publicRuntimeConfig` are removed; access `process.env` and `NEXT_PUBLIC_*` directly.
+- `unstable_cacheLife` and `unstable_cacheTag` prefixes are removed; import `cacheLife` and `cacheTag` directly.
+- `revalidateTag(tag)` requires an explicit profile (`revalidateTag(tag, 'max')`). To immediately update client UI inside Server Actions, use `updateTag(tag)`.
+- `experimental_ppr`, `experimental.dynamicIO`, and `experimental.useCache` are removed; use top-level `cacheComponents: true`.
 
-### 3. Kaldırılan / Eski API'lerin Kullanımı Yasak
-- `middleware.ts` artık `proxy.ts` oldu (fonksiyon adı `proxy`). `proxy` içinde Edge runtime desteklenmez, runtime `nodejs`'tir.
-- `next/legacy/image` ve `images.domains` kaldırıldı / yasak. Sadece `next/image` ve `images.remotePatterns` kullanılır.
-- `next lint` komutu ve `next.config` içindeki `eslint` alanı kaldırıldı; doğrudan `eslint` çalıştırılır.
-- `serverRuntimeConfig` ve `publicRuntimeConfig` kaldırıldı; doğrudan `process.env` ve `NEXT_PUBLIC_*` kullanılır.
-- `unstable_cacheLife` ve `unstable_cacheTag` önekleri kaldırıldı; doğrudan `cacheLife` ve `cacheTag` import edilir.
-- `revalidateTag(tag)` tek argümanla çağrılamaz, profil zorunludur (`revalidateTag(tag, 'max')`). UI anlık güncellenecekse Server Action içinde `updateTag(tag)` kullanılır.
-- `experimental_ppr`, `experimental.dynamicIO`, `experimental.useCache` kaldırıldı; bunun yerine üst düzey `cacheComponents: true` kullanılır.
+### 4. Fetch & Caching Violations Are Forbidden
+- Next.js 15+ does NOT cache `fetch()` requests by default (`no-store`). Never assume automatic caching. If caching is needed, explicitly specify `{ cache: 'force-cache' }` or `'use cache'`.
+- Route handler `GET` requests are dynamic by default; if static caching is desired, export `export const dynamic = 'force-static'`.
+- Parallel route slots (`@slot`) must include a `default.tsx` file; otherwise builds will fail.
 
-### 4. Fetch ve Önbellek Hataları Yasak
-- Next.js 15+ ile `fetch()` varsayılan olarak önbelleğe ALINMAZ (`no-store`). Otomatik cache varsayımı yapılmaz. Cache gerekiyorsa `{ cache: 'force-cache' }` veya `'use cache'` açıkça belirtilir.
-- Route handler `GET` istekleri varsayılan olarak dinamiktir; statik cache isteniyorsa `export const dynamic = 'force-static'` eklenmelidir.
-- Paralel route slotlarında (`@slot`) `default.tsx` dosyası unutulamaz; yoksa build kırılır.
+---
 
-## Design System
+## 7. Design System
 
 This project's design system and component library is documented in `docs/design-system.md`. It serves as the source of truth for color tokens, typography, spacing, radius, and components. Always consult `docs/design-system.md` before designing or building any UI.
+
+---
+
+## 8. UI/UX Anti-Slop & Strict Aesthetic Guardrails (NEVER DO)
+
+Reject all generic AI-generated landing page tropes, Vercel-core template clichés, and gimmicky design slop. The following patterns are strictly forbidden:
+
+### 1. Forbidden Visual & Layout Clichés
+- **NO Bento Grids:** Do not build trendy, asymmetric "bento box" feature grids. Use structured, purposeful layouts tailored to the actual domain and content.
+- **NO Generic Feature Cards in a Row:** Never output formulaic 3-column rows of identical cards featuring a centered icon, bold title, and two lines of filler text.
+- **NO Lucide Icon Clichés:** Never scatter generic, uncontextualized Lucide icons as visual filler or bullet point replacements.
+- **NO Sparkle Icons:** Never use sparkle/magic icons (`Sparkles`, `✨`, stars) to signify AI, smart features, or modern capabilities.
+- **NO Liquid Glass / Excessive Glassmorphism:** Avoid blurry frosted glass overlays (`backdrop-blur-md`, semi-transparent liquid borders, glassy cards) that compromise contrast and readability.
+- **NO Background Orbs & Radial Glows:** Do not place floating blurred colored orbs (`bg-gradient-radial`, glowing ambient spheres) behind text or headers.
+- **NO Dot Grid / Mesh Backgrounds:** Do not use repetitive SVG/CSS dot grid matrix patterns or wireframe grid backgrounds.
+- **NO Rainbow / Chromatic Coloring:** Never use multi-stop rainbow gradients, iridescent borders, or multi-colored chromatic text effects. Stick strictly to the defined brand palette in `docs/design-system.md`.
+
+### 2. Forbidden Typography & Copy Slop
+- **NO Overused AI Fonts:** Do NOT default to generic, overused AI aesthetic typefaces (`Inter`, `Geist`, `Space Grotesk`). Follow the project's design system fonts.
+- **NO Emojis in UI or Headings:** Never use emojis (🚀, 💡, ⚡, 🔥) in headings, badges, buttons, cards, or feature lists.
+- **NO Em Dashes in Copy:** Never use em dashes (`—`) in titles, microcopy, or marketing copy.
+- **NO AI Contrasting Copy Formulas:** Never write cliché "It's not X, it's Y" or "Not just an A, but a B" contrasting marketing tropes.
+
+### 3. Forbidden Micro-Interactions & Motion
+- **NO Useless Hover Animations:** Avoid gimmicky 3D tilts, magnetic button effects, excessive scaling (`scale-105`), bouncing, or floating card transitions that add no usability value.
+- **NO Animated / Bouncing Arrows:** Never use constantly bouncing chevron or arrow indicators on CTAs, links, or scroll prompts.
