@@ -1,9 +1,14 @@
 import SiteShell from "@/components/SiteShell";
+import { ConvexClientProvider } from "@/app/ConvexClientProvider";
 
 export default function StaticSiteLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <SiteShell>{children}</SiteShell>;
+  return (
+    <ConvexClientProvider>
+      <SiteShell>{children}</SiteShell>
+    </ConvexClientProvider>
+  );
 }
