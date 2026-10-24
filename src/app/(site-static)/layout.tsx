@@ -1,6 +1,8 @@
 import SiteShell from "@/components/SiteShell";
 import { ConvexClientProvider } from "@/app/ConvexClientProvider";
 
+export const revalidate = 300;
+
 export default function StaticSiteLayout({
   children,
 }: {
