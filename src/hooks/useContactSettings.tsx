@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useContext } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@convex/_generated/api";
 
 export interface ContactSettings {
   phoneNumber: string;
@@ -33,17 +35,19 @@ export function ContactSettingsProvider({
   children: React.ReactNode;
   settings?: Partial<ContactSettings>;
 }) {
-  const phone = settings?.phoneNumber || defaultContactSettings.phoneNumber;
+  const liveSettings = useQuery(api.settings.getContactSettings);
+  const source = liveSettings ?? settings;
+  const phone = source?.phoneNumber || defaultContactSettings.phoneNumber;
 
   const value: ContactSettings = {
     phoneNumber: phone,
     whatsappNumber: phone,
-    email: settings?.email || defaultContactSettings.email,
-    workingHours: settings?.workingHours || defaultContactSettings.workingHours,
-    address: settings?.address || defaultContactSettings.address,
-    city: settings?.city || defaultContactSettings.city,
-    district: settings?.district || defaultContactSettings.district,
-    postalCode: settings?.postalCode || defaultContactSettings.postalCode,
+    email: source?.email || defaultContactSettings.email,
+    workingHours: source?.workingHours || defaultContactSettings.workingHours,
+    address: source?.address || defaultContactSettings.address,
+    city: source?.city || defaultContactSettings.city,
+    district: source?.district || defaultContactSettings.district,
+    postalCode: source?.postalCode || defaultContactSettings.postalCode,
   };
 
   return (
