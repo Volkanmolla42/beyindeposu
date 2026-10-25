@@ -197,6 +197,7 @@ export default defineSchema({
     title: v.string(),
     description: v.optional(v.string()),
     isPopular: v.optional(v.boolean()),
+    imageStorageId: v.optional(v.id("_storage")),
   })
     .index("by_code", ["code"])
     .searchIndex("search_code", {

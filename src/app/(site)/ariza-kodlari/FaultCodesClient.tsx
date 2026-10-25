@@ -31,6 +31,7 @@ export type FaultCodeItem = {
   title: string;
   description?: string;
   isPopular: boolean;
+  image?: string;
 };
 
 export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) {
@@ -249,7 +250,7 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
                 )}
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {filteredCodes.map((item) => (
                   <div
                     key={item.code}
@@ -263,15 +264,29 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
                         setActiveCode(item);
                       }
                     }}
-                    className="group flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs transition-all hover:border-amber-400 hover:shadow-md active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
+                    className="group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs transition-all hover:border-amber-400 hover:shadow-md active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                   >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <span className="shrink-0 rounded-lg border border-amber-300/50 bg-amber-50 px-3 py-1.5 font-mono text-sm font-bold text-amber-900 transition-colors group-hover:border-amber-400 group-hover:bg-amber-100">
-                        {item.code}
-                      </span>
-                      <p className="min-w-0 text-sm font-medium leading-snug text-slate-800 break-words group-hover:text-slate-950">
-                        {item.title}
-                      </p>
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      {item.image && (
+                        <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                          <Image
+                            src={item.image}
+                            alt={item.title}
+                            fill
+                            unoptimized
+                            className="object-cover"
+                            sizes="96px"
+                          />
+                        </div>
+                      )}
+                      <div className="flex min-w-0 flex-col items-start gap-2">
+                        <span className="max-w-full break-words rounded-lg border border-amber-300/50 bg-amber-50 px-2 py-1 font-mono text-xs font-bold text-amber-900 transition-colors group-hover:border-amber-400 group-hover:bg-amber-100 sm:text-sm">
+                          {item.code}
+                        </span>
+                        <p className="min-w-0 text-sm font-medium leading-snug text-slate-800 break-words group-hover:text-slate-950">
+                          {item.title}
+                        </p>
+                      </div>
                     </div>
 
                     <div className="shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-amber-600">
@@ -342,43 +357,55 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
       </section>
 
       <Dialog open={Boolean(activeCode)} onOpenChange={(open) => !open && setActiveCode(null)}>
-        <DialogContent className="max-w-lg rounded-2xl p-6">
+        <DialogContent className="left-0 top-auto bottom-0 flex max-h-[88dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 p-0 shadow-2xl sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[calc(100%_-_1.5rem)] sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl sm:border">
           {activeCode && (
-            <div className="space-y-4">
-              <DialogHeader>
-                <div>
-                  <span className="inline-block rounded-lg border border-amber-300/50 bg-amber-50 px-3.5 py-1.5 font-mono text-base font-bold text-amber-900">
-                    {activeCode.code}
-                  </span>
-                </div>
-                <DialogTitle className="pt-2 text-xl font-bold text-slate-900">
+            <>
+              <DialogHeader className="items-start space-y-2 border-b border-slate-100 px-5 pb-4 pt-5 pr-12 text-left sm:px-6 sm:pt-6">
+                <span className="max-w-full break-words rounded-lg border border-amber-300/50 bg-amber-50 px-2.5 py-1 font-mono text-xs font-bold text-amber-900 sm:px-3 sm:py-1.5 sm:text-sm">
+                  {activeCode.code}
+                </span>
+                <DialogTitle className="text-lg font-bold leading-snug text-slate-900 sm:text-xl">
                   {activeCode.title}
                 </DialogTitle>
               </DialogHeader>
 
-              {activeCode.description ? (
-                <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                    Açıklama & Detaylar
-                  </h4>
-                  <div className="mt-2 rounded-xl bg-slate-50 border border-slate-100 p-4 text-sm leading-relaxed text-slate-700 whitespace-pre-line">
-                    {activeCode.description}
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6 sm:py-5">
+                {activeCode.image && (
+                  <div className="relative mb-4 aspect-video w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                    <Image
+                      src={activeCode.image}
+                      alt={activeCode.title}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                      sizes="(max-width: 640px) 100vw, 512px"
+                    />
                   </div>
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400 italic">Detaylı açıklama bulunmuyor.</p>
-              )}
+                )}
+                {activeCode.description ? (
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      Açıklama & Detaylar
+                    </h4>
+                    <div className="mt-2 rounded-xl bg-slate-50 border border-slate-100 p-4 text-sm leading-relaxed text-slate-700 whitespace-pre-line">
+                      {activeCode.description}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-400 italic">Detaylı açıklama bulunmuyor.</p>
+                )}
+              </div>
 
-              <div className="flex justify-end pt-2 border-t border-slate-100">
+              <div className="flex justify-end border-t border-slate-100 px-5 py-4 sm:px-6">
                 <button
                   type="button"
                   onClick={() => setActiveCode(null)}
-                  className="rounded-xl bg-slate-900 px-5 py-2 text-sm font-semibold text-white hover:bg-slate-800 cursor-pointer"
+                  className="w-full cursor-pointer rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 sm:w-auto sm:py-2"
                 >
                   Kapat
                 </button>
               </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>

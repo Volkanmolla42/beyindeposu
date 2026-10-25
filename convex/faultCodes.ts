@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { requireAdmin } from "./authz";
+import { assertValidImageStorage } from "./imageStorage";
+import { storageUrl } from "./storage";
 import schema from "./schema";
 
 export const list = query({
@@ -38,6 +40,7 @@ const faultCodePublicValidator = v.object({
   title: v.string(),
   description: v.optional(v.string()),
   isPopular: v.boolean(),
+  image: v.optional(v.string()),
 });
 
 export const listPublic = query({
@@ -45,14 +48,19 @@ export const listPublic = query({
   returns: v.array(faultCodePublicValidator),
   handler: async (ctx) => {
     const items = await ctx.db.query("faultCodes").take(100);
-    return items
-      .sort((a, b) => a.code.localeCompare(b.code))
-      .map((item) => ({
-        code: item.code,
-        title: item.title,
-        description: item.description,
-        isPopular: item.isPopular ?? false,
-      }));
+    return await Promise.all(
+      items
+        .sort((a, b) => a.code.localeCompare(b.code))
+        .map(async (item) => ({
+          code: item.code,
+          title: item.title,
+          description: item.description,
+          isPopular: item.isPopular ?? false,
+          image: item.imageStorageId
+            ? await storageUrl(ctx, item.imageStorageId)
+            : undefined,
+        })),
+    );
   },
 });
 
@@ -62,6 +70,7 @@ export const create = mutation({
     title: v.string(),
     description: v.optional(v.string()),
     isPopular: v.optional(v.boolean()),
+    imageStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -76,11 +85,16 @@ export const create = mutation({
       throw new Error(`Bu arıza kodu (${normalizedCode}) zaten kayıtlı.`);
     }
 
+    if (args.imageStorageId) {
+      await assertValidImageStorage(ctx, args.imageStorageId);
+    }
+
     return await ctx.db.insert("faultCodes", {
       code: normalizedCode,
       title: args.title.trim(),
       description: args.description?.trim() || undefined,
       isPopular: args.isPopular ?? false,
+      imageStorageId: args.imageStorageId,
     });
   },
 });
@@ -92,11 +106,15 @@ export const update = mutation({
     title: v.string(),
     description: v.optional(v.string()),
     isPopular: v.optional(v.boolean()),
+    imageStorageId: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
 
-    const { id, code, title, description, isPopular } = args;
+    const { id, code, title, description, isPopular, imageStorageId } = args;
+    const existing = await ctx.db.get(id);
+    if (!existing) throw new Error("Arıza kodu bulunamadı");
+
     const normalizedCode = code.trim().toUpperCase();
     const duplicate = await ctx.db
       .query("faultCodes")
@@ -106,12 +124,21 @@ export const update = mutation({
       throw new Error(`Bu arıza kodu (${normalizedCode}) zaten kayıtlı.`);
     }
 
-    return await ctx.db.patch(id, {
+    if (imageStorageId) {
+      await assertValidImageStorage(ctx, imageStorageId);
+    }
+
+    await ctx.db.patch(id, {
       code: normalizedCode,
       title: title.trim(),
       description: description?.trim() || undefined,
       isPopular: isPopular ?? false,
+      imageStorageId,
     });
+
+    if (existing.imageStorageId && existing.imageStorageId !== imageStorageId) {
+      await ctx.storage.delete(existing.imageStorageId);
+    }
   },
 });
 
@@ -131,6 +158,11 @@ export const deleteFaultCode = mutation({
   args: { id: v.id("faultCodes") },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
+    const item = await ctx.db.get(args.id);
+    if (!item) throw new Error("Arıza kodu bulunamadı");
+    if (item.imageStorageId) {
+      await ctx.storage.delete(item.imageStorageId);
+    }
     await ctx.db.delete(args.id);
   },
 });
