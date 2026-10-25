@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import TrustBadgeStrip from "@/components/TrustBadgeStrip";
 import FeatureCardGrid from "@/components/FeatureCardGrid";
+import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 
 export type FaultCodeItem = {
   code: string;
@@ -343,7 +344,7 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
       </section>
 
       <Dialog open={Boolean(activeCode)} onOpenChange={(open) => !open && setActiveCode(null)}>
-        <DialogContent className="left-0 top-auto bottom-0 flex max-h-[88dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 p-0 shadow-2xl sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[calc(100%_-_1.5rem)] sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl sm:border">
+        <DialogContent className="left-0 top-auto bottom-0 flex max-h-[90dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 p-0 shadow-2xl sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[calc(100%_-_1.5rem)] sm:max-w-2xl sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl sm:border">
           {activeCode && (
             <>
               <DialogHeader className="items-start space-y-2 border-b border-slate-100 px-5 pb-4 pt-5 pr-12 text-left sm:px-6 sm:pt-6">
@@ -357,24 +358,27 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
 
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6 sm:py-5">
                 {activeCode.image && (
-                  <div className="relative mb-4 aspect-video w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                  <div className="relative mb-5 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-2xs">
                     <Image
                       src={activeCode.image}
                       alt={activeCode.title}
                       fill
                       unoptimized
                       className="object-cover"
-                      sizes="(max-width: 640px) 100vw, 512px"
+                      sizes="(max-width: 640px) 100vw, 672px"
                     />
                   </div>
                 )}
                 {activeCode.description ? (
                   <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      Açıklama & Detaylar
+                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+                      Teşhis & Çözüm Rehberi
                     </h4>
-                    <div className="mt-2 rounded-xl bg-slate-50 border border-slate-100 p-4 text-sm leading-relaxed text-slate-700 whitespace-pre-line">
-                      {activeCode.description}
+                    <div className="rounded-2xl border border-slate-200/70 bg-white p-5 sm:p-6 shadow-2xs">
+                      <MarkdownRenderer
+                        content={activeCode.description}
+                        className="text-xs sm:text-sm text-slate-700 space-y-3"
+                      />
                     </div>
                   </div>
                 ) : (

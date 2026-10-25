@@ -2,7 +2,7 @@
 
 import { useState, useRef, useTransition } from "react";
 import Image from "next/image";
-import { AlertTriangle, FileText, Loader2, Star, Upload } from "lucide-react";
+import { AlertTriangle, Bot, Loader2, Star, Upload } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
@@ -33,7 +33,7 @@ export function FaultCodeFormModal({
 }: FaultCodeFormModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto p-0 sm:max-w-2xl">
+      <DialogContent className="flex max-h-[92vh] flex-col overflow-hidden p-0 sm:max-w-3xl">
         {open && (
           <FaultCodeFormModalContent
             key={item?._id ?? "new"}
@@ -59,8 +59,11 @@ function FaultCodeFormModalContent({
   );
   const [imagePreview, setImagePreview] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const codeRef = useRef<HTMLInputElement>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
   const descRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const { create: createImagePreview, clear: clearImagePreview } =
@@ -162,35 +165,103 @@ function FaultCodeFormModalContent({
     });
   };
 
+  const handleGenerateAi = async () => {
+    const rawCode = codeRef.current?.value.trim().toUpperCase() || "";
+    if (!rawCode) {
+      setError("Lütfen önce arıza kodunu girin (Örn: P0100).");
+      codeRef.current?.focus();
+      return;
+    }
+
+    setError("");
+    setIsGeneratingAi(true);
+
+    try {
+      const res = await fetch("/api/ai/generate-fault-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: rawCode,
+          title: titleRef.current?.value.trim() || undefined,
+        }),
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || "Arıza kodu içeriği üretilemedi.");
+      }
+
+      if (result.data) {
+        if (titleRef.current && result.data.title) {
+          titleRef.current.value = result.data.title;
+        }
+        if (descRef.current && result.data.description) {
+          descRef.current.value = result.data.description;
+        }
+      }
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Yapay zeka içeriği oluşturulurken bir hata oluştu.",
+      );
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
   return (
     <>
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-6 py-4 pr-14">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-4 pr-14">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold text-slate-900">
             {item ? "Arıza Kodunu Düzenle" : "Yeni Arıza Kodu Ekle"}
           </DialogTitle>
         </DialogHeader>
 
-        <button
-          type="button"
-          role="switch"
-          aria-checked={isPopular}
-          onClick={() => setIsPopular((value) => !value)}
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
-            isPopular
-              ? "bg-amber-50 text-amber-700 ring-amber-200"
-              : "bg-slate-50 text-slate-500 ring-slate-200 hover:text-slate-700"
-          }`}
-        >
-          <Star
-            className={`h-3 w-3 ${isPopular ? "fill-amber-500 text-amber-500" : ""}`}
-          />
-          Popüler
-        </button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isGeneratingAi}
+            onClick={handleGenerateAi}
+            className="h-8 gap-1.5 rounded-full border-amber-300 bg-amber-50 px-3 text-xs font-semibold text-amber-900 shadow-2xs hover:bg-amber-100 cursor-pointer disabled:opacity-60"
+          >
+            {isGeneratingAi ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-700" />
+                <span>AI Hazırlıyor...</span>
+              </>
+            ) : (
+              <>
+                <Bot className="h-3.5 w-3.5 text-amber-700" />
+                <span>Yapay Zeka ile Doldur</span>
+              </>
+            )}
+          </Button>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isPopular}
+            onClick={() => setIsPopular((value) => !value)}
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 cursor-pointer ${
+              isPopular
+                ? "bg-amber-50 text-amber-700 ring-amber-200"
+                : "bg-slate-50 text-slate-500 ring-slate-200 hover:text-slate-700"
+            }`}
+          >
+            <Star
+              className={`h-3 w-3 ${isPopular ? "fill-amber-500 text-amber-500" : ""}`}
+            />
+            Popüler
+          </button>
+        </div>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-4">
-        <div className="space-y-4 px-6 pt-2">
+      <form onSubmit={handleSave} className="flex min-h-0 flex-1 flex-col justify-between">
+        <div className="flex-1 overflow-y-auto space-y-4.5 px-6 py-4">
           {error && (
             <div
               role="alert"
@@ -201,163 +272,139 @@ function FaultCodeFormModalContent({
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label
-                htmlFor="fault-code"
-                className="mb-1 block text-xs font-semibold text-slate-700"
-              >
-                Arıza Kodu (OBD-II) <span className="text-rose-500">*</span>
-              </label>
-              <Input
-                id="fault-code"
-                name="code"
-                defaultValue={item?.code ?? ""}
-                placeholder="Örn: P0100"
-                aria-required="true"
-                className="rounded-xl border-slate-300 font-mono"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="fault-title"
-                className="mb-1 block text-xs font-semibold text-slate-700"
-              >
-                Başlık / Arıza Tanımı{" "}
-                <span className="text-rose-500">*</span>
-              </label>
-              <Input
-                id="fault-title"
-                name="title"
-                defaultValue={item?.title ?? ""}
-                placeholder="Örn: Hava akış sensörü (MAF) devresi arızası"
-                aria-required="true"
-                className="rounded-xl border-slate-300"
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <label
-                htmlFor="fault-image"
-                className="text-xs font-semibold text-slate-700"
-              >
-                Görsel{" "}
-                <span className="font-normal text-slate-400">(opsiyonel)</span>
-              </label>
-              {imagePreviewSrc && (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => imageInputRef.current?.click()}
-                    disabled={uploadingImage}
-                    className="text-[11px] font-semibold text-amber-700 hover:text-amber-800 disabled:opacity-50"
-                  >
-                    Değiştir
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRemoveImage}
-                    className="text-[11px] font-semibold text-rose-600 hover:text-rose-700"
-                  >
-                    Kaldır
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <input
-              id="fault-image"
-              ref={imageInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/avif"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-
-            {imagePreviewSrc ? (
-              <div className="relative mt-2 aspect-video w-full max-w-xs overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                <Image
-                  src={imagePreviewSrc}
-                  alt="Arıza kodu görseli"
-                  fill
-                  unoptimized
-                  className="object-cover"
-                  sizes="320px"
+          {/* Üst Kısım: Solda 2 Input (Alt alta), Sağda Görsel */}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-12 sm:items-start">
+            {/* Sol: Alt alta 2 Input */}
+            <div className="sm:col-span-7 flex flex-col justify-between gap-3 sm:pt-0.5">
+              <div>
+                <label
+                  htmlFor="fault-code"
+                  className="mb-1 block text-xs font-semibold text-slate-700"
+                >
+                  Arıza Kodu (OBD-II) <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  id="fault-code"
+                  name="code"
+                  ref={codeRef}
+                  defaultValue={item?.code ?? ""}
+                  placeholder="Örn: P0100"
+                  aria-required="true"
+                  className="rounded-xl border-slate-300 font-mono text-sm"
                 />
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => imageInputRef.current?.click()}
-                disabled={uploadingImage}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 px-4 py-4 text-xs font-semibold text-slate-600 transition-colors hover:border-amber-300 hover:bg-amber-50/50 disabled:cursor-wait"
-              >
-                {uploadingImage ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
-                ) : (
-                  <Upload className="h-4 w-4 text-slate-500" />
-                )}
-                {uploadingImage ? "Yükleniyor..." : "Görsel yükle"}
-              </button>
-            )}
 
-            <p className="mt-1.5 text-[11px] text-slate-500">
-              JPG, PNG, WebP veya AVIF. En fazla 10 MB.
-            </p>
+              <div>
+                <label
+                  htmlFor="fault-title"
+                  className="mb-1 block text-xs font-semibold text-slate-700"
+                >
+                  Başlık / Arıza Tanımı <span className="text-rose-500">*</span>
+                </label>
+                <Input
+                  id="fault-title"
+                  name="title"
+                  ref={titleRef}
+                  defaultValue={item?.title ?? ""}
+                  placeholder="Örn: Hava akış sensörü (MAF) devresi arızası"
+                  aria-required="true"
+                  className="rounded-xl border-slate-300 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Sağ: Görsel */}
+            <div className="sm:col-span-5 flex flex-col">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <label
+                  htmlFor="fault-image"
+                  className="text-xs font-semibold text-slate-700"
+                >
+                  Görsel <span className="font-normal text-slate-400">(opsiyonel)</span>
+                </label>
+                {imagePreviewSrc && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={uploadingImage}
+                      className="text-[11px] font-semibold text-amber-700 hover:text-amber-800 disabled:opacity-50 cursor-pointer"
+                    >
+                      Değiştir
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="text-[11px] font-semibold text-rose-600 hover:text-rose-700 cursor-pointer"
+                    >
+                      Kaldır
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <input
+                id="fault-image"
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/avif"
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+
+              {imagePreviewSrc ? (
+                <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-2xs">
+                  <Image
+                    src={imagePreviewSrc}
+                    alt="Arıza kodu görseli"
+                    fill
+                    unoptimized
+                    className="object-cover"
+                    sizes="(max-width: 640px) 100vw, 320px"
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={uploadingImage}
+                  className="flex aspect-[16/10] w-full flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/60 p-4 text-xs font-semibold text-slate-600 transition-colors hover:border-amber-300 hover:bg-amber-50/50 disabled:cursor-wait cursor-pointer"
+                >
+                  {uploadingImage ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
+                  ) : (
+                    <Upload className="h-5 w-5 text-slate-400" />
+                  )}
+                  <span>{uploadingImage ? "Yükleniyor..." : "Görsel yükle"}</span>
+                </button>
+              )}
+
+              <p className="mt-1 text-[11px] text-slate-400">
+                JPG, PNG, WebP veya AVIF. En fazla 10 MB.
+              </p>
+            </div>
           </div>
 
           <div>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <label
-                htmlFor="fault-description"
-                className="text-xs font-semibold text-slate-700"
-              >
-                Açıklama, Belirtiler ve Çözüm
-              </label>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const template = `Genel Açıklama:
-...
-
-Belirtiler:
-•
-
-Olası Nedenler:
-•
-
-Çözüm Önerisi:
-•`;
-                  if (descRef.current) {
-                    descRef.current.value = descRef.current.value
-                      ? `${descRef.current.value}\n\n${template}`
-                      : template;
-                  }
-                }}
-                className="h-7 gap-1.5 px-2 text-[11px] font-semibold text-amber-700 hover:bg-amber-50 hover:text-amber-800"
-              >
-                <FileText className="h-3 w-3" />
-                Şablon ekle
-              </Button>
-            </div>
+            <label
+              htmlFor="fault-description"
+              className="block text-xs font-semibold text-slate-700"
+            >
+              Açıklama, Belirtiler ve Çözüm
+            </label>
             <textarea
               id="fault-description"
               name="description"
               ref={descRef}
               defaultValue={item?.description ?? ""}
               placeholder="Arıza açıklaması, belirtileri, olası nedenleri ve çözüm önerilerini buraya yazabilirsiniz..."
-              rows={6}
-              className="mt-2 w-full rounded-xl border border-slate-300 p-3 font-sans text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200"
+              rows={11}
+              className="mt-2 min-h-[260px] w-full resize-y rounded-xl border border-slate-300 p-3.5 font-sans text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200"
             />
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/60 px-6 py-4">
+        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/80 px-6 py-3.5">
           <Button
             type="button"
             variant="outline"
