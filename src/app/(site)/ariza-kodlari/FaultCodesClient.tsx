@@ -266,27 +266,13 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
                     }}
                     className="group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs transition-all hover:border-amber-400 hover:shadow-md active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                   >
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                      {item.image && (
-                        <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-                          <Image
-                            src={item.image}
-                            alt={item.title}
-                            fill
-                            unoptimized
-                            className="object-cover"
-                            sizes="96px"
-                          />
-                        </div>
-                      )}
-                      <div className="flex min-w-0 flex-col items-start gap-2">
-                        <span className="max-w-full break-words rounded-lg border border-amber-300/50 bg-amber-50 px-2 py-1 font-mono text-xs font-bold text-amber-900 transition-colors group-hover:border-amber-400 group-hover:bg-amber-100 sm:text-sm">
-                          {item.code}
-                        </span>
-                        <p className="min-w-0 text-sm font-medium leading-snug text-slate-800 break-words group-hover:text-slate-950">
-                          {item.title}
-                        </p>
-                      </div>
+                    <div className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
+                      <span className="max-w-full break-words rounded-lg border border-amber-300/50 bg-amber-50 px-2 py-1 font-mono text-xs font-bold text-amber-900 transition-colors group-hover:border-amber-400 group-hover:bg-amber-100 sm:text-sm">
+                        {item.code}
+                      </span>
+                      <p className="min-w-0 text-sm font-medium leading-snug text-slate-800 break-words group-hover:text-slate-950">
+                        {item.title}
+                      </p>
                     </div>
 
                     <div className="shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-amber-600">
