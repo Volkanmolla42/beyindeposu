@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AdminMarkdownEditorField } from "@/components/admin/AdminMarkdownEditorField";
 import { uploadImageToConvex } from "@/lib/image-upload";
 import { useObjectUrlPreview } from "@/lib/use-object-url-preview";
 import { triggerRevalidate } from "@/lib/revalidate";
@@ -54,6 +55,7 @@ function FaultCodeFormModalContent({
   onClose: () => void;
 }) {
   const [isPopular, setIsPopular] = useState(item?.isPopular ?? false);
+  const [description, setDescription] = useState(item?.description ?? "");
   const [imageStorageId, setImageStorageId] = useState<Id<"_storage"> | undefined>(
     item?.imageStorageId,
   );
@@ -64,7 +66,6 @@ function FaultCodeFormModalContent({
   const [isPending, startTransition] = useTransition();
   const codeRef = useRef<HTMLInputElement>(null);
   const titleRef = useRef<HTMLInputElement>(null);
-  const descRef = useRef<HTMLTextAreaElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const { create: createImagePreview, clear: clearImagePreview } =
     useObjectUrlPreview();
@@ -113,8 +114,7 @@ function FaultCodeFormModalContent({
     const code =
       (formData.get("code") as string)?.trim().toUpperCase() || "";
     const title = (formData.get("title") as string)?.trim() || "";
-    const description =
-      (formData.get("description") as string)?.trim() || undefined;
+    const finalDescription = description.trim() || undefined;
 
     if (!code) {
       setError("Arıza kodu zorunludur (örn: P0100).");
@@ -132,7 +132,7 @@ function FaultCodeFormModalContent({
         const payload = {
           code,
           title,
-          description,
+          description: finalDescription,
           isPopular,
           imageStorageId,
         };
@@ -195,8 +195,8 @@ function FaultCodeFormModalContent({
         if (titleRef.current && result.data.title) {
           titleRef.current.value = result.data.title;
         }
-        if (descRef.current && result.data.description) {
-          descRef.current.value = result.data.description;
+        if (result.data.description) {
+          setDescription(result.data.description);
         }
       }
     } catch (err: unknown) {
@@ -385,23 +385,14 @@ function FaultCodeFormModalContent({
             </div>
           </div>
 
-          <div>
-            <label
-              htmlFor="fault-description"
-              className="block text-xs font-semibold text-slate-700"
-            >
-              Açıklama, Belirtiler ve Çözüm
-            </label>
-            <textarea
-              id="fault-description"
-              name="description"
-              ref={descRef}
-              defaultValue={item?.description ?? ""}
-              placeholder="Arıza açıklaması, belirtileri, olası nedenleri ve çözüm önerilerini buraya yazabilirsiniz..."
-              rows={11}
-              className="mt-2 min-h-[260px] w-full resize-y rounded-xl border border-slate-300 p-3.5 font-sans text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200"
-            />
-          </div>
+          <AdminMarkdownEditorField
+            label="Açıklama, Belirtiler ve Çözüm"
+            value={description}
+            onChange={setDescription}
+            rows={11}
+            minHeightClass="min-h-[260px]"
+            placeholder="Arıza açıklaması, belirtileri, olası nedenleri ve çözüm önerilerini buraya yazabilirsiniz..."
+          />
         </div>
 
         <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 bg-slate-50/80 px-6 py-3.5">
