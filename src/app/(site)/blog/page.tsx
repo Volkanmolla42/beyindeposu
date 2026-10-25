@@ -44,7 +44,7 @@ export const metadata: Metadata = {
 function BlogListFallback() {
   return (
     <div className="py-12 sm:py-16 bg-slate-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {Array.from({ length: 6 }, (_, index) => (
             <div
@@ -84,7 +84,7 @@ export default async function BlogPage() {
       </Suspense>
 
       <section className="pb-16 sm:pb-20 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container">
           <ProblemCta />
         </div>
       </section>

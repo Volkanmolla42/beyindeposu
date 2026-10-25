@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import HeroBanner from "@/components/ui/HeroBanner";
 import {
   Search,
@@ -17,18 +18,13 @@ import {
   ChevronRight,
   Info,
 } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import TrustBadgeStrip from "@/components/TrustBadgeStrip";
 import FeatureCardGrid from "@/components/FeatureCardGrid";
-import { MarkdownRenderer } from "@/components/MarkdownRenderer";
+import { slugifyTurkish } from "@/lib/utils";
 
 export type FaultCodeItem = {
   code: string;
+  slug?: string;
   title: string;
   description?: string;
   isPopular: boolean;
@@ -38,7 +34,6 @@ export type FaultCodeItem = {
 export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) {
   const [searchInput, setSearchInput] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
-  const [activeCode, setActiveCode] = useState<FaultCodeItem | null>(null);
 
   const filteredCodes = useMemo(() => {
     const q = searchInput.trim().toLowerCase();
@@ -253,19 +248,11 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
             ) : (
               <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                 {filteredCodes.map((item) => (
-                  <div
+                  <Link
                     key={item.code}
-                    role="button"
-                    tabIndex={0}
+                    href={`/ariza-kodlari/${item.slug || slugifyTurkish(item.code)}`}
                     aria-label={`${item.code}: ${item.title}`}
-                    onClick={() => setActiveCode(item)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        setActiveCode(item);
-                      }
-                    }}
-                    className="group flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs transition-all hover:border-amber-400 hover:shadow-md active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
+                    className="group flex items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-2xs transition-all hover:border-amber-400 hover:shadow-md active:scale-[0.99] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
                   >
                     <div className="flex min-w-0 flex-1 flex-col items-start gap-1.5">
                       <span className="max-w-full break-words rounded-lg border border-amber-300/50 bg-amber-50 px-2 py-1 font-mono text-xs font-bold text-amber-900 transition-colors group-hover:border-amber-400 group-hover:bg-amber-100 sm:text-sm">
@@ -279,7 +266,7 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
                     <div className="shrink-0 text-slate-400 transition-transform group-hover:translate-x-0.5 group-hover:text-amber-600">
                       <ChevronRight className="h-5 w-5" />
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -342,63 +329,6 @@ export default function FaultCodesClient({ codes }: { codes: FaultCodeItem[] }) 
           </div>
         </div>
       </section>
-
-      <Dialog open={Boolean(activeCode)} onOpenChange={(open) => !open && setActiveCode(null)}>
-        <DialogContent className="left-0 top-auto bottom-0 flex max-h-[90dvh] w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-t-3xl rounded-b-none border-0 p-0 shadow-2xl sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[calc(100%_-_1.5rem)] sm:max-w-2xl sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-2xl sm:border">
-          {activeCode && (
-            <>
-              <DialogHeader className="items-start space-y-2 border-b border-slate-100 px-5 pb-4 pt-5 pr-12 text-left sm:px-6 sm:pt-6">
-                <span className="max-w-full break-words rounded-lg border border-amber-300/50 bg-amber-50 px-2.5 py-1 font-mono text-xs font-bold text-amber-900 sm:px-3 sm:py-1.5 sm:text-sm">
-                  {activeCode.code}
-                </span>
-                <DialogTitle className="text-lg font-bold leading-snug text-slate-900 sm:text-xl">
-                  {activeCode.title}
-                </DialogTitle>
-              </DialogHeader>
-
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4 sm:px-6 sm:py-5">
-                {activeCode.image && (
-                  <div className="relative mb-5 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 shadow-2xs">
-                    <Image
-                      src={activeCode.image}
-                      alt={activeCode.title}
-                      fill
-                      unoptimized
-                      className="object-cover"
-                      sizes="(max-width: 640px) 100vw, 672px"
-                    />
-                  </div>
-                )}
-                {activeCode.description ? (
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
-                      Teşhis & Çözüm Rehberi
-                    </h4>
-                    <div className="rounded-2xl border border-slate-200/70 bg-white p-5 sm:p-6 shadow-2xs">
-                      <MarkdownRenderer
-                        content={activeCode.description}
-                        className="text-xs sm:text-sm text-slate-700 space-y-3"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-xs text-slate-400 italic">Detaylı açıklama bulunmuyor.</p>
-                )}
-              </div>
-
-              <div className="flex justify-end border-t border-slate-100 px-5 py-4 sm:px-6">
-                <button
-                  type="button"
-                  onClick={() => setActiveCode(null)}
-                  className="w-full cursor-pointer rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 sm:w-auto sm:py-2"
-                >
-                  Kapat
-                </button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

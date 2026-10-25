@@ -194,12 +194,14 @@ export default defineSchema({
 
   faultCodes: defineTable({
     code: v.string(),
+    slug: v.optional(v.string()),
     title: v.string(),
     description: v.optional(v.string()),
     isPopular: v.optional(v.boolean()),
     imageStorageId: v.optional(v.id("_storage")),
   })
     .index("by_code", ["code"])
+    .index("by_slug", ["slug"])
     .searchIndex("search_code", {
       searchField: "code",
     })

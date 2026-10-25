@@ -157,17 +157,22 @@ export default async function IletisimPage() {
               href={getWhatsAppUrl(undefined, displayPhone)}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="WhatsApp'tan parça sorun"
+              aria-label={`WhatsApp'tan yazın: ${formatPhoneNumber(displayPhone)}`}
               className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm transition-colors hover:border-emerald-200 hover:shadow-md"
             >
               <div className="space-y-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
                   <WhatsAppIcon className="h-6 w-6 fill-emerald-700 text-emerald-700" />
                 </div>
-                <h3 className="text-lg font-medium tracking-tight">WhatsApp</h3>
+                <div>
+                  <h3 className="text-lg font-medium tracking-tight">WhatsApp</h3>
+                  <p className="mt-1 text-sm text-slate-600">Hızlı mesaj ve parça danışma</p>
+                </div>
               </div>
               <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4 text-sm font-medium text-slate-700">
-                <span>Mesaj gönder</span>
+                <span className="font-medium text-slate-900 transition-colors group-hover:text-emerald-700">
+                  {formatPhoneNumber(displayPhone)}
+                </span>
                 <span className="text-emerald-700 transition-transform group-hover:translate-x-1">→</span>
               </div>
             </a>
@@ -181,42 +186,72 @@ export default async function IletisimPage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
                   <Phone className="h-6 w-6 text-amber-500" />
                 </div>
-                <h3 className="text-lg font-medium tracking-tight">Telefon</h3>
+                <div>
+                  <h3 className="text-lg font-medium tracking-tight">Telefon</h3>
+                  <p className="mt-1 text-sm text-slate-600">Teknik servis ve destek hattı</p>
+                </div>
               </div>
               <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4 text-sm font-medium text-slate-700">
-                <span>{formatPhoneNumber(displayPhone)}</span>
+                <span className="font-medium text-slate-900 transition-colors group-hover:text-amber-600">
+                  {formatPhoneNumber(displayPhone)}
+                </span>
                 <span className="text-amber-500 transition-transform group-hover:translate-x-1">→</span>
               </div>
             </a>
 
-            <div className="flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm">
+            <a
+              href={`https://maps.google.com/maps?q=${mapQuery}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Adresi haritada görüntüleyin: ${displayAddress}`}
+              className="group flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-6 text-slate-900 shadow-sm transition-colors hover:border-amber-400 hover:shadow-md"
+            >
               <div className="space-y-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
-                  <Truck className="h-6 w-6 text-amber-500" />
+                  <MapPin className="h-6 w-6 text-amber-500" />
                 </div>
-                <h3 className="text-lg font-medium tracking-tight">Kargo</h3>
+                <div>
+                  <h3 className="text-lg font-medium tracking-tight">Adres</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                    {displayAddress}
+                  </p>
+                </div>
               </div>
-              <div className="mt-6 border-t border-slate-200 pt-4 text-sm font-medium text-slate-700">
-                Türkiye geneli hızlı teslimat
+              <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4 text-sm font-medium text-slate-700">
+                <span className="font-medium text-slate-900 transition-colors group-hover:text-amber-600">
+                  Haritada Aç
+                </span>
+                <span className="text-amber-500 transition-transform group-hover:translate-x-1">→</span>
               </div>
-            </div>
+            </a>
           </div>
 
-          <div className="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
-            <div className="flex flex-col justify-between space-y-8 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm lg:col-span-5">
+          <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
+            <div className="flex flex-col justify-between space-y-6 rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm lg:col-span-5">
               <div className="space-y-6">
-                <div className="space-y-5 text-sm">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                      <MapPin className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-slate-900">Adres</div>
-                      <div className="mt-0.5 leading-relaxed text-slate-600">{displayAddress}</div>
-                    </div>
-                  </div>
+                <div>
+                  <h3 className="text-lg font-medium tracking-tight text-slate-900">
+                    Çalışma & Servis Bilgileri
+                  </h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Atölyemizi ziyaret edebilir veya Türkiye genelinden kargo ile parça gönderebilirsiniz.
+                  </p>
+                </div>
 
-                  <div className="flex items-start gap-4">
+                <div className="space-y-4 text-sm">
+                  {contact.workingHours && (
+                    <div className="flex items-start gap-3.5">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                        <Clock className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-slate-900">Çalışma Saatleri</div>
+                        <div className="mt-0.5 text-slate-600">{contact.workingHours}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-start gap-3.5">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
                       <Mail className="h-5 w-5" />
                     </div>
@@ -231,17 +266,17 @@ export default async function IletisimPage() {
                     </div>
                   </div>
 
-                  {contact.workingHours && (
-                    <div className="flex items-start gap-4">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
-                        <Clock className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-slate-900">Çalışma Saatleri</div>
-                        <div className="mt-0.5 leading-relaxed text-slate-600">{contact.workingHours}</div>
+                  <div className="flex items-start gap-3.5">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                      <Truck className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-slate-900">Kargo & Teslimat</div>
+                      <div className="mt-0.5 leading-relaxed text-slate-600">
+                        Türkiye geneli anlaşmalı kargo ile arızalı beyin onarım kabulü ve hızlı parça teslimatı.
                       </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
 
@@ -252,7 +287,7 @@ export default async function IletisimPage() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-600 transition-colors hover:text-amber-500"
                 >
-                  Google Haritalar&apos;da aç
+                  Google Haritalar&apos;da yol tarifi al
                   <ExternalLink className="h-4 w-4" />
                 </a>
               </div>

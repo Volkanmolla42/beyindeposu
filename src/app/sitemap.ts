@@ -111,6 +111,15 @@ async function getSitemapEntries(): Promise<SitemapEntry[]> {
     console.error("Could not load service URLs for the sitemap.", error);
   }
 
+  const faultCodeEntries: { code: string; lastModified: number }[] = [];
+  try {
+    const faultCodes = await client.query(api.faultCodes.listSitemapEntries, {});
+    faultCodeEntries.push(...faultCodes.filter((f) => f.code.trim().length > 0));
+    productLimit -= faultCodeEntries.length;
+  } catch (error) {
+    console.error("Could not load fault code URLs for the sitemap.", error);
+  }
+
   let cursor: string | null = null;
   let isDone = false;
 
@@ -142,6 +151,10 @@ async function getSitemapEntries(): Promise<SitemapEntry[]> {
     ...serviceEntries.map((service) => ({
       url: absoluteUrl(`/tamirveservis/${service.slug}`),
       lastModified: service.lastModified,
+    })),
+    ...faultCodeEntries.map((faultCode) => ({
+      url: absoluteUrl(`/ariza-kodlari/${faultCode.code}`),
+      lastModified: faultCode.lastModified,
     })),
     ...blogEntries.map((blog) => ({
       url: absoluteUrl(`/blog/${blog.slug}`),

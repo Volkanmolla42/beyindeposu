@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import HeroBanner from "@/components/ui/HeroBanner";
-import SupportCta from "@/components/SupportCta";
+import ProblemCta from "@/components/ProblemCta";
 import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import FaqAccordion from "@/components/FaqAccordion";
 import type { BlogDetail, BlogRelatedCard } from "@/lib/blog-data";
@@ -91,8 +91,6 @@ export default function BlogArticle({ blog, relatedBlogs }: BlogArticleProps) {
           </div>
         </div>
 
-        <SupportCta />
-
         {tags && tags.length > 0 && (
           <div className="pt-6 border-t border-slate-200">
             <span className="text-xs font-semibold text-slate-500 block mb-2">
@@ -124,7 +122,7 @@ export default function BlogArticle({ blog, relatedBlogs }: BlogArticleProps) {
 
       {relatedBlogs.length > 0 && (
         <section className="mt-16 pt-12 border-t border-slate-200 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="container">
             <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-8">
               Diğer Blog Yazıları
             </h3>
@@ -165,6 +163,13 @@ export default function BlogArticle({ blog, relatedBlogs }: BlogArticleProps) {
           </div>
         </section>
       )}
+
+      {/* Problem CTA (Sayfa tabanında standart container genişliğinde) */}
+      <section className="mt-16 sm:mt-24">
+        <div className="container">
+          <ProblemCta />
+        </div>
+      </section>
     </article>
   );
 }

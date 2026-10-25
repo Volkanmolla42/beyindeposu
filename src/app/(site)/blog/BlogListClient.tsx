@@ -46,7 +46,7 @@ export default function BlogListClient({
   return (
     <>
       <section className="py-8 sm:py-10 bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container">
           <div className="flex items-center justify-start sm:justify-center gap-2 overflow-x-auto pb-2 scrollbar-none">
             {categoryOptions.map((item) => {
               const isActive = activeCategory === item;
@@ -70,7 +70,7 @@ export default function BlogListClient({
       </section>
 
       <section className="py-12 sm:py-16 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="container">
           {displayedBlogs.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 p-8 max-w-lg mx-auto">
               <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-3">

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Search, Edit2, Trash2, FileCode2, Star } from "lucide-react";
+import Link from "next/link";
+import { Plus, Search, Edit2, Trash2, FileCode2, Star, ExternalLink } from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Doc, Id } from "@convex/_generated/dataModel";
@@ -43,7 +44,7 @@ export default function AdminFaultCodesPage() {
       await togglePopular({ id });
       void triggerRevalidate([
         "/ariza-kodlari",
-        ...(item ? [`/ariza-kodlari/${item.code.toLowerCase()}`] : []),
+        ...(item ? [`/ariza-kodlari/${item.slug || item.code.toLowerCase()}`] : []),
       ]);
     } catch (err: unknown) {
       alert(
@@ -55,6 +56,7 @@ export default function AdminFaultCodesPage() {
   };
 
   const handleDelete = async (id: Id<"faultCodes">, code: string) => {
+    const item = faultCodes?.find((fc) => fc._id === id);
     if (!confirm(`"${code}" arıza kodunu silmek istediğinize emin misiniz?`)) {
       return;
     }
@@ -62,7 +64,7 @@ export default function AdminFaultCodesPage() {
       await deleteFaultCode({ id });
       void triggerRevalidate([
         "/ariza-kodlari",
-        `/ariza-kodlari/${code.toLowerCase()}`,
+        `/ariza-kodlari/${item?.slug || code.toLowerCase()}`,
       ]);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Silme işlemi başarısız oldu.");
@@ -167,6 +169,21 @@ export default function AdminFaultCodesPage() {
                       className={`h-4 w-4 ${item.isPopular ? "fill-amber-500" : ""}`}
                     />
                   </button>
+
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 rounded-lg text-slate-700 hover:text-slate-900"
+                  >
+                    <Link
+                      href={`/ariza-kodlari/${item.slug || item.code.toLowerCase()}`}
+                      target="_blank"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      <span>Görüntüle</span>
+                    </Link>
+                  </Button>
 
                   <Button
                     variant="outline"

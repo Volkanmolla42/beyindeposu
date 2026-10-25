@@ -18,6 +18,7 @@ import { AdminMarkdownEditorField } from "@/components/admin/AdminMarkdownEditor
 import { uploadImageToConvex } from "@/lib/image-upload";
 import { useObjectUrlPreview } from "@/lib/use-object-url-preview";
 import { triggerRevalidate } from "@/lib/revalidate";
+import { slugifyTurkish } from "@/lib/utils";
 
 type FaultCode = Doc<"faultCodes">;
 
@@ -55,6 +56,8 @@ function FaultCodeFormModalContent({
   onClose: () => void;
 }) {
   const [isPopular, setIsPopular] = useState(item?.isPopular ?? false);
+  const [slug, setSlug] = useState(item?.slug ?? "");
+  const [slugEdited, setSlugEdited] = useState(false);
   const [description, setDescription] = useState(item?.description ?? "");
   const [imageStorageId, setImageStorageId] = useState<Id<"_storage"> | undefined>(
     item?.imageStorageId,
@@ -113,6 +116,7 @@ function FaultCodeFormModalContent({
     const formData = new FormData(e.currentTarget);
     const code =
       (formData.get("code") as string)?.trim().toUpperCase() || "";
+    const formSlug = (formData.get("slug") as string)?.trim() || slug.trim() || undefined;
     const title = (formData.get("title") as string)?.trim() || "";
     const finalDescription = description.trim() || undefined;
 
@@ -131,6 +135,7 @@ function FaultCodeFormModalContent({
       try {
         const payload = {
           code,
+          slug: formSlug,
           title,
           description: finalDescription,
           isPopular,
@@ -148,9 +153,9 @@ function FaultCodeFormModalContent({
 
         void triggerRevalidate([
           "/ariza-kodlari",
-          `/ariza-kodlari/${code.toLowerCase()}`,
-          ...(item && item.code !== code
-            ? [`/ariza-kodlari/${item.code.toLowerCase()}`]
+          ...(formSlug ? [`/ariza-kodlari/${formSlug}`] : []),
+          ...(item?.slug && item.slug !== formSlug
+            ? [`/ariza-kodlari/${item.slug}`]
             : []),
         ]);
 
@@ -274,7 +279,7 @@ function FaultCodeFormModalContent({
 
           {/* Üst Kısım: Solda 2 Input (Alt alta), Sağda Görsel */}
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-12 sm:items-start">
-            {/* Sol: Alt alta 2 Input */}
+            {/* Sol: Alt alta Inputlar */}
             <div className="sm:col-span-7 flex flex-col justify-between gap-3 sm:pt-0.5">
               <div>
                 <label
@@ -288,9 +293,34 @@ function FaultCodeFormModalContent({
                   name="code"
                   ref={codeRef}
                   defaultValue={item?.code ?? ""}
+                  onChange={(e) => {
+                    if (!slugEdited) {
+                      setSlug(slugifyTurkish(e.target.value));
+                    }
+                  }}
                   placeholder="Örn: P0100"
                   aria-required="true"
                   className="rounded-xl border-slate-300 font-mono text-sm"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="fault-slug"
+                  className="mb-1 block text-xs font-semibold text-slate-700"
+                >
+                  URL Bağlantısı (Slug)
+                </label>
+                <Input
+                  id="fault-slug"
+                  name="slug"
+                  value={slug}
+                  onChange={(e) => {
+                    setSlugEdited(true);
+                    setSlug(e.target.value);
+                  }}
+                  placeholder="Örn: p0100"
+                  className="rounded-xl border-slate-300 font-mono text-xs text-slate-600"
                 />
               </div>
 
