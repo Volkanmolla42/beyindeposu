@@ -134,7 +134,7 @@ export default function Footer() {
           servis veya bayilik bağı bulunmamaktadır.
         </div>
         <div className="container flex flex-col items-center justify-between gap-3 py-4 text-xs text-slate-400 sm:flex-row sm:pr-44">
-          <p suppressHydrationWarning>© {new Date().getFullYear()} Beyin Deposu</p>
+          <p suppressHydrationWarning>© {new Date().getFullYear()} Beyin Deposu · v0.1</p>
           <div className="flex items-center gap-4">
             <Link href="/gizlilik" className="transition-colors hover:text-amber-400">KVKK ve gizlilik</Link>
             <button type="button" onClick={openAnalyticsPreferences} className="transition-colors hover:text-amber-400">Çerez tercihleri</button>
