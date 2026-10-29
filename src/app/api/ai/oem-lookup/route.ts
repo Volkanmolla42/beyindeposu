@@ -61,6 +61,7 @@ ${brandsListStr}
 `;
 
     let response: Awaited<ReturnType<typeof ai.models.generateContent>> | undefined;
+    let parsedData: ReturnType<typeof parseLlmJson> | undefined;
     const modelsToTry = DEFAULT_GEMINI_MODELS;
     let lastError: unknown;
 
@@ -76,25 +77,30 @@ ${brandsListStr}
               temperature: 0.2,
             },
           });
+          if (!response?.text) throw new Error("Boş yanıt");
+          parsedData = parseLlmJson(response.text);
         } catch {
-          // Search grounding quota or tool restriction fallback
+          // Search grounding quota, tool restriction, or malformed JSON fallback
           response = await ai.models.generateContent({
             model,
             contents: [{ role: "user", parts: [{ text: userPrompt }] }],
             config: {
               systemInstruction: systemPrompt,
+              responseMimeType: "application/json",
               temperature: 0.2,
             },
           });
+          if (!response?.text) throw new Error("Boş yanıt");
+          parsedData = parseLlmJson(response.text);
         }
 
-        if (response?.text) break;
+        if (parsedData) break;
       } catch (error: unknown) {
         lastError = error;
       }
     }
 
-    if (!response?.text) {
+    if (!response?.text || !parsedData) {
       throw lastError instanceof Error
         ? lastError
         : new Error("Gemini modelinden yanıt alınamadı.");
@@ -114,8 +120,6 @@ ${brandsListStr}
         }
       }
     }
-
-    const parsedData = parseLlmJson(response.text || "");
 
     if (parsedData.isValidOem === false) {
       return NextResponse.json(

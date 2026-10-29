@@ -95,9 +95,11 @@ export const lookupOem = action({
       };
     }
 
-    // Query categories and brands directly from Convex database via ctx.runQuery
-    const categories = await ctx.runQuery(api.categories.list, { onlyActive: false });
-    const brands = await ctx.runQuery(api.brands.list, { onlyActive: false });
+    // Query categories and brands in parallel via ctx.runQuery
+    const [categories, brands] = await Promise.all([
+      ctx.runQuery(api.categories.list, { onlyActive: false }),
+      ctx.runQuery(api.brands.list, { onlyActive: false }),
+    ]);
 
     const categoriesListStr = formatCategoriesList(categories);
     const brandsListStr = formatBrandsList(brands);

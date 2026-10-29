@@ -8,8 +8,9 @@ import {
   serializeJsonLd,
   SITE_NAME,
 } from "@/lib/seo";
-import { getPublicProductBySlug } from "@/lib/seo-data";
+import { getPublicBrands, getPublicProductBySlug } from "@/lib/seo-data";
 import { PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/product-images";
+import { slugify, LOCAL_BRAND_LOGOS } from "@/app/admin/admin-utils";
 import { ProductDetailSkeleton } from "@/components/RouteSkeletons";
 import ProductDetailClient from "./ProductDetailClient";
 
@@ -74,9 +75,23 @@ export async function generateMetadata({ params }: ProductRouteProps): Promise<M
 
 async function ProductDetailContent({ params }: ProductRouteProps) {
   const { slug } = await params;
-  const product = await getPublicProductBySlug(slug);
+  const [product, brands] = await Promise.all([
+    getPublicProductBySlug(slug),
+    getPublicBrands(),
+  ]);
 
   if (!product) notFound();
+
+  const brandSlug = product.brand ? slugify(product.brand) : "";
+  const brandInfo = brands.find(
+    (b) =>
+      b.name.toLowerCase() === product.brand?.toLowerCase() ||
+      b.slug.toLowerCase() === brandSlug,
+  );
+  const brandLogoUrl =
+    brandInfo?.logoUrl ||
+    LOCAL_BRAND_LOGOS[brandSlug] ||
+    (brandSlug ? `/images/brands/${brandSlug}.svg` : null);
 
   const productImages = getProductImages(product.images);
   const structuredData = {
@@ -110,7 +125,7 @@ async function ProductDetailContent({ params }: ProductRouteProps) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
       />
       <Suspense fallback={<ProductDetailSkeleton />}>
-        <ProductDetailClient slug={slug} initialProduct={product} />
+        <ProductDetailClient slug={slug} initialProduct={product} brandLogoUrl={brandLogoUrl} />
       </Suspense>
     </>
   );

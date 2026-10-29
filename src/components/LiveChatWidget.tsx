@@ -125,7 +125,7 @@ export default function LiveChatWidget() {
   const productSlug = isProductPage ? pathname.replace("/parcalar/", "") : null;
   const currentProduct = useQuery(
     api.products.getBySlug,
-    productSlug ? { slug: productSlug } : "skip"
+    isOpen && productSlug ? { slug: productSlug } : "skip"
   );
 
   // Live queries & mutations

@@ -272,8 +272,19 @@ export function parseLlmJson(rawText: string): OemAssistantData {
       const char = cleaned[i];
 
       if (char === '"' && !escaped) {
-        inString = !inString;
-        result += char;
+        if (!inString) {
+          inString = true;
+          result += char;
+        } else {
+          const rest = cleaned.slice(i + 1);
+          const isClosingQuote = /^\s*(?::|}|\]|,\s*(?:"|\{|\[|\]|-?\d|true\b|false\b|null\b))/.test(rest);
+          if (isClosingQuote) {
+            inString = false;
+            result += char;
+          } else {
+            result += '\\"';
+          }
+        }
       } else if (inString && (char === "\n" || char === "\r")) {
         result += char === "\r" ? "" : "\\n";
       } else if (inString && char === "\t") {

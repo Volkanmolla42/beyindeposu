@@ -27,7 +27,6 @@ import { MarkdownRenderer } from "@/components/MarkdownRenderer";
 import { Badge } from "@/components/ui/badge";
 import { ModernImageZoom } from "@/components/ModernImageZoom";
 import { ProductImage } from "@/components/ProductImage";
-import { slugify, LOCAL_BRAND_LOGOS } from "@/app/admin/admin-utils";
 import { trackAnalytics } from "@/lib/analytics";
 import {
   getProductImageAlt,
@@ -38,37 +37,27 @@ import {
 interface PageProps {
   slug: string;
   initialProduct: NonNullable<FunctionReturnType<typeof api.products.getBySlug>>;
+  brandLogoUrl?: string | null;
 }
 
-export default function ProductDetailClient({ slug, initialProduct }: PageProps) {
+export default function ProductDetailClient({ slug, initialProduct, brandLogoUrl = null }: PageProps) {
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [copiedOem, setCopiedOem] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  const queriedProduct = useQuery(api.products.getBySlug, { slug });
-  const product = queriedProduct === undefined ? initialProduct : queriedProduct;
+  const product = initialProduct;
 
   const relatedProducts = useQuery(
     api.products.list,
-    product?.categorySlug
-      ? { categorySlug: product.categorySlug }
-      : "skip"
+    product.categoryId
+      ? { categoryId: product.categoryId, limit: 4 }
+      : product.categorySlug
+        ? { categorySlug: product.categorySlug, limit: 4 }
+        : "skip"
   );
 
   const { phoneNumber: displayPhone } = useContactSettings();
-
-  const brands = useQuery(api.brands.list, {});
-  const brandSlug = product?.brand ? slugify(product.brand) : "";
-  const brandInfo = brands?.find(
-    (b) =>
-      b.name.toLowerCase() === product?.brand?.toLowerCase() ||
-      b.slug.toLowerCase() === brandSlug
-  );
-  const brandLogoUrl =
-    brandInfo?.logoUrl ||
-    LOCAL_BRAND_LOGOS[brandSlug] ||
-    (brandSlug ? `/images/brands/${brandSlug}.svg` : null);
 
   const galleryImages = product?.images ?? [];
   const productDescription = product?.description?.trim() ?? "";

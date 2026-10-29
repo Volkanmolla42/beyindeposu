@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convex/_generated/api";
+import { getSiteContactSettings } from "@/lib/services-data";
 import {
   ChevronRight,
   Phone,
@@ -45,40 +48,43 @@ export async function generateStaticParams() {
   }
 }
 
-async function getFaultCode(codeParam: string) {
-  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-  if (!convexUrl) throw new Error("NEXT_PUBLIC_CONVEX_URL is not configured.");
-  const client = new ConvexHttpClient(convexUrl);
-  return await client.query(api.faultCodes.getByCodePublic, {
-    code: codeParam,
-  });
-}
-
-async function getContactSettings() {
-  try {
+const fetchFaultCodeCached = unstable_cache(
+  async (codeParam: string) => {
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!convexUrl) return null;
-    return await new ConvexHttpClient(convexUrl).query(
-      api.settings.getContactSettings,
-      {},
-    );
-  } catch {
-    return null;
-  }
-}
+    if (!convexUrl) throw new Error("NEXT_PUBLIC_CONVEX_URL is not configured.");
+    const client = new ConvexHttpClient(convexUrl);
+    return await client.query(api.faultCodes.getByCodePublic, {
+      code: codeParam,
+    });
+  },
+  ["fault-code-by-code"],
+  { revalidate: 3600 },
+);
 
-async function getAllFaultCodes() {
-  try {
-    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-    if (!convexUrl) return [];
-    return await new ConvexHttpClient(convexUrl).query(
-      api.faultCodes.listPublic,
-      {},
-    );
-  } catch {
-    return [];
-  }
-}
+const getFaultCode = cache(async (codeParam: string) => {
+  return await fetchFaultCodeCached(codeParam);
+});
+
+const fetchAllFaultCodesCached = unstable_cache(
+  async () => {
+    try {
+      const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+      if (!convexUrl) return [];
+      return await new ConvexHttpClient(convexUrl).query(
+        api.faultCodes.listPublic,
+        {},
+      );
+    } catch {
+      return [];
+    }
+  },
+  ["all-fault-codes"],
+  { revalidate: 3600 },
+);
+
+const getAllFaultCodes = cache(async () => {
+  return await fetchAllFaultCodesCached();
+});
 function extractFaqsFromMarkdown(description?: string) {
   if (!description) return [];
   const parsed: Array<{ question: string; answer: string }> = [];
@@ -158,7 +164,7 @@ export default async function FaultCodeDetailPage({ params }: Props) {
   const { code: rawCode } = await params;
   const [faultCode, contactSettings, allFaultCodes] = await Promise.all([
     getFaultCode(rawCode),
-    getContactSettings(),
+    getSiteContactSettings(),
     getAllFaultCodes(),
   ]);
 

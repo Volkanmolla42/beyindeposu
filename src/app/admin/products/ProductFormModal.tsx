@@ -201,40 +201,36 @@ function ProductFormContent({
     try {
       let data: OemAssistantData | null = null;
 
-      try {
-        const convexResult = await lookupOemAction({ oemNumber: trimmed });
-        if (convexResult.success) {
-          data = convexResult;
-        }
-      } catch {
-        data = null;
-      }
+      const res = await fetch("/api/ai/oem-lookup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          oemNumber: trimmed,
+          categories: categories?.map((c) => ({
+            _id: c._id,
+            name: c.name,
+            slug: c.slug,
+          })),
+          brands: brands?.map((b) => b.name),
+        }),
+      });
 
-      if (!data) {
-        const res = await fetch("/api/ai/oem-lookup", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            oemNumber: trimmed,
-            categories: categories?.map((c) => ({
-              _id: c._id,
-              name: c.name,
-              slug: c.slug,
-            })),
-            brands: brands?.map((b) => b.name),
-          }),
-        });
+      const json = (await res.json()) as OemAssistantData & {
+        error?: string;
+      };
 
-        const json = (await res.json()) as OemAssistantData & {
-          error?: string;
-        };
-        if (!res.ok) {
-          throw new Error(json.error || "OEM parça bilgileri doğrulanamadı.");
-        }
+      if (res.ok) {
         data = json;
+      } else if (res.status === 400 && json.error?.includes("GEMINI_API_KEY")) {
+        const convexResult = await lookupOemAction({ oemNumber: trimmed });
+        if (!convexResult.success) {
+          throw new Error(convexResult.error || "OEM parça bilgileri doğrulanamadı.");
+        }
+        data = convexResult;
+      } else {
+        throw new Error(json.error || "OEM parça bilgileri doğrulanamadı.");
       }
 
-      if (!data) throw new Error("OEM parça bilgileri doğrulanamadı.");
       populateProductForm(data);
       setAiSuccessMessage("OEM bilgileri bulundu. Alanları kontrol edin.");
     } catch (err: unknown) {

@@ -6,8 +6,24 @@ import type { DataModel, Doc, Id } from "./_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { requireAdmin } from "./authz";
 
-async function resolveProductWithCategory(ctx: QueryCtx, p: Doc<"products">) {
-  const product = {
+async function loadCategoryMap(ctx: QueryCtx, products: Doc<"products">[]) {
+  const uniqueIds = [
+    ...new Set(
+      products
+        .map((p) => p.categoryId)
+        .filter((id): id is Id<"categories"> => Boolean(id)),
+    ),
+  ];
+  const categories = await Promise.all(uniqueIds.map((id) => ctx.db.get(id)));
+  const map = new Map<Id<"categories">, Doc<"categories">>();
+  for (const cat of categories) {
+    if (cat) map.set(cat._id, cat);
+  }
+  return map;
+}
+
+function formatProductWithCategory(p: Doc<"products">, cat: Doc<"categories"> | null | undefined) {
+  return {
     _id: p._id,
     _creationTime: p._creationTime,
     title: p.title,
@@ -28,17 +44,22 @@ async function resolveProductWithCategory(ctx: QueryCtx, p: Doc<"products">) {
     isDraft: p.isDraft,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
-  };
-  const cat = p.categoryId
-    ? await ctx.db.get(p.categoryId)
-    : null;
-
-  return {
-    ...product,
     categoryName: cat?.name || "Oto Elektronik",
     categorySlug: cat?.slug || "diger",
     category: cat ? { _id: cat._id, name: cat.name, slug: cat.slug } : null,
   };
+}
+
+async function resolveProductWithCategory(ctx: QueryCtx, p: Doc<"products">) {
+  const cat = p.categoryId ? await ctx.db.get(p.categoryId) : null;
+  return formatProductWithCategory(p, cat);
+}
+
+async function resolveProductsWithCategories(ctx: QueryCtx, products: Doc<"products">[]) {
+  const categoryMap = await loadCategoryMap(ctx, products);
+  return products.map((p) =>
+    formatProductWithCategory(p, p.categoryId ? categoryMap.get(p.categoryId) : null),
+  );
 }
 
 async function resolvePublicProduct(ctx: QueryCtx, p: Doc<"products">) {
@@ -58,6 +79,32 @@ async function resolvePublicProduct(ctx: QueryCtx, p: Doc<"products">) {
     ...publicFields,
     tags,
   };
+}
+
+async function resolvePublicCatalogProducts(ctx: QueryCtx, products: Doc<"products">[]) {
+  const categoryMap = await loadCategoryMap(ctx, products);
+  return products.map((p) => {
+    const cat = p.categoryId ? categoryMap.get(p.categoryId) : null;
+    return {
+      _id: p._id,
+      _creationTime: p._creationTime,
+      title: p.title,
+      slug: p.slug,
+      oemNumber: p.oemNumber,
+      categoryId: p.categoryId,
+      brand: p.brand,
+      model: p.model,
+      condition: p.condition,
+      inStock: p.inStock,
+      description: "",
+      images: p.images.slice(0, 1),
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+      categoryName: cat?.name || "Oto Elektronik",
+      categorySlug: cat?.slug || "diger",
+      category: cat ? { _id: cat._id, name: cat.name, slug: cat.slug } : null,
+    };
+  });
 }
 
 type ProductFilterArgs = {
@@ -315,7 +362,7 @@ export const listPaginated = query({
     const result = await paginateProducts(ctx, args, "published");
     return {
       ...result,
-      page: await Promise.all(result.page.map((product) => resolvePublicProduct(ctx, product))),
+      page: await resolvePublicCatalogProducts(ctx, result.page),
     };
   },
 });
@@ -354,7 +401,7 @@ export const listPaginatedAdmin = query({
     const result = await paginateProducts(ctx, args, args.draftStatus ?? "published");
     return {
       ...result,
-      page: await Promise.all(result.page.map((product) => resolveProductWithCategory(ctx, product))),
+      page: await resolveProductsWithCategories(ctx, result.page),
     };
   },
 });
@@ -463,7 +510,7 @@ export const list = query({
       });
     }
 
-    return await Promise.all(filtered.map((p) => resolvePublicProduct(ctx, p)));
+    return await resolvePublicCatalogProducts(ctx, filtered);
   },
 });
 
@@ -476,7 +523,7 @@ export const getFeatured = query({
       .filter((q) => q.neq(q.field("isDraft"), true))
       .take(limit);
 
-    return await Promise.all(items.map((p) => resolvePublicProduct(ctx, p)));
+    return await resolvePublicCatalogProducts(ctx, items);
   },
 });
 
@@ -539,7 +586,7 @@ export const getByOem = query({
       }
     }
 
-    return await Promise.all(matched.map((p) => resolvePublicProduct(ctx, p)));
+    return await resolvePublicCatalogProducts(ctx, matched);
   },
 });
 
@@ -577,7 +624,7 @@ export const search = query({
       }
     }
 
-    return await Promise.all(combined.map((p) => resolvePublicProduct(ctx, p)));
+    return await resolvePublicCatalogProducts(ctx, combined);
   },
 });
 

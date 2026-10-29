@@ -3,11 +3,11 @@ import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convex/_generated/api";
 import { absoluteUrl } from "@/lib/seo";
 import {
-  listPublicBrandsWithProducts,
-  listPublicCategoriesWithProducts,
+  getPublicBrands,
+  getPublicCategories,
 } from "@/lib/seo-data";
 
-export const revalidate = 3600;
+export const revalidate = 86400;
 
 const STATIC_PATHS = [
   "/",
@@ -55,7 +55,7 @@ async function getSitemapEntries(): Promise<SitemapEntry[]> {
   let productLimit = SITEMAP_URL_LIMIT - staticEntries.length;
 
   try {
-    const categories = await listPublicCategoriesWithProducts(client);
+    const categories = await getPublicCategories();
     categoryEntries.push(
       ...categories.map((category) => ({
         slug: category.slug,
@@ -68,7 +68,7 @@ async function getSitemapEntries(): Promise<SitemapEntry[]> {
   }
 
   try {
-    const brands = await listPublicBrandsWithProducts(client);
+    const brands = await getPublicBrands();
     brandEntries.push(...brands.map((brand) => ({ slug: brand.slug })));
     productLimit -= brandEntries.length;
   } catch (error) {
