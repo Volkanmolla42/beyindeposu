@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, useEffect, useRef, useSyncExternalStore, useTransition } from "react";
+import Link from "next/link";
 import { trackAnalytics } from "@/lib/analytics";
 import { getProductImageAlt, getProductImageSource } from "@/lib/product-images";
 import { usePathname } from "next/navigation";
@@ -108,15 +109,16 @@ export default function LiveChatWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMsgCountRef = useRef<number>(0);
 
-  // Initialize persistent visitor ID
+  // Initialize persistent visitor ID only when the visitor opens the chat widget
   useEffect(() => {
-    if (visitorId) return;
+    if (!isOpen || visitorId) return;
 
     const storedVisitorId = getVisitorStorageValue("beyindeposu_visitor_id");
-    const nextVisitorId = storedVisitorId ||
+    const nextVisitorId =
+      storedVisitorId ||
       "vis_" + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
     setVisitorId(nextVisitorId);
-  }, [visitorId, setVisitorId]);
+  }, [isOpen, visitorId, setVisitorId]);
 
   // Product page detection
   const isProductPage = pathname?.startsWith("/parcalar/") && pathname !== "/parcalar";
@@ -362,6 +364,17 @@ export default function LiveChatWidget() {
                       className="bg-white text-xs h-9"
                     />
                   </div>
+
+                  <p className="text-[11px] leading-relaxed text-slate-500 pt-1">
+                    Bilgileriniz parça/servis talebinizin yanıtlanması amacıyla{" "}
+                    <Link
+                      href="/gizlilik"
+                      className="font-medium text-amber-600 underline hover:text-amber-700"
+                    >
+                      KVKK Aydınlatma Metni
+                    </Link>{" "}
+                    kapsamında işlenir.
+                  </p>
                 </form>
               </div>
 

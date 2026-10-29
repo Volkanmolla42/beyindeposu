@@ -127,6 +127,12 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-white/10 bg-dark-bg">
+        <div className="container pt-4 pb-2 text-[11px] leading-relaxed text-slate-500">
+          Beyin Deposu bağımsız bir özel servis ve yedek parça tedarikçisidir. Sitede yer alan araç
+          marka adları, logolar ve OEM numaraları yalnızca parça uyumluluğunu belirtmek amacıyla
+          (6769 sayılı SMK m. 7/5 kapsamında) kullanılmaktadır; ilgili marka sahipleriyle yetkili
+          servis veya bayilik bağı bulunmamaktadır.
+        </div>
         <div className="container flex flex-col items-center justify-between gap-3 py-4 text-xs text-slate-400 sm:flex-row sm:pr-44">
           <p suppressHydrationWarning>© {new Date().getFullYear()} Beyin Deposu</p>
           <div className="flex items-center gap-4">

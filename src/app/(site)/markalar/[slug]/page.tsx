@@ -159,6 +159,12 @@ export default async function BrandPage({ params }: BrandPageProps) {
           subtitle="Merak Edilenler"
           id="brand-faq-title"
         />
+
+        <p className="px-2 text-xs text-slate-500">
+          Not: {brand.name} marka adı, logosu ve OEM referans kodları 6769 sayılı Sınai Mülkiyet
+          Kanunu m. 7/5 uyarınca yalnızca parça ve onarım uyumluluğunu belirtmek amacıyla
+          kullanılmaktadır. Beyin Deposu bağımsız özel servistir.
+        </p>
       </div>
     </div>
   );

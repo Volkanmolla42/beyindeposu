@@ -108,27 +108,43 @@ export default async function IletisimPage() {
         </div>
 
         <div id="kalite" className="space-y-6 rounded-3xl border border-slate-200 bg-white p-8 sm:p-10">
-          <h2 className="text-2xl font-medium text-slate-900">Kontrol ve gönderim</h2>
+          <h2 className="text-2xl font-medium text-slate-900">
+            Parça kontrolü, gönderim ve garanti koşulları
+          </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <h3 className="text-sm font-medium text-slate-900">Parça kontrolü</h3>
+              <h3 className="text-sm font-medium text-slate-900">Parça ve simülasyon testi</h3>
               <p className="text-slate-600">
-                OEM kodunu ve parça etiketini kontrol ederiz.
+                OEM kodunu, parça etiketini ve devre haberleşmesini gönderim öncesi test ederiz.
               </p>
             </div>
             <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <h3 className="text-sm font-medium text-slate-900">Uyumluluk kontrolü</h3>
+              <h3 className="text-sm font-medium text-slate-900">Şasi ve uyumluluk teyidi</h3>
               <p className="text-slate-600">
-                Şasi numarası ile parça kodunu karşılaştırırız.
+                Şasi numarası (VIN) ve mevcut modülün parça kodu ile birebir uyumluluğu doğrularız.
               </p>
             </div>
             <div className="space-y-1.5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <h3 className="text-sm font-medium text-slate-900">Paketleme</h3>
+              <h3 className="text-sm font-medium text-slate-900">Antistatik paketleme</h3>
               <p className="text-slate-600">
-                Modülleri antistatik ambalajla göndeririz.
+                Kontrol ünitelerini güvenlik bandrolü ve antistatik koruma ile kargolarız.
               </p>
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-xs leading-relaxed text-slate-600 space-y-1.5">
+            <h3 className="font-semibold text-slate-900">
+              Onarım ve Çıkma / Revizyonlu Parça Garanti Kapsamı
+            </h3>
+            <p>
+              Tamir edilen kontrol üniteleri yalnızca yapılan onarım işlemine karşı; test edilmiş
+              çıkma/orijinal parçalar ise montaj ve çalışma kontrol süresince fonksiyon test
+              garantisi altındadır. Güvenlik etiketi/bandrolü sökülmüş, içi açılmış, araç tesisatındaki
+              kısa devre veya yüksek voltaj nedeniyle hasar görmüş, ters kutup bağlanmış, sıvı/su
+              temasına maruz kalmış veya yetkisiz yazılım/kodlama müdahalesi yapılmış modüller
+              garanti kapsamı dışındadır.
+            </p>
           </div>
         </div>
 
@@ -308,8 +324,19 @@ export default async function IletisimPage() {
         </section>
 
         <div id="kvkk" className="p-6 rounded-2xl bg-white border border-slate-200 text-xs text-slate-600 space-y-2">
-          <h2 className="font-bold text-slate-900">Gizlilik</h2>
-          <Link href="/gizlilik" className="inline-block text-amber-600 underline hover:text-amber-500">Kişisel veriler ve analitik hakkında</Link>
+          <h2 className="font-bold text-slate-900">Kurumsal Künye, Marka Uyarısı ve KVKK</h2>
+          <p>
+            <strong>İşletme:</strong> Beyin Deposu Oto Elektronik ve Kontrol Üniteleri Servisi ·{" "}
+            {displayAddress} · Tel: {formatPhoneNumber(displayPhone)} · E-posta: {displayEmail}
+          </p>
+          <p>
+            Sitemizde yer alan araç marka adları, logoları ve OEM numaraları 6769 sayılı Sınai
+            Mülkiyet Kanunu m. 7/5 uyarınca yalnızca yedek parça ve servis uyumluluğunu belirtmek
+            amacıyla kullanılmaktadır; Beyin Deposu bağımsız özel servistir.
+          </p>
+          <Link href="/gizlilik" className="inline-block text-amber-600 underline hover:text-amber-500">
+            KVKK Aydınlatma Metni, canlı destek ve çerez gizlilik politikası
+          </Link>
         </div>
       </div>
     </>

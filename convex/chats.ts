@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { requireAdmin } from "./authz";
 
@@ -360,5 +360,29 @@ export const deleteConversation = mutation({
     }
 
     await ctx.db.delete(args.conversationId);
+  },
+});
+
+const CHAT_RETENTION_MS = 180 * 24 * 60 * 60 * 1000;
+
+export const pruneOldConversations = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - CHAT_RETENTION_MS;
+    const expired = await ctx.db
+      .query("conversations")
+      .withIndex("by_lastMessageAt", (q) => q.lt("lastMessageAt", cutoff))
+      .take(50);
+
+    for (const conv of expired) {
+      const msgs = await ctx.db
+        .query("messages")
+        .withIndex("by_conversationId", (q) => q.eq("conversationId", conv._id))
+        .take(500);
+      for (const msg of msgs) {
+        await ctx.db.delete(msg._id);
+      }
+      await ctx.db.delete(conv._id);
+    }
   },
 });

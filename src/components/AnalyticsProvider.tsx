@@ -210,42 +210,43 @@ export default function AnalyticsProvider() {
               </span>
               <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
                 İsteğe bağlı analitik çerezleri site ve parça kullanımını anlamamıza yardım eder.{" "}
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void choose("denied")}
-                  className="font-medium text-amber-500 hover:text-amber-600 hover:underline cursor-pointer disabled:opacity-50"
-                >
-                  Reddet
-                </button>{" "}
-                seçeneğiyle reddedebilir veya{" "}
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => {
-                    setAnalyticsSelection(null);
-                    setPreferences(true);
-                  }}
-                  className="font-medium text-amber-500 hover:text-amber-600 hover:underline cursor-pointer disabled:opacity-50"
-                >
-                  Tercihler
-                </button>{" "}
-                üzerinden düzenleyebilirsiniz.{" "}
                 <Link
                   href="/gizlilik"
                   className="font-medium text-amber-500 hover:text-amber-600 hover:underline"
                 >
-                  Ayrıntılar
+                  Ayrıntılar ve KVKK
                 </Link>
               </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+            <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                onClick={() => {
+                  setAnalyticsSelection(null);
+                  setPreferences(true);
+                }}
+                className="h-9 shrink-0 rounded-xl px-3.5 text-xs font-medium cursor-pointer"
+              >
+                Tercihler
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy}
+                aria-busy={busy}
+                onClick={() => void choose("denied")}
+                className="h-9 shrink-0 rounded-xl px-4 text-xs font-semibold cursor-pointer"
+              >
+                Reddet
+              </Button>
               <Button
                 variant="default"
                 size="sm"
                 disabled={busy}
                 aria-busy={busy}
-                className="w-full sm:w-auto h-9 shrink-0 rounded-xl px-5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs"
+                className="h-9 shrink-0 rounded-xl px-5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white cursor-pointer shadow-xs"
                 onClick={() => void choose("granted")}
               >
                 Kabul et
