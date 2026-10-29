@@ -17,7 +17,7 @@ const fetchProductBySlugCached = unstable_cache(
     return client.query(api.products.getBySlug, { slug });
   },
   ["public-product-by-slug"],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: ["public-data"] },
 );
 
 export const getPublicProductBySlug = cache(async (slug: string) => {
@@ -31,7 +31,7 @@ const fetchCategoryBySlugCached = unstable_cache(
     return client.query(api.categories.getBySlug, { slug });
   },
   ["public-category-by-slug"],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: ["public-data"] },
 );
 
 export const getPublicCategoryBySlug = cache(async (slug: string) => {
@@ -47,7 +47,7 @@ const fetchPublicCategoriesCached = unstable_cache(
     return categories.filter((category) => category.slug.trim().length > 0);
   },
   ["public-categories"],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: ["public-data"] },
 );
 
 export const getPublicCategories = cache(async () => {
@@ -65,7 +65,7 @@ const fetchPublicBrandsCached = unstable_cache(
     );
   },
   ["public-brands"],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: ["public-data"] },
 );
 
 export const getPublicBrands = cache(async () => {

@@ -58,7 +58,7 @@ const fetchFaultCodeCached = unstable_cache(
     });
   },
   ["fault-code-by-code"],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: ["public-data"] },
 );
 
 const getFaultCode = cache(async (codeParam: string) => {
@@ -79,7 +79,7 @@ const fetchAllFaultCodesCached = unstable_cache(
     }
   },
   ["all-fault-codes"],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: ["public-data"] },
 );
 
 const getAllFaultCodes = cache(async () => {

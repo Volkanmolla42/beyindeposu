@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdminApiRequest } from "@/lib/auth/admin-api";
 
 export type RevalidateRequestPayload = {
@@ -34,6 +34,9 @@ export async function POST(req: NextRequest) {
         revalidated.push(item.path);
       }
     }
+
+    // unstable_cache verilerini de temizle, aksi halde 1 saate kadar eski içerik görünür.
+    revalidateTag("public-data", { expire: 0 });
 
     return NextResponse.json({
       success: true,

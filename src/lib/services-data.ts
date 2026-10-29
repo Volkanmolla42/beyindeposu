@@ -20,7 +20,7 @@ const fetchServiceBySlugCached = unstable_cache(
     return await convex().query(api.services.getBySlug, { slug });
   },
   ["service-by-slug"],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: ["public-data"] },
 );
 
 export const getServiceBySlug = cache(
@@ -34,7 +34,7 @@ const fetchPublicServicesCached = unstable_cache(
     return await convex().query(api.services.listPublic, {});
   },
   ["public-services"],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: ["public-data"] },
 );
 
 export const listPublicServices = cache(async (): Promise<ServiceDoc[]> => {
@@ -46,7 +46,7 @@ const fetchSiteContactSettingsCached = unstable_cache(
     return await convex().query(api.settings.getContactSettings, {});
   },
   ["site-contact-settings"],
-  { revalidate: 3600 },
+  { revalidate: 3600, tags: ["public-data"] },
 );
 
 export const getSiteContactSettings = cache(async () => {
