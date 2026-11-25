@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { unstable_cache } from "next/cache";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convex/_generated/api";
 import { absoluteUrl } from "@/lib/seo";
@@ -167,8 +168,14 @@ async function getSitemapEntries(): Promise<SitemapEntry[]> {
   ];
 }
 
+const getCachedSitemapEntries = unstable_cache(
+  getSitemapEntries,
+  ["sitemap-entries-v1"],
+  { revalidate: 86400 },
+);
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const entries = await getSitemapEntries();
+  const entries = await getCachedSitemapEntries();
 
   return entries.map(({ url, lastModified }) =>
     lastModified === undefined ? { url } : { url, lastModified: new Date(lastModified) },

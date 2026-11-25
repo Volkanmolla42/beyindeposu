@@ -4,6 +4,7 @@ import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convex/_generated/api";
+import type { Id } from "@convex/_generated/dataModel";
 
 function getConvexHttpClient() {
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
@@ -76,3 +77,63 @@ export const getPublicBrandBySlug = cache(async (slug: string) => {
   const brands = await getPublicBrands();
   return brands.find((item) => item.slug === slug) ?? null;
 });
+
+const fetchPublicProductStatsCached = unstable_cache(
+  async () => {
+    const client = getConvexHttpClient();
+    if (!client) return null;
+    return client.query(api.products.getStats, {});
+  },
+  ["public-product-stats"],
+  { revalidate: 3600, tags: ["public-data"] },
+);
+
+export const getPublicProductStats = cache(async () => {
+  return fetchPublicProductStatsCached();
+});
+
+const fetchPublicRelatedProductsCached = unstable_cache(
+  async (categoryId?: string, categorySlug?: string) => {
+    const client = getConvexHttpClient();
+    if (!client) return [];
+    if (categoryId) {
+      return client.query(api.products.list, {
+        categoryId: categoryId as Id<"categories">,
+        limit: 4,
+      });
+    }
+    if (categorySlug) {
+      return client.query(api.products.list, {
+        categorySlug,
+        limit: 4,
+      });
+    }
+    return [];
+  },
+  ["public-related-products"],
+  { revalidate: 3600, tags: ["public-data"] },
+);
+
+export const getPublicRelatedProducts = cache(
+  async (categoryId?: Id<"categories">, categorySlug?: string) => {
+    return fetchPublicRelatedProductsCached(categoryId, categorySlug);
+  },
+);
+
+const fetchPublicModelsByBrandsCached = unstable_cache(
+  async (brandsKey: string) => {
+    const client = getConvexHttpClient();
+    if (!client || !brandsKey) return [];
+    const brands = brandsKey.split("|").filter(Boolean);
+    if (brands.length === 0) return [];
+    return client.query(api.products.listModelsByBrand, { brand: brands });
+  },
+  ["public-models-by-brands"],
+  { revalidate: 3600, tags: ["public-data"] },
+);
+
+export async function getPublicModelsByBrands(brands: string[]) {
+  const normalized = [...new Set(brands.map((b) => b.trim()).filter(Boolean))].sort();
+  if (normalized.length === 0) return [];
+  return fetchPublicModelsByBrandsCached(normalized.join("|"));
+}

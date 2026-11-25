@@ -24,7 +24,17 @@ function getBlogSlug(pathname: string): string | null {
   }
 }
 
+const BLOG_SLUG_CACHE_TTL_MS = 5 * 60 * 1000;
+const BLOG_SLUG_CACHE_MAX_ENTRIES = 500;
+const blogSlugCache = new Map<string, { exists: boolean; expiresAt: number }>();
+
 async function publishedBlogExists(slug: string): Promise<boolean | null> {
+  const now = Date.now();
+  const cached = blogSlugCache.get(slug);
+  if (cached && cached.expiresAt > now) {
+    return cached.exists;
+  }
+
   const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
   if (!convexUrl) return null;
 
@@ -51,7 +61,16 @@ async function publishedBlogExists(slug: string): Promise<boolean | null> {
     };
 
     if (result.status !== "success") return null;
-    return typeof result.value === "boolean" ? result.value : null;
+    if (typeof result.value !== "boolean") return null;
+
+    if (blogSlugCache.size >= BLOG_SLUG_CACHE_MAX_ENTRIES) {
+      blogSlugCache.clear();
+    }
+    blogSlugCache.set(slug, {
+      exists: result.value,
+      expiresAt: now + BLOG_SLUG_CACHE_TTL_MS,
+    });
+    return result.value;
   } catch {
     return null;
   }

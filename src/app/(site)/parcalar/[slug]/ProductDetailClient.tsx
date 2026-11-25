@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import WhatsAppIcon from "@/components/WhatsAppIcon";
 import ProductCard from "@/components/ProductCard";
-import { useQuery } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
 import { api } from "@convex/_generated/api";
 import { useContactSettings } from "@/hooks/useContactSettings";
@@ -37,25 +36,23 @@ import {
 interface PageProps {
   slug: string;
   initialProduct: NonNullable<FunctionReturnType<typeof api.products.getBySlug>>;
+  initialRelatedProducts: FunctionReturnType<typeof api.products.list>;
   brandLogoUrl?: string | null;
 }
 
-export default function ProductDetailClient({ slug, initialProduct, brandLogoUrl = null }: PageProps) {
+export default function ProductDetailClient({
+  slug,
+  initialProduct,
+  initialRelatedProducts,
+  brandLogoUrl = null,
+}: PageProps) {
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [copiedOem, setCopiedOem] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
   const product = initialProduct;
-
-  const relatedProducts = useQuery(
-    api.products.list,
-    product.categoryId
-      ? { categoryId: product.categoryId, limit: 4 }
-      : product.categorySlug
-        ? { categorySlug: product.categorySlug, limit: 4 }
-        : "skip"
-  );
+  const relatedProducts = initialRelatedProducts;
 
   const { phoneNumber: displayPhone } = useContactSettings();
 

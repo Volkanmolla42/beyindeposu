@@ -70,19 +70,43 @@ function summarizeEvents(events: AnalyticsEvent[]) {
   return { metrics, breakdowns: Array.from(breakdowns.values()) };
 }
 
-async function sanitizeSearch(ctx: MutationCtx, value: string) {
+const STATIC_SEARCH_TERMS = new Set(["MOTOR", "BEYNİ", "BEYNI", "BEYİN", "BEYIN", "ECU", "ABS", "AIRBAG", "FREN", "ŞANZIMAN", "SANZIMAN", "MODÜL", "MODUL", "SENSÖR", "SENSOR", "KONTROL", "ÜNİTESİ", "UNITESI", "POMPA", "ENJEKTÖR", "ENJEKTOR", "ÇIKMA", "CIKMA", "ORİJİNAL", "ORIJINAL"]);
+
+function brandSlugCandidate(name: string) {
+  return name
+    .toLocaleLowerCase("tr-TR")
+    .replace(/ç/g, "c")
+    .replace(/ğ/g, "g")
+    .replace(/ı/g, "i")
+    .replace(/ö/g, "o")
+    .replace(/ş/g, "s")
+    .replace(/ü/g, "u")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+async function sanitizeSearch(
+  ctx: MutationCtx,
+  value: string,
+  getBrandNames: () => Promise<string[]>,
+) {
   if (value === "[gizlendi]") return value;
   const exact = await ctx.db.query("products").withIndex("by_oemNumber", (q) => q.eq("oemNumber", value)).first();
   if (exact && !exact.isDraft) return exact.oemNumber;
   // Unknown part codes are useful for unmet demand. Numeric phone/ID-shaped input is masked.
   if (/^(?=.{5,16}$)(?=.*[A-Z])(?=.*\d)[A-Z0-9]+$/.test(value) || /^\d{5,9}$/.test(value)) return value;
-  const terms = new Set(["MOTOR", "BEYNİ", "BEYNI", "BEYİN", "BEYIN", "ECU", "ABS", "AIRBAG", "FREN", "ŞANZIMAN", "SANZIMAN", "MODÜL", "MODUL", "SENSÖR", "SENSOR", "KONTROL", "ÜNİTESİ", "UNITESI", "POMPA", "ENJEKTÖR", "ENJEKTOR", "ÇIKMA", "CIKMA", "ORİJİNAL", "ORIJINAL"]);
-  const brands = await ctx.db.query("brands").withIndex("by_order").take(200);
-  for (const brand of brands) for (const word of brand.name.toLocaleUpperCase("tr-TR").split(/\s+/)) terms.add(word);
-  return value.split(" ").every((word) => terms.has(word) || /^\d{1,4}$/.test(word)) ? value : "[gizlendi]";
+  const words = value.split(" ");
+  if (words.every((word) => STATIC_SEARCH_TERMS.has(word) || /^\d{1,4}$/.test(word))) return value;
+  const terms = new Set(STATIC_SEARCH_TERMS);
+  for (const name of await getBrandNames()) for (const word of name.toLocaleUpperCase("tr-TR").split(/\s+/)) terms.add(word);
+  return words.every((word) => terms.has(word) || /^\d{1,4}$/.test(word)) ? value : "[gizlendi]";
 }
 
-async function sanitizeFilter(ctx: MutationCtx, value: string) {
+async function sanitizeFilter(
+  ctx: MutationCtx,
+  value: string,
+  getBrandNames: () => Promise<string[]>,
+) {
   const [kind, key] = value.split(":");
   if (key === "" || key === "Tümü") return `${kind}:tümü`;
   if (kind === "reset") return "reset:tümü";
@@ -91,8 +115,13 @@ async function sanitizeFilter(ctx: MutationCtx, value: string) {
     return item ? `category:${item.slug}` : "category:diğer";
   }
   if (kind === "brand") {
-    const brands = await ctx.db.query("brands").withIndex("by_order").take(200);
-    return brands.some((brand) => brand.name === key) ? value : "brand:diğer";
+    const slug = brandSlugCandidate(key);
+    if (slug) {
+      const bySlug = await ctx.db.query("brands").withIndex("by_slug", (q) => q.eq("slug", slug)).first();
+      if (bySlug && bySlug.name === key) return value;
+    }
+    const brandNames = await getBrandNames();
+    return brandNames.includes(key) ? value : "brand:diğer";
   }
   if (kind === "model") return key === "Seçili" ? "model:seçili" : "model:diğer";
   const allowed = ["condition:Orijinal Çıkma", "condition:Sıfır - Orijinal", "condition:Revizyonlu", "condition:Sıfırlanmış - Virgin", "stock:Stokta", "stock:Stokta Yok", "sort:date-desc", "sort:date-asc", "sort:title-asc", "sort:title-desc", "sort:oem-asc", "sort:oem-desc"];
@@ -117,6 +146,13 @@ export const ingest = mutation({
     if (remainingEvents <= 0) return { accepted: 0 };
     const events: AnalyticsEvent[] = [];
     const seen = new Set<string>();
+    let cachedBrandNames: string[] | null = null;
+    const getBrandNames = async () => {
+      if (cachedBrandNames) return cachedBrandNames;
+      const brands = await ctx.db.query("brands").withIndex("by_order").take(200);
+      cachedBrandNames = brands.map((brand) => brand.name);
+      return cachedBrandNames;
+    };
     for (const input of args.events) {
       if (events.length >= remainingEvents) break;
       const event = cleanEvent(input);
@@ -135,8 +171,8 @@ export const ingest = mutation({
         const category = await ctx.db.query("categories").withIndex("by_slug", (q) => q.eq("slug", event.path.slice(13))).first();
         if (!category || category.isActive === false) continue;
       }
-      if (event.name === "search") event.value = await sanitizeSearch(ctx, event.value ?? "[gizlendi]");
-      if (event.name === "filter_change" && event.value !== undefined) event.value = await sanitizeFilter(ctx, event.value);
+      if (event.name === "search") event.value = await sanitizeSearch(ctx, event.value ?? "[gizlendi]", getBrandNames);
+      if (event.name === "filter_change" && event.value !== undefined) event.value = await sanitizeFilter(ctx, event.value, getBrandNames);
       events.push(event);
     }
     if (!events.length) return { accepted: 0 };

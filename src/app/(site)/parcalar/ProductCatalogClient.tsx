@@ -47,7 +47,26 @@ function readFilterValues(searchParamsKey: string, key: string) {
   )];
 }
 
-export default function ProductCatalogClient() {
+type CatalogCategoryOption = {
+  slug: string;
+  name: string;
+};
+
+type CatalogBrandOption = {
+  name: string;
+};
+
+type ProductCatalogClientProps = {
+  categories: CatalogCategoryOption[];
+  brands: CatalogBrandOption[];
+  totalCatalogCount: number | null;
+};
+
+export default function ProductCatalogClient({
+  categories,
+  brands,
+  totalCatalogCount,
+}: ProductCatalogClientProps) {
   const { phoneNumber } = useContactSettings();
   const searchParams = useSearchParams();
   const searchParamsKey = searchParams.toString();
@@ -63,6 +82,7 @@ export default function ProductCatalogClient() {
   const [searchDraft, setSearchDraft] = useState({ query: queryParam, value: queryParam });
   const oemSearch = searchDraft.query === activeSearch ? searchDraft.value : activeSearch;
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
   const pageSize = 24;
   const [pagination, setPagination] = useState<{
     key: string;
@@ -88,11 +108,27 @@ export default function ProductCatalogClient() {
     }
   };
 
-  const categories = useQuery(api.categories.list, {});
-  const availableModels = useQuery(
-    api.products.listModelsByBrand,
-    selectedBrands.length > 0 ? { brand: selectedBrands } : "skip",
-  );
+  const selectedBrandsKey = selectedBrands.join("|");
+  useEffect(() => {
+    if (!selectedBrandsKey) {
+      setAvailableModels([]);
+      return;
+    }
+    const controller = new AbortController();
+    const params = new URLSearchParams();
+    for (const brand of selectedBrandsKey.split("|")) {
+      params.append("brand", brand);
+    }
+    fetch(`/api/catalog/models?${params.toString()}`, { signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data: unknown) => {
+        if (Array.isArray(data)) {
+          setAvailableModels(data.filter((item): item is string => typeof item === "string"));
+        }
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [selectedBrandsKey]);
 
   const productFilters = {
     categorySlug: selectedCategories.length > 0 ? selectedCategories : undefined,
@@ -113,9 +149,6 @@ export default function ProductCatalogClient() {
       cursor: currentPagination.cursors[currentPage - 1] ?? null,
     },
   });
-
-  const brands = useQuery(api.brands.list, {});
-  const productStats = useQuery(api.products.getStats, {});
 
   const products = pageData?.page;
   const consent = useAnalyticsConsent();
@@ -229,10 +262,6 @@ export default function ProductCatalogClient() {
     + selectedBrands.length
     + selectedModels.length
     + selectedConditions.length;
-
-  const totalCatalogCount = productStats
-    ? (productStats.published ?? productStats.total)
-    : null;
 
   const partCountLabel = useMemo(() => {
     if (!hasActiveFilters && totalCatalogCount !== null) {

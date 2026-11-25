@@ -1,6 +1,11 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { createPageMetadata, SITE_NAME } from "@/lib/seo";
+import {
+  getPublicBrands,
+  getPublicCategories,
+  getPublicProductStats,
+} from "@/lib/seo-data";
 import ProductCatalogClient from "@/app/(site)/parcalar/ProductCatalogClient";
 import { CatalogSkeleton } from "@/components/RouteSkeletons";
 
@@ -52,10 +57,26 @@ export async function generateMetadata({ searchParams }: ParcalarPageProps): Pro
     : metadata;
 }
 
-export default function ParcalarPage() {
+export default async function ParcalarPage() {
+  const [categories, brands, productStats] = await Promise.all([
+    getPublicCategories(),
+    getPublicBrands(),
+    getPublicProductStats(),
+  ]);
+
+  const initialCategories = categories.map((c) => ({ slug: c.slug, name: c.name }));
+  const initialBrands = brands.map((b) => ({ name: b.name }));
+  const totalCatalogCount = productStats
+    ? (productStats.published ?? productStats.total)
+    : null;
+
   return (
     <Suspense fallback={<CatalogSkeleton />}>
-      <ProductCatalogClient />
+      <ProductCatalogClient
+        categories={initialCategories}
+        brands={initialBrands}
+        totalCatalogCount={totalCatalogCount}
+      />
     </Suspense>
   );
 }

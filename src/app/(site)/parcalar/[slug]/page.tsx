@@ -8,7 +8,11 @@ import {
   serializeJsonLd,
   SITE_NAME,
 } from "@/lib/seo";
-import { getPublicBrands, getPublicProductBySlug } from "@/lib/seo-data";
+import {
+  getPublicBrands,
+  getPublicProductBySlug,
+  getPublicRelatedProducts,
+} from "@/lib/seo-data";
 import { PRODUCT_IMAGE_PLACEHOLDER } from "@/lib/product-images";
 import { slugify, LOCAL_BRAND_LOGOS } from "@/app/admin/admin-utils";
 import { ProductDetailSkeleton } from "@/components/RouteSkeletons";
@@ -82,6 +86,11 @@ async function ProductDetailContent({ params }: ProductRouteProps) {
 
   if (!product) notFound();
 
+  const relatedProducts = await getPublicRelatedProducts(
+    product.categoryId,
+    product.categorySlug,
+  );
+
   const brandSlug = product.brand ? slugify(product.brand) : "";
   const brandInfo = brands.find(
     (b) =>
@@ -125,7 +134,12 @@ async function ProductDetailContent({ params }: ProductRouteProps) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(structuredData) }}
       />
       <Suspense fallback={<ProductDetailSkeleton />}>
-        <ProductDetailClient slug={slug} initialProduct={product} brandLogoUrl={brandLogoUrl} />
+        <ProductDetailClient
+          slug={slug}
+          initialProduct={product}
+          initialRelatedProducts={relatedProducts}
+          brandLogoUrl={brandLogoUrl}
+        />
       </Suspense>
     </>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { unstable_cache } from "next/cache";
 import { ConvexHttpClient } from "convex/browser";
 import { api } from "@convex/_generated/api";
 import { SITE_NAME, SITE_URL, serializeJsonLd } from "@/lib/seo";
@@ -30,11 +31,15 @@ export const metadata: Metadata = {
   },
 };
 
-async function getFaultCodes() {
-  const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-  if (!convexUrl) throw new Error("NEXT_PUBLIC_CONVEX_URL is not configured.");
-  return await new ConvexHttpClient(convexUrl).query(api.faultCodes.listPublic, {});
-}
+const getFaultCodes = unstable_cache(
+  async () => {
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) return [];
+    return await new ConvexHttpClient(convexUrl).query(api.faultCodes.listPublic, {});
+  },
+  ["all-fault-codes"],
+  { revalidate: 3600, tags: ["public-data"] },
+);
 
 export default async function FaultCodesPage() {
   const codes = await getFaultCodes();
